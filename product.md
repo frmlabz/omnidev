@@ -20,19 +20,20 @@ OmniDev is a meta-MCP that eliminates context bloat by exposing only **2 tools**
 3. [Architecture Overview](#architecture-overview)
 4. [The Two MCP Tools](#the-two-mcp-tools)
 5. [Capabilities System](#capabilities-system)
-6. [Environment & Secrets](#environment--secrets)
-7. [Skills & Rules System](#skills--rules-system)
-8. [Agent Sync & Multi-Provider Support](#agent-sync--multi-provider-support)
-9. [Sandbox Environment](#sandbox-environment)
-10. [Git Safety Layer](#git-safety-layer)
-11. [Directory Structure](#directory-structure)
-12. [Configuration System](#configuration-system)
-13. [Profiles System](#profiles-system)
-14. [Task & Plan Management](#task--plan-management)
-15. [CLI Interface](#cli-interface)
-16. [Demo Scenarios](#demo-scenarios)
-17. [Technical Notes](#technical-notes)
-18. [Future Features](#future-features)
+6. [Dependency Management & Workspaces](#dependency-management--workspaces)
+7. [Environment & Secrets](#environment--secrets)
+8. [Skills & Rules System](#skills--rules-system)
+9. [Agent Sync & Multi-Provider Support](#agent-sync--multi-provider-support)
+10. [Sandbox Environment](#sandbox-environment)
+11. [Git Safety Layer](#git-safety-layer)
+12. [Directory Structure](#directory-structure)
+13. [Configuration System](#configuration-system)
+14. [Profiles System](#profiles-system)
+15. [Task & Plan Management](#task--plan-management)
+16. [CLI Interface](#cli-interface)
+17. [Demo Scenarios](#demo-scenarios)
+18. [Technical Notes](#technical-notes)
+19. [Future Features](#future-features)
 
 ---
 
@@ -474,6 +475,205 @@ export const cliViews = {
 
 ---
 
+## Dependency Management & Workspaces
+
+This is a critical architectural decision. Since performance and simplicity are core goals, OmniDev adopts a **Bun Workspaces** approach combined with **Symlinking** for the sandbox.
+
+This avoids the complexity of bundling or copying massive `node_modules` folders while keeping the sandbox fast and standard.
+
+### The Core Insight: "Capabilities are Packages"
+
+Each capability is a standard Bun/npm package with its own `package.json`. The user's project root becomes a Bun Workspace.
+
+```
+my-project/
+├── package.json              # Defines workspace: ["omni/capabilities/*"]
+├── node_modules/             # Shared dependencies (hoisted)
+├── omni/
+│   └── capabilities/
+│       ├── tasks/
+│       │   ├── package.json  # Dependencies for 'tasks' (e.g. uuid, zod)
+│       │   ├── capability.toml
+│       │   ├── index.ts
+│       │   └── ...
+│       └── aws/
+│           ├── package.json  # Dependencies for 'aws' (e.g. @aws-sdk/client-s3)
+│           ├── capability.toml
+│           └── index.ts
+└── .omni/
+    └── sandbox/              # Execution environment
+        └── node_modules/     # Symlinks to capabilities
+```
+
+### How Dependencies Are Loaded
+
+When the user runs `bun install` (or `omnidev install`):
+
+1. Bun detects the workspace configuration in root `package.json`
+2. It installs all dependencies for all capabilities into the root `node_modules/`
+3. It links the capabilities themselves into `node_modules/` so they can import each other
+
+**Why this is best:**
+- **Speed**: No need to run `npm install` inside every capability folder manually
+- **Disk Space**: Common dependencies (like `lodash` or `zod`) are shared/hoisted
+- **Standard**: This is how modern JS/TS monorepos work
+
+### How the Sandbox Loads Capabilities
+
+The LLM writes code like:
+
+```typescript
+import * as tasks from 'tasks';
+// ...
+```
+
+But `tasks` is located in `omni/capabilities/tasks`. The sandbox needs to resolve this.
+
+**Solution: Symlinked Sandbox Modules**
+
+Before running `omni_execute`, OmniDev prepares the sandbox:
+
+1. Create/ensure `.omni/sandbox/node_modules/` exists
+2. Symlink active capabilities into that folder
+3. Execute the script with `.omni/sandbox/` as the working directory
+
+```
+.omni/sandbox/node_modules/tasks → ../../../omni/capabilities/tasks
+.omni/sandbox/node_modules/aws   → ../../../omni/capabilities/aws
+```
+
+**Dependency Resolution Flow:**
+
+```
+import ... from 'tasks'
+    → Found in .omni/sandbox/node_modules/tasks (Symlink)
+
+Inside tasks, it does: import { S3 } from '@aws-sdk/client-s3'
+    → Bun looks in tasks/node_modules (Empty)
+    → Bun walks up the directory tree to project root node_modules
+    → Success! It finds the SDK installed by the workspace
+```
+
+### Implementation Details
+
+#### `capability.toml` vs `package.json`
+
+Keep both, with clear responsibilities:
+
+| File | Purpose |
+|------|---------|
+| `capability.toml` | OmniDev-specific metadata: `[cli]`, `[env]`, `[mcp]`, skills, rules |
+| `package.json` | Standard npm package: dependencies, `main` entry point |
+
+`index.ts` should be the `main` entry in `package.json`.
+
+**Example `package.json` for a capability:**
+
+```json
+{
+  "name": "tasks",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "zod": "^3.22.0"
+  }
+}
+```
+
+#### `omnidev init` Command Updates
+
+Must generate a root `package.json` if one doesn't exist:
+
+```json
+{
+  "name": "my-omnidev-project",
+  "private": true,
+  "workspaces": [
+    "omni/capabilities/*"
+  ]
+}
+```
+
+#### Sandbox Pre-flight Check
+
+When `omni_execute` receives code, it quickly verifies symlinks exist:
+
+```typescript
+// packages/mcp/src/sandbox.ts
+import { symlink, mkdir } from 'fs/promises';
+import { join } from 'path';
+
+async function prepareSandbox(activeCapabilities: Capability[]) {
+  const sandboxNodeModules = '.omni/sandbox/node_modules';
+  await mkdir(sandboxNodeModules, { recursive: true });
+  
+  for (const cap of activeCapabilities) {
+    const linkPath = join(sandboxNodeModules, cap.config.exports?.module ?? cap.id);
+    const targetPath = `../../../omni/capabilities/${cap.id}`;
+    
+    try {
+      await symlink(targetPath, linkPath);
+    } catch (e) {
+      // Link may already exist
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+    }
+  }
+}
+```
+
+### Handling Remote Capabilities (Future)
+
+When the Capability Hub is added:
+
+1. `omnidev install user/cool-tool` downloads the folder to `omni/capabilities/cool-tool/`
+2. OmniDev runs `bun install` at the project root
+3. The workspace picks up the new `package.json` and installs its dependencies
+4. Symlinks are created on next `omni_execute`
+5. Ready to use
+
+### Naming Collision Mitigation
+
+**Risk**: A capability named `fs` or `path` (shadowing built-ins) or `react` (shadowing npm packages).
+
+**Mitigation strategies:**
+
+| Strategy | Description |
+|----------|-------------|
+| **Block reserved names** | Reject capabilities named `fs`, `path`, `http`, `crypto`, etc. |
+| **Namespace prefix** | Force imports to be `@cap/tasks` instead of `tasks` |
+| **Validation on load** | Warn if a capability name shadows a common npm package |
+
+**MVP approach**: Block reserved names. Maintain a deny-list of Node.js built-ins and common npm packages.
+
+```typescript
+const RESERVED_NAMES = [
+  // Node.js built-ins
+  'fs', 'path', 'http', 'https', 'crypto', 'os', 'child_process',
+  'stream', 'buffer', 'util', 'events', 'net', 'url', 'querystring',
+  // Common npm packages
+  'react', 'vue', 'lodash', 'axios', 'express', 'typescript',
+];
+
+function validateCapabilityName(name: string): void {
+  if (RESERVED_NAMES.includes(name)) {
+    throw new Error(`Capability name "${name}" is reserved. Choose a different name.`);
+  }
+}
+```
+
+### Summary of Advantages
+
+| Benefit | Description |
+|---------|-------------|
+| **Zero Build Step** | No bundling with Webpack/Esbuild. Run raw TypeScript via Bun. |
+| **Native Speed** | Symlinks are instant. No file copying. |
+| **Great DX** | Edit `omni/capabilities/tasks/index.ts`, next sandbox run uses changes immediately. |
+| **Standard Tooling** | Works with any npm/Bun tooling. `bun install` just works. |
+| **Shared Dependencies** | Common packages hoisted to root. Saves disk space. |
+
+---
+
 ## Environment & Secrets
 
 ### The Problem
@@ -652,82 +852,274 @@ Different AI assistants use different configuration formats:
 - **Claude Code**: `.claude/claude.md` + `.claude/skills/` directory
 - **Cursor**: `.cursor/rules/*.mdc` files
 
-Manually maintaining these is tedious and error-prone.
+**Additional problem**: If we generate rules directly into committed files, switching profiles dirties git. Every profile switch = changed files = noisy diffs.
 
-### The Solution
+### The Solution: Reference Pattern
 
-`omnidev agents sync` collects skills and rules from all enabled capabilities (based on active profile) and generates the appropriate files for each provider.
+Generated content goes to `.omni/` (gitignored). Committed agent files **reference** the generated files.
+
+**How it works:**
+1. `omnidev agents sync` generates rules/skills to `.omni/generated/`
+2. Committed files (`agents.md`, `.claude/claude.md`) contain static references
+3. Profile switching only changes gitignored files — **git stays clean**
 
 **Command:**
 ```bash
 # Sync with current profile's enabled capabilities
 omnidev agents sync
 
-# Sync only for specific providers
-omnidev agents sync --providers claude,cursor
+# Switch profile and auto-sync
+omnidev profile set frontend  # Also runs agents sync
 ```
 
 ### What Gets Generated
 
-| Provider | Output Files | Contents |
-|----------|--------------|----------|
-| Generic | `agents.md` | All skills + rules from enabled capabilities |
-| Claude Code | `.claude/claude.md` | All skills + rules from enabled capabilities |
-| | `.claude/skills/` | Symlinks to capability skill directories |
-| Cursor | `.cursor/rules/omnidev.mdc` | All skills + rules (MDC format) |
+**Skills** are written directly to provider locations (where they're discovered):
+
+| Location | Git Status | Contents |
+|----------|------------|----------|
+| `.claude/skills/` | **Gitignored** | Skills for Claude Code (direct write) |
+| `.cursor/rules/omnidev-*.mdc` | **Gitignored** | Rules for Cursor (direct write) |
+| `.codex/skills/` | **Gitignored** | Skills for Codex (direct write) |
+
+**Other generated content** goes to `.omni/generated/`:
+
+| Location | Git Status | Contents |
+|----------|------------|----------|
+| `.omni/generated/rules.md` | Gitignored | Compiled rules (for reference files) |
+| `.omni/generated/types.d.ts` | Gitignored | Type definitions for `omni_query` |
+| `.omni/active-profile` | Gitignored | Current profile name |
+
+### Why Skills Go Directly to Provider Locations
+
+Providers discover skills in specific directories:
+- Claude Code looks in `.claude/skills/`
+- Cursor looks in `.cursor/rules/`
+- Codex looks in `.codex/skills/`
+
+We can't change where they look, so we write directly there. **These directories should be gitignored** since they're profile-dependent.
+
+### Committed Reference Files
+
+These files are committed once and rarely change:
+
+**`agents.md`** (committed):
+```markdown
+# Agent Configuration
+
+> Managed by OmniDev. Do not edit directly.
+> Run `omnidev agents sync` to update.
+
+<!-- Import generated rules (gitignored) -->
+@import .omni/generated/rules.md
+```
+
+**`.claude/claude.md`** (committed):
+```markdown
+# Claude Code Configuration
+
+> Managed by OmniDev.
+> Skills are in `.claude/skills/` (gitignored, profile-dependent)
+> Run `omnidev agents sync` to regenerate.
+
+See: `.omni/generated/rules.md` for current rules.
+```
 
 ### Example Output Structure
 
 ```
 project-root/
-├── agents.md                    # Generic agent config
+├── agents.md                    # COMMITTED (static reference)
 ├── .claude/
-│   ├── claude.md                # Claude Code config
-│   └── skills/                  # Symlinks to skill directories
-│       ├── tasks -> ../omni/capabilities/tasks/skills
-│       └── code-quality -> ../omni/capabilities/code-quality/skills
+│   ├── claude.md                # COMMITTED (static reference)
+│   └── skills/                  # GITIGNORED (generated directly here)
+│       ├── task-management/
+│       │   └── SKILL.md
+│       └── code-review/
+│           └── SKILL.md
 ├── .cursor/
 │   └── rules/
-│       └── omnidev.mdc          # Cursor rules
-├── omni/                        # Visible, committed
-│   ├── config.toml
+│       ├── .gitignore           # Ignore omnidev-*.mdc
+│       └── omnidev-tasks.mdc    # GITIGNORED (generated directly here)
+├── omni/                        # COMMITTED
+│   ├── config.toml              # Team config, profiles defined here
 │   └── capabilities/
 │       └── ...
-└── .omni/                       # Hidden, gitignored
-    ├── config.local.toml
-    ├── .env
-    └── state/
+└── .omni/                       # GITIGNORED
+    ├── config.local.toml        # Personal overrides
+    ├── .env                     # Secrets
+    ├── active-profile           # Current profile name (e.g., "frontend")
+    ├── generated/               # Other generated content
+    │   ├── rules.md             # Compiled rules for current profile
+    │   └── types.d.ts           # Type definitions
+    ├── state/
+    └── sandbox/
 ```
+
+### Gitignore Entries
+
+`omnidev init` adds these to `.gitignore`:
+
+```gitignore
+# OmniDev - local state and generated content
+.omni/
+
+# Provider-specific generated content (profile-dependent)
+.claude/skills/
+.cursor/rules/omnidev-*.mdc
+.codex/skills/
+```
+
+### Why This Design?
+
+| Scenario | Old Design | New Design |
+|----------|------------|------------|
+| Switch profile | `agents.md` changes, dirty git | Only gitignored dirs change |
+| Team member pulls | Gets your profile's rules | Gets reference files, generates own |
+| CI/CD | Profile state in repo | Profile set per environment |
+| Skills discovery | Providers can't find them | Written directly where providers look |
 
 ### How Profiles Affect Output
 
-Profiles control which capabilities are enabled. When you switch profiles and re-run `omnidev agents sync`, the output changes because different capabilities (with their skills and rules) become active.
+Profiles control which capabilities are enabled. When you switch profiles, `.omni/generated/` is updated with the new profile's rules and skills.
 
 **Example:** If you have two profiles:
 - `frontend` profile enables: `tasks`, `react-rules`, `css-standards`
 - `backend` profile enables: `tasks`, `api-rules`, `database-rules`
 
-Running `omnidev agents sync` with the `frontend` profile produces different output than running it with the `backend` profile.
+```bash
+# Switch to frontend profile
+omnidev profile set frontend
 
-**Example `agents.md`:**
+# This updates:
+# - .omni/active-profile → "frontend"
+# - .omni/generated/rules.md → rules from tasks, react-rules, css-standards
+# - .omni/generated/skills.md → skills from those capabilities
+# - .omni/generated/types.d.ts → type definitions
+#
+# Git stays clean! Only .omni/ (gitignored) changes.
+```
+
+**Example `.omni/generated/rules.md`** (gitignored, generated):
 ```markdown
-# Agent Configuration
+# Active Rules
 
-> Generated by OmniDev
-> Run `omnidev agents sync` to regenerate
+> Profile: frontend
+> Generated: 2026-01-08T10:30:00Z
+> Capabilities: tasks, react-rules, css-standards
 
-## Skills
+## task-workflow (from tasks)
 
-### task-management
-Maintain an explicit plan and update tasks as work progresses.
-[Full skill content...]
-
-## Rules
-
-### task-workflow
 - Always check the current task list before starting new work
 - Keep exactly one task in_progress at a time
-[Full rule content...]
+
+## react-best-practices (from react-rules)
+
+- Use functional components with hooks
+- Keep components small and focused
+...
+```
+
+---
+
+## Hot Reload & Change Detection
+
+The OmniDev MCP server must react to changes in configuration, capabilities, and generated files.
+
+### What Triggers a Reload
+
+| Change | Effect |
+|--------|--------|
+| `omni/config.toml` modified | Reload config, re-resolve enabled capabilities |
+| `.omni/config.local.toml` modified | Reload config, re-resolve enabled capabilities |
+| `omni/capabilities/*/` modified | Reload affected capability |
+| `.omni/active-profile` modified | Reload with new profile's capabilities |
+| `omnidev profile set <name>` | Write `.omni/active-profile`, trigger sync, notify server |
+| `omnidev agents sync` | Regenerate `.omni/generated/*`, notify server |
+
+### Implementation Options
+
+**Option A: File Watching (Recommended for MVP)**
+
+```typescript
+// packages/mcp/src/watcher.ts
+import { watch } from 'fs';
+
+const WATCH_PATHS = [
+  'omni/config.toml',
+  '.omni/config.local.toml',
+  '.omni/active-profile',
+  'omni/capabilities/',
+];
+
+export function startWatcher(onReload: () => void) {
+  for (const path of WATCH_PATHS) {
+    watch(path, { recursive: true }, (event, filename) => {
+      console.log(`[omnidev] Change detected: ${filename}`);
+      onReload();
+    });
+  }
+}
+```
+
+**Option B: Signal-Based (Unix)**
+
+CLI commands send a signal to the running server:
+
+```bash
+# omnidev profile set frontend
+# 1. Writes .omni/active-profile
+# 2. Runs agents sync
+# 3. Sends SIGHUP to omnidev server (if running)
+kill -HUP $(cat .omni/server.pid)
+```
+
+**Option C: State File Polling**
+
+Server checks `.omni/state/reload-trigger` before each operation:
+
+```typescript
+// Before handling omni_query or omni_execute
+const trigger = await Bun.file('.omni/state/reload-trigger').text();
+if (trigger !== lastTrigger) {
+  await reloadCapabilities();
+  lastTrigger = trigger;
+}
+```
+
+### Automatic Sync on Profile Switch
+
+`omnidev profile set` should be a single command that does everything:
+
+```bash
+omnidev profile set frontend
+```
+
+This command:
+1. Writes `frontend` to `.omni/active-profile`
+2. Runs `omnidev agents sync` (regenerates `.omni/generated/*`)
+3. Notifies the MCP server to reload (if running)
+
+```typescript
+// packages/cli/src/commands/profile.ts
+export async function setProfile(name: string) {
+  // 1. Validate profile exists
+  const config = await loadConfig();
+  if (!config.profiles?.[name]) {
+    throw new Error(`Unknown profile: ${name}`);
+  }
+  
+  // 2. Write active profile
+  await Bun.write('.omni/active-profile', name);
+  
+  // 3. Regenerate agent files
+  await syncAgents();
+  
+  // 4. Notify server (if running)
+  await notifyServer('reload');
+  
+  console.log(`✓ Switched to profile: ${name}`);
+}
 ```
 
 ---
@@ -832,17 +1224,29 @@ omnidev/
 
 ### User Project Structure
 
-OmniDev uses a **split directory strategy**: visible `omni/` for committed code, hidden `.omni/` for local state.
+OmniDev uses a **split directory strategy**: visible `omni/` for committed code, provider directories for skills (gitignored), `.omni/` for local state.
 
 ```
 project-root/
+├── agents.md                           # COMMITTED (static reference)
+├── .claude/
+│   ├── claude.md                       # COMMITTED (static reference)
+│   └── skills/                         # GITIGNORED (skills written directly here)
+│       └── task-management/
+│           └── SKILL.md
+├── .cursor/
+│   └── rules/
+│       ├── team-rules.mdc              # COMMITTED (team rules, optional)
+│       └── omnidev-tasks.mdc           # GITIGNORED (generated by OmniDev)
+│
 ├── omni/                               # OMNI_PROJECT (visible, COMMITTED)
-│   ├── config.toml                     # Shared project configuration
+│   ├── config.toml                     # Shared project configuration + profiles
 │   ├── capabilities/                   # THE CAPABILITY REGISTRY
 │   │   ├── tasks/                      # A built-in capability
 │   │   │   ├── capability.toml
 │   │   │   ├── definition.md
 │   │   │   ├── index.ts
+│   │   │   ├── types.d.ts              # Type definitions for LLM
 │   │   │   ├── tools/
 │   │   │   │   └── taskManager.ts
 │   │   │   ├── cli/
@@ -854,7 +1258,7 @@ project-root/
 │   │   │   │   └── task-workflow.md
 │   │   │   └── skills/
 │   │   │       └── task-management/
-│   │   │           └── SKILL.md
+│   │   │           └── SKILL.md        # Source skill (in capability)
 │   │   ├── aws/                        # An MCP-based capability
 │   │   │   ├── capability.toml         # Includes [mcp] and [env] config
 │   │   │   └── definition.md
@@ -867,10 +1271,15 @@ project-root/
 ├── .omni/                              # OMNI_LOCAL (hidden, GITIGNORED)
 │   ├── config.local.toml               # Local overrides (personal settings)
 │   ├── .env                            # Local secrets (API keys, tokens)
+│   ├── active-profile                  # Current profile name (e.g., "frontend")
+│   ├── generated/                      # Other generated content
+│   │   ├── rules.md                    # Compiled rules from enabled capabilities
+│   │   └── types.d.ts                  # Combined type definitions
 │   ├── state/                          # Runtime state (tasks DB, cache, etc.)
 │   ├── sandbox/                        # Execution scratch
-│   └── types/                          # Generated .d.ts files for capabilities
-│       └── capabilities.d.ts
+│   └── server.pid                      # PID file for hot reload signals
+│
+└── .gitignore                          # Includes: .omni/, .claude/skills/, etc.
 │
 └── .gitignore                          # Must include: .omni/
 ```
@@ -1058,18 +1467,22 @@ Capabilities can contribute commands that appear under `omnidev <capability> <co
 ## Technical Notes
 
 *   **Not a security boundary**: The "sandbox" is trusted local execution; guardrails are UX features (git checkpoints, confirmations, lint/test hooks).
-*   **Directory split**: `omni/` is visible and committed (capabilities, shared config); `.omni/` is hidden and gitignored (state, sandbox, secrets).
+*   **Directory split**: `omni/` is visible and committed (capabilities, shared config); `.omni/` is hidden and gitignored (state, sandbox, secrets, generated files).
+*   **Reference pattern**: Committed agent files (`agents.md`, `.claude/claude.md`) reference gitignored generated files in `.omni/generated/`. Profile switching doesn't dirty git.
+*   **Generated files**: All profile-dependent output goes to `.omni/generated/` (rules.md, skills.md, types.d.ts, cursor-rules.md).
+*   **Active profile**: Stored in `.omni/active-profile` (gitignored). Read at startup and when reloading.
+*   **Hot reload**: MCP server watches config and capability files. Profile switch triggers automatic sync and reload notification.
 *   **Capability loading**: Discover `omni/capabilities/*/capability.toml`, dynamically `import()` the `index.ts`, and register exports.
 *   **MCP bridging**: When `[mcp]` is present, spawn/supervise the server and generate callable wrappers from the tool schemas.
-*   **Type generation**: On capability load, generate `.d.ts` files to `.omni/types/` for LLM consumption via `omni_query`.
+*   **Type generation**: On capability load, generate `.d.ts` files to `.omni/generated/types.d.ts` for LLM consumption via `omni_query`.
 *   **Indexing**: `definition.md` + `docs/` should be searchable via `omni_query` without dumping full documents into context.
 *   **Environment injection**: Load `[env]` from capability.toml, merge with `.omni/.env` and process env, inject into sandbox.
 *   **Secret masking**: Variables marked `secret = true` are masked in logs and error messages.
 *   **CLI extension**: Stricli commands from capabilities are merged into the main CLI at startup.
 *   **TUI rendering**: OpenTUI views are rendered when a command specifies a view in `cliViews`.
 *   **Skills loading**: `skills/*/SKILL.md` files are parsed (YAML frontmatter + Markdown body) and collected at startup.
-*   **Rules loading**: `rules` exports from capabilities are collected and filtered by active profile.
-*   **Agent sync**: Provider generators transform skills + rules into provider-specific formats and write to appropriate locations.
+*   **Rules loading**: `rules/*.md` from capabilities are collected and filtered by active profile.
+*   **Agent sync**: `omnidev agents sync` compiles skills + rules → `.omni/generated/`. `omnidev profile set` automatically calls sync.
 
 ---
 
@@ -1077,5 +1490,4 @@ Capabilities can contribute commands that appear under `omnidev <capability> <co
 
 *   **Remote Sandboxes**: Execute code in a cloud container for heavy workloads.
 *   **Capability Hub**: `omnidev install user/capability`.
-*   **Hot Reload**: Reload capabilities without restarting the server.
 *   **Binary Distribution**: Compile to single executable via `bun build --compile`.

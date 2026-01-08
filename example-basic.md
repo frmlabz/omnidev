@@ -15,14 +15,30 @@ This is a complete example of a built-in **Tasks & Plan Management** capability 
 
 ## On-disk layout
 
-OmniDev uses a **split directory structure**: `omni/` (visible, committed) for capabilities and shared config, `.omni/` (hidden, gitignored) for state and secrets.
+OmniDev uses a **split directory structure**: `omni/` (visible, committed) for capabilities, provider directories (gitignored) for skills, `.omni/` (hidden, gitignored) for state and secrets.
+
+**Key insight**: Skills go directly to provider locations (`.claude/skills/`, `.cursor/rules/`). These are gitignored, so profile switching keeps git clean.
 
 ```
 project-root/
+├── package.json                # Bun workspace: ["omni/capabilities/*"]
+├── node_modules/               # Shared dependencies (hoisted)
+├── agents.md                   # COMMITTED (static reference)
+├── .claude/
+│   ├── claude.md               # COMMITTED (static reference)
+│   └── skills/                 # GITIGNORED (skills generated directly here)
+│       └── task-management/
+│           └── SKILL.md
+├── .cursor/
+│   └── rules/
+│       └── omnidev-tasks.mdc   # GITIGNORED (generated directly here)
+│
 ├── omni/                       # VISIBLE, COMMITTED
+│   ├── config.toml             # Team config + profile definitions
 │   └── capabilities/
 │       └── tasks/
-│           ├── capability.toml     # Configuration (incl. [env] declarations)
+│           ├── package.json        # npm package (dependencies)
+│           ├── capability.toml     # OmniDev config (CLI, env, metadata)
 │           ├── definition.md       # Documentation
 │           ├── index.ts            # Main exports (tools, CLI, views)
 │           ├── types.d.ts          # Type definitions for LLM
@@ -40,14 +56,29 @@ project-root/
 │           │   └── task-workflow.md
 │           └── skills/
 │               └── task-management/
-│                   └── SKILL.md
+│                   └── SKILL.md    # SOURCE skill (copied to providers)
 │
 └── .omni/                      # HIDDEN, GITIGNORED
+    ├── config.local.toml       # Personal overrides
+    ├── .env                    # Secrets
+    ├── active-profile          # Current profile (e.g., "frontend")
+    ├── generated/              # Other generated content
+    │   ├── rules.md            # Compiled rules (for agents.md reference)
+    │   └── types.d.ts          # Combined type definitions
+    ├── sandbox/                # Execution environment
+    │   └── node_modules/       # Symlinks to capabilities
+    │       └── tasks → ../../../omni/capabilities/tasks
     ├── state/
     │   ├── tasks.json          # Task database (runtime state)
     │   └── plan.json           # Plan data (runtime state)
-    └── types/
-        └── capabilities.d.ts   # Generated type definitions
+    └── server.pid              # For hot reload signals
+```
+
+**Gitignore entries** (added by `omnidev init`):
+```gitignore
+.omni/
+.claude/skills/
+.cursor/rules/omnidev-*.mdc
 ```
 
 ---
@@ -75,8 +106,38 @@ module = "tasks"
 # TASKS_TIMEOUT = { default = "30000" }
 ```
 
+---
+
+## `package.json`
+
+Each capability is a standard npm/Bun package. This enables Bun Workspaces to manage dependencies.
+
+```json
+{
+  "name": "tasks",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "type": "module",
+  "dependencies": {
+    "zod": "^3.22.0"
+  }
+}
+```
+
+**Why both `capability.toml` and `package.json`?**
+
+| File | Purpose |
+|------|---------|
+| `capability.toml` | OmniDev-specific: `[cli]`, `[env]`, `[mcp]`, metadata |
+| `package.json` | Standard npm: dependencies, entry point |
+
+When you run `bun install` at the project root, all capability dependencies are installed to the shared `node_modules/`.
+
+---
+
 **What OmniDev discovers automatically:**
 - `index.ts` → Main entry point (loaded via `import()`)
+- `package.json` → Dependencies (installed via Bun workspace)
 - `types.d.ts` → Type definitions for LLM (included in `omni_query`)
 - `definition.md` + `docs/**` → Searchable docs for `omni_query`
 - `rules/*.md` → Guidelines included in agent sync
@@ -1005,6 +1066,7 @@ This capability demonstrates all the ways a capability can extend OmniDev:
 | **Rules** | Guidelines and constraints | `rules/*.md` |
 | **Docs** | Searchable documentation | `docs/*.md` |
 | **Env Vars** | Secrets and configuration | `[env]` in `capability.toml` |
+| **Dependencies** | npm packages for capability | `package.json` |
 
 ### How it works
 
@@ -1024,10 +1086,13 @@ This capability demonstrates all the ways a capability can extend OmniDev:
    const id = await tasks.create("My task");
    console.log(`Created: ${id}`);
 
-3. OmniDev writes code to .omni/sandbox/main.ts
+3. OmniDev prepares the sandbox:
+   - Ensures symlink: .omni/sandbox/node_modules/tasks → omni/capabilities/tasks
+   - Writes code to .omni/sandbox/main.ts
 
 4. OmniDev runs: bun run .omni/sandbox/main.ts
-   - The 'tasks' module is available (from this capability)
+   - import 'tasks' resolves via symlink
+   - Dependencies resolve via Bun workspace (root node_modules/)
    - Environment variables from .omni/.env are injected
    - Code executes, task is created
 
@@ -1050,14 +1115,62 @@ User runs: omnidev tasks add "My task"
 
 Both LLM (via sandbox) and humans (via CLI) use the same underlying `taskManager.ts` logic.
 
+### Profile Switching
+
+```bash
+# Switch to frontend profile
+omnidev profile set frontend
+
+# This:
+# 1. Writes "frontend" to .omni/active-profile
+# 2. Regenerates .omni/generated/rules.md (with frontend caps' rules)
+# 3. Regenerates .omni/generated/skills.md (with frontend caps' skills)
+# 4. Notifies running MCP server to reload
+#
+# Git stays clean! Only .omni/ (gitignored) changes.
+```
+
+### Reference Pattern & Skills Flow
+
+**Skills** are copied directly to provider locations (where they're discovered):
+
+```
+omni/capabilities/tasks/skills/task-management/SKILL.md
+                    ↓ (omnidev agents sync)
+.claude/skills/task-management/SKILL.md      ← Claude discovers here
+.cursor/rules/omnidev-task-management.mdc    ← Cursor discovers here
+```
+
+**Rules** use the reference pattern:
+
+**`agents.md`** (committed once):
+```markdown
+# Agent Configuration
+> Managed by OmniDev. Run `omnidev agents sync` to update.
+
+@import .omni/generated/rules.md
+```
+
+This way:
+- Profile switching doesn't create git diffs
+- Each developer can have their own active profile
+- CI/CD can set profile per environment
+- Providers discover skills in their expected locations
+
 ### Directory Split Recap
 
 | Directory | Git Status | Contents |
 |-----------|------------|----------|
-| `omni/` | **Committed** | Capabilities, shared config, types |
-| `.omni/` | **Gitignored** | State, secrets, sandbox, generated files |
+| `agents.md`, `.claude/claude.md` | **Committed** | Static reference files (rarely change) |
+| `omni/` | **Committed** | Capabilities, shared config, profile definitions |
+| `.claude/skills/` | **Gitignored** | Skills for Claude (generated directly) |
+| `.cursor/rules/omnidev-*` | **Gitignored** | Rules for Cursor (generated directly) |
+| `.omni/` | **Gitignored** | State, secrets, other generated files |
 
 This ensures:
 - **Capabilities are visible** — not hidden like `.git` metadata
 - **Secrets stay local** — never accidentally committed
 - **State is per-machine** — task DB, caches don't conflict
+- **Profile switching is clean** — no git diffs when switching profiles
+- **Each dev can use different profiles** — personal `.omni/active-profile`
+- **Skills are discoverable** — written directly where providers look for them

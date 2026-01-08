@@ -1,5 +1,5 @@
 {
-  description = "Modern Go Application example";
+  description = "OmniDev - Meta-MCP for AI agents";
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
@@ -12,12 +12,18 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-        buildDeps = with pkgs; [ git go_1_25 ];
+        buildDeps = with pkgs; [
+          bun
+          nodejs_22  # For npx
+        ];
         devDeps = with pkgs; buildDeps ++ [
-          golangci-lint
-          gopls
-          gotestsum
-          goreleaser
+          # TypeScript tooling
+          typescript
+          nodePackages.typescript-language-server
+          biome
+
+          # Git (for git safety layer)
+          git
         ];
       in
       { devShell = pkgs.mkShell { buildInputs = devDeps; }; });
