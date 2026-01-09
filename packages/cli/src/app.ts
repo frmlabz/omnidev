@@ -3,6 +3,7 @@ import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
 import { capabilityRoutes } from './commands/capability';
 import { profileRoutes } from './commands/profile';
+import { agentsRoutes } from './commands/agents';
 
 const app = buildApplication(
 	buildRouteMap({
@@ -11,6 +12,7 @@ const app = buildApplication(
 			doctor: doctorCommand,
 			capability: capabilityRoutes,
 			profile: profileRoutes,
+			agents: agentsRoutes,
 		},
 		docs: {
 			brief: 'OmniDev commands',
