@@ -26,5 +26,8 @@
 		"@types/bun": "^1.1.17",
 		"lefthook": "^2.0.13",
 		"typescript": "^5.7.2"
+	},
+	"dependencies": {
+		"@iarna/toml": "^2.2.5"
 	}
 }

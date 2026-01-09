@@ -80,6 +80,20 @@ export interface OmniConfig {
 	profiles?: Record<string, ProfileConfig>;
 }
 
+// Provider Types
+export type Provider = "claude" | "codex";
+
+export interface ProviderConfig {
+	provider?: Provider;
+	providers?: Provider[];
+}
+
+export function getActiveProviders(config: ProviderConfig): Provider[] {
+	if (config.providers) return config.providers;
+	if (config.provider) return [config.provider];
+	return ["claude"]; // Default
+}
+
 // Loaded Capability
 export interface LoadedCapability {
 	id: string;

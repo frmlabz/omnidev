@@ -1,7 +1,7 @@
 # OmniDev MVP Specification
 
-> **Status**: MVP v0.2
-> **Last Updated**: 2026-01-08
+> **Status**: MVP v0.3
+> **Last Updated**: 2026-01-09
 
 ## Goal
 
@@ -19,7 +19,7 @@ Validate the core architecture by building a minimal but functional system that 
 - [x] Basic CLI scaffolding with Stricli
 - [x] Basic MCP server with the SDK
 - [x] Capability loader (dynamic `import()`)
-- [x] One built-in capability (`tasks`) demonstrating all extension points
+- [x] One built-in capability (`ralph`) demonstrating all extension points
 - [x] Skills (Agent Skills spec) & Rules (markdown files)
 - [x] `omnidev agents sync` - multi-provider agent config generation
 - [x] CLI command extension from capabilities
@@ -132,17 +132,17 @@ interface CapabilityExports {
 }
 ```
 
-### 4. Built-in Capability: `tasks`
+### 4. Built-in Capability: `ralph`
 
-Demonstrates all extension points:
+Ralph is the AI agent orchestrator capability that demonstrates all extension points:
 
 | Feature | Implementation |
 |---------|----------------|
-| **Sandbox Tools** | `create`, `list`, `get`, `update`, `complete`, `planGet`, `planSet` |
-| **CLI Commands** | `omnidev tasks list`, `add`, `show`, `start`, `complete`, `block`, `board` |
-| **TUI Views** | `TaskListView`, `TaskBoardView`, `TaskDetailView` |
-| **Skills** | `task-management` skill in `skills/` |
-| **Rules** | `task-workflow.md` in `rules/` |
+| **Sandbox Tools** | `listPRDs`, `getPRD`, `createPRD`, `getNextStory`, `markStoryPassed`, `appendProgress` |
+| **CLI Commands** | `omnidev ralph init`, `start`, `stop`, `status`, `prd`, `story`, `spec`, `log` |
+| **TUI Views** | `StatusView`, `PRDListView`, `StoryListView` |
+| **Skills** | `prd-creation`, `ralph-orchestration` skills in `skills/` |
+| **Rules** | `prd-structure.md`, `iteration-workflow.md` in `rules/` |
 
 ### 5. Skills, Rules & Agent Sync
 
@@ -191,11 +191,13 @@ project-root/
 ├── .claude/
 │   ├── claude.md                # COMMITTED (static reference)
 │   └── skills/                  # GITIGNORED (generated here)
-│       └── task-management/
+│       ├── prd-creation/
+│       │   └── SKILL.md
+│       └── ralph-orchestration/
 │           └── SKILL.md
 ├── .cursor/
 │   └── rules/
-│       └── omnidev-tasks.mdc    # GITIGNORED (generated here)
+│       └── omnidev-ralph.mdc    # GITIGNORED (generated here)
 ├── omni/                        # COMMITTED
 │   ├── config.toml
 │   └── capabilities/
@@ -206,6 +208,7 @@ project-root/
     ├── generated/               # Other generated content
     │   ├── rules.md
     │   └── types.d.ts
+    ├── ralph/                   # Ralph PRDs and state
     ├── state/
     └── server.pid               # For hot reload signals
 ```
@@ -229,14 +232,15 @@ Skills are agent behaviors that follow the Agent Skills spec:
 
 ```markdown
 ---
-name: task-management
-description: Maintain an explicit plan and update tasks as work progresses.
+name: prd-creation
+description: Generate structured PRDs for AI-driven development workflows.
 ---
 
 ## Instructions
 
-- Maintain an explicit plan before executing multi-step work.
-- Keep exactly one plan step `in_progress` at a time.
+- Ask clarifying questions before generating PRD
+- Create structured user stories with acceptance criteria
+- Link stories to spec files for detailed context
 ...
 ```
 
@@ -245,14 +249,14 @@ description: Maintain an explicit plan and update tasks as work progresses.
 Rules are simple markdown files with guidelines or constraints:
 
 ```markdown
-<!-- rules/task-workflow.md -->
+<!-- rules/prd-structure.md -->
 
-# Task Workflow Rules
+# PRD Structure Rules
 
-- Always check the current task list before starting new work
-- Keep exactly one task `in_progress` at a time
-- Update task status as you make progress
-- When blocked, mark the task as `blocked` and explain why
+- Each PRD must have a unique name
+- Stories must have acceptance criteria
+- Specs must be linked from stories
+- Progress must be logged after each iteration
 ```
 
 ### Profiles
@@ -264,18 +268,18 @@ Profiles are **user-created groupings** to enable/disable capabilities. They're 
 default_profile = "default"
 
 [capabilities]
-enable = ["tasks", "git"]
+enable = ["ralph", "git"]
 
 [env]
 # Team defaults (non-secret)
 AWS_REGION = "eu-west-1"
 
 [profiles.frontend]
-enable = ["tasks", "git", "react-rules"]
+enable = ["ralph", "git", "react-rules"]
 disable = []
 
 [profiles.backend]
-enable = ["tasks", "git", "api-rules"]
+enable = ["ralph", "git", "api-rules"]
 disable = ["react-rules"]
 ```
 
@@ -334,6 +338,7 @@ omnidev/
 │   │   │   │   ├── agents.ts       # agents sync command
 │   │   │   │   ├── profile.ts      # profile list/set
 │   │   │   │   ├── types.ts        # types generate command
+│   │   │   │   ├── ralph.ts        # ralph subcommands
 │   │   │   │   └── doctor.ts
 │   │   │   ├── app.ts              # Stricli app setup
 │   │   │   └── index.ts            # Entry point
@@ -350,21 +355,21 @@ omnidev/
 │       └── tsconfig.json
 │
 ├── capabilities/
-│   └── tasks/                      # Built-in tasks capability
+│   └── ralph/                      # Built-in Ralph capability
 │       ├── capability.toml
 │       ├── definition.md
 │       ├── index.ts
-│       ├── tools/
-│       │   └── taskManager.ts
-│       ├── cli/
-│       │   ├── commands.ts
-│       │   └── views/
-│       │       ├── TaskList.tsx
-│       │       └── TaskBoard.tsx
+│       ├── types.d.ts
+│       ├── state.ts                # PRD/story state management
+│       ├── orchestrator.ts         # Agent orchestration
+│       ├── prompt.ts               # Prompt generation
 │       ├── rules/
-│       │   └── task-workflow.md    # Simple markdown rules
+│       │   ├── prd-structure.md
+│       │   └── iteration-workflow.md
 │       └── skills/
-│           └── task-management/
+│           ├── prd-creation/
+│           │   └── SKILL.md
+│           └── ralph-orchestration/
 │               └── SKILL.md
 │
 ├── package.json                    # Workspace root
@@ -381,16 +386,18 @@ project-root/
 ├── .claude/
 │   ├── claude.md                   # COMMITTED (reference file)
 │   └── skills/                     # GITIGNORED (skills generated here)
-│       └── task-management/
+│       ├── prd-creation/
+│       │   └── SKILL.md
+│       └── ralph-orchestration/
 │           └── SKILL.md
 ├── .cursor/
 │   └── rules/
-│       └── omnidev-tasks.mdc       # GITIGNORED (rules generated here)
+│       └── omnidev-ralph.mdc       # GITIGNORED (rules generated here)
 │
 ├── omni/                           # VISIBLE, COMMITTED
 │   ├── config.toml                 # Team config, profiles, enabled caps
 │   ├── capabilities/               # Project-specific capabilities
-│   │   └── tasks/
+│   │   └── ralph/
 │   │       └── ...
 │   └── profiles/                   # Optional profile definitions
 │
@@ -401,7 +408,11 @@ project-root/
 │   ├── generated/                  # Other generated content
 │   │   ├── rules.md                # Compiled rules
 │   │   └── types.d.ts              # Type definitions
-│   ├── state/                      # Runtime state (task DB, etc.)
+│   ├── ralph/                      # Ralph state
+│   │   ├── config.toml
+│   │   ├── active-prd
+│   │   └── prds/
+│   ├── state/                      # Runtime state
 │   ├── sandbox/                    # Code execution scratch
 │   └── server.pid                  # For hot reload signals
 │
@@ -412,416 +423,23 @@ project-root/
 
 ---
 
-## Technical Implementation
-
-### Capability Loading Flow
-
-```
-1. CLI/MCP starts
-2. Read .omni/active-profile (or default from config)
-3. Read omni/config.toml + .omni/config.local.toml, merge configs
-4. Resolve enabled capabilities for active profile
-5. Load environment from .omni/.env + process.env
-6. Discover omni/capabilities/*/capability.toml
-7. For each enabled capability:
-   a. Parse capability.toml → CapabilityConfig (incl. [env] declarations)
-   b. Validate required env vars are present
-   c. await import(`${capPath}/index.ts`) → CapabilityExports
-   d. Extract from exports (programmatic takes precedence):
-      - cliCommands → Stricli app
-      - cliViews → View registry
-      - tools (named function exports) → Sandbox namespace
-      - skills (if exported) → Skills registry
-      - rules (if exported) → Rules registry
-      - docs (if exported or getDocs()) → Docs registry
-      - typeDefinitions (if exported) → Types registry
-   e. Fallback to filesystem discovery:
-      - skills/*/SKILL.md → Skills registry (if not exported)
-      - rules/*.md → Rules registry (if not exported)
-      - docs/*.md → Docs registry (if not exported)
-      - types.d.ts → Types registry (if not exported)
-8. Generate to .omni/generated/ + provider directories
-9. Start file watcher for hot reload
-10. Write PID to .omni/server.pid
-11. Ready to serve
-```
-
-**Programmatic vs Filesystem:**
-
-| Component | Programmatic (precedence) | Filesystem (fallback) |
-|-----------|---------------------------|----------------------|
-| Skills | `export const skills: Skill[]` | `skills/*/SKILL.md` |
-| Rules | `export const rules: Rule[]` | `rules/*.md` |
-| Docs | `export const docs` or `getDocs()` | `docs/*.md` |
-| Types | `export const typeDefinitions` | `types.d.ts` |
-
-### Hot Reload Mechanism
-
-```typescript
-// packages/mcp/src/watcher.ts
-const WATCH_PATHS = [
-  'omni/config.toml',
-  '.omni/config.local.toml',
-  '.omni/active-profile',
-  'omni/capabilities/',
-];
-
-export function startWatcher(onReload: () => Promise<void>) {
-  const watcher = watch(WATCH_PATHS, { recursive: true });
-  
-  for await (const event of watcher) {
-    console.log(`[omnidev] Change detected: ${event.filename}`);
-    await onReload();
-  }
-}
-```
-
-### Profile Switch Flow
-
-```
-omnidev profile set frontend
-  │
-  ├─► Write "frontend" to .omni/active-profile
-  │
-  ├─► Run agents sync:
-  │     ├─► Collect skills from enabled caps
-  │     ├─► Collect rules from enabled caps
-  │     ├─► Generate .omni/generated/rules.md
-  │     ├─► Generate .omni/generated/skills.md
-  │     └─► Generate .omni/generated/types.d.ts
-  │
-  └─► Notify server (if running):
-        └─► Send SIGHUP or write .omni/reload-trigger
-```
-
-### Bun Workspaces Setup
-
-Capabilities are standard npm/Bun packages. The project root is a workspace.
-
-**Root `package.json`** (generated by `omnidev init`):
-```json
-{
-  "name": "my-project",
-  "private": true,
-  "workspaces": [
-    "omni/capabilities/*"
-  ]
-}
-```
-
-**Capability `package.json`** (e.g., `omni/capabilities/tasks/package.json`):
-```json
-{
-  "name": "tasks",
-  "version": "0.1.0",
-  "main": "index.ts",
-  "type": "module",
-  "dependencies": {
-    "zod": "^3.22.0"
-  }
-}
-```
-
-When `bun install` runs:
-1. All capability dependencies are installed to root `node_modules/`
-2. Common dependencies are hoisted (shared)
-3. Capabilities can import each other
-
-### Sandbox Symlink Setup
-
-Before `omni_execute` runs code, symlinks are created:
-
-```typescript
-// packages/mcp/src/sandbox.ts
-import { symlink, mkdir } from 'fs/promises';
-
-async function prepareSandbox(activeCapabilities: Capability[]) {
-  const sandboxNodeModules = '.omni/sandbox/node_modules';
-  await mkdir(sandboxNodeModules, { recursive: true });
-  
-  for (const cap of activeCapabilities) {
-    const moduleName = cap.config.exports?.module ?? cap.id;
-    const linkPath = `${sandboxNodeModules}/${moduleName}`;
-    const targetPath = `../../../omni/capabilities/${cap.id}`;
-    
-    try {
-      await symlink(targetPath, linkPath);
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-    }
-  }
-}
-```
-
-**Result:**
-```
-.omni/sandbox/node_modules/tasks → ../../../omni/capabilities/tasks
-.omni/sandbox/node_modules/aws   → ../../../omni/capabilities/aws
-```
-
-**Why symlinks?**
-- **Zero build step**: Run raw TypeScript via Bun
-- **Instant**: No file copying
-- **Hot reload**: Edit capability, next run uses changes immediately
-
-### Agent Sync Implementation
-
-```typescript
-// packages/cli/src/commands/agents.ts
-import { 
-  getEnabledCapabilities,
-  getAllSkills, 
-  getAllRules,
-  generateGenericConfig,
-  generateClaudeConfig,
-  generateCursorConfig,
-} from '@omnidev/core';
-
-interface SyncOptions {
-  providers?: ('generic' | 'claude' | 'cursor')[];
-}
-
-export async function syncAgents(options: SyncOptions = {}) {
-  const providers = options.providers ?? ['generic', 'claude', 'cursor'];
-  
-  // Get enabled capabilities (based on active profile)
-  const capabilities = await getEnabledCapabilities();
-  
-  // Gather content from enabled capabilities
-  const skills = await getAllSkills(capabilities);
-  const rules = await getAllRules(capabilities);
-  
-  const context = { skills, rules, capabilities };
-  
-  // Generate for each provider
-  const results: string[] = [];
-  
-  if (providers.includes('generic')) {
-    await generateGenericConfig(context);
-    results.push('agents.md');
-  }
-  
-  if (providers.includes('claude')) {
-    await generateClaudeConfig(context);
-    results.push('.claude/claude.md');
-  }
-  
-  if (providers.includes('cursor')) {
-    await generateCursorConfig(context);
-    results.push('.cursor/rules/omnidev.mdc');
-  }
-  
-  console.log(`✓ Synced agent config:`);
-  results.forEach(f => console.log(`  - ${f}`));
-}
-```
-
-### Provider Generators
-
-```typescript
-// packages/core/src/providers/claude.ts
-import { mkdir, symlink } from 'fs/promises';
-import { join } from 'path';
-
-export async function generateClaudeConfig(context: AgentContext) {
-  const { skills, rules } = context;
-  
-  // Ensure .claude directory exists
-  await mkdir('.claude', { recursive: true });
-  
-  // Generate claude.md
-  let content = `# Claude Code Configuration
-
-> Generated by OmniDev
-> Run \`omnidev agents sync\` to regenerate
-
-## Skills
-
-`;
-
-  for (const skill of skills) {
-    content += `### ${skill.name}\n\n${skill.content}\n\n`;
-  }
-
-  content += `## Rules\n\n`;
-  
-  for (const rule of rules) {
-    content += `### ${rule.name}\n\n${rule.content}\n\n`;
-  }
-
-  await Bun.write('.claude/claude.md', content);
-  
-  // Create symlinks to skill directories (if Claude supports it)
-  // This allows Claude to discover skills in their native format
-  const skillsDir = '.claude/skills';
-  await mkdir(skillsDir, { recursive: true });
-  
-  // Symlink each capability's skills directory
-  // Note: omni/ is visible and committed, symlinks point there
-  for (const skill of skills) {
-    const target = join('../omni/capabilities', skill.capabilityId, 'skills');
-    const link = join(skillsDir, skill.capabilityId);
-    try {
-      await symlink(target, link);
-    } catch (e) {
-      // Link may already exist
-    }
-  }
-}
-```
-
-### Environment Loading
-
-```typescript
-// packages/core/src/capability/env.ts
-import { join } from 'path';
-
-export interface EnvDeclaration {
-  required?: boolean;
-  secret?: boolean;
-  default?: string;
-}
-
-export interface EnvConfig {
-  [key: string]: EnvDeclaration | Record<string, never>;
-}
-
-export async function loadEnvironment(omniLocalDir: string): Promise<Record<string, string>> {
-  const env: Record<string, string> = {};
-  
-  // 1. Load from .omni/.env
-  const envPath = join(omniLocalDir, '.env');
-  try {
-    const content = await Bun.file(envPath).text();
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [key, ...valueParts] = trimmed.split('=');
-        env[key] = valueParts.join('=');
-      }
-    }
-  } catch {
-    // No .env file
-  }
-  
-  // 2. Process env overrides .env file
-  Object.assign(env, process.env);
-  
-  return env;
-}
-
-export function validateEnv(
-  declarations: EnvConfig,
-  env: Record<string, string | undefined>,
-  capabilityId: string
-): void {
-  for (const [key, decl] of Object.entries(declarations)) {
-    const value = env[key] ?? (decl as EnvDeclaration).default;
-    
-    if ((decl as EnvDeclaration).required && !value) {
-      throw new Error(
-        `Missing required env var ${key} for capability "${capabilityId}". ` +
-        `Set it in .omni/.env or process environment.`
-      );
-    }
-  }
-}
-```
-
-### Type Definitions Generator
-
-```typescript
-// packages/core/src/capability/typegen.ts
-import { join } from 'path';
-
-export async function generateTypeDefinitions(
-  capabilities: LoadedCapability[],
-  outputDir: string
-): Promise<string> {
-  let dts = `// Auto-generated type definitions for enabled capabilities\n`;
-  dts += `// Generated by: omnidev types generate\n\n`;
-  
-  for (const cap of capabilities) {
-    const moduleName = cap.config.exports?.module ?? cap.config.capability.id;
-    
-    dts += `declare module '${moduleName}' {\n`;
-    
-    // Extract type information from capability exports
-    // For MVP: use JSDoc comments or manual .d.ts files in capabilities
-    if (cap.typeDefinitions) {
-      dts += cap.typeDefinitions;
-    } else {
-      dts += `  // Type definitions not available for this capability\n`;
-      dts += `  // Add a types.d.ts file to omni/capabilities/${cap.config.capability.id}/\n`;
-    }
-    
-    dts += `}\n\n`;
-  }
-  
-  const outputPath = join(outputDir, 'capabilities.d.ts');
-  await Bun.write(outputPath, dts);
-  
-  return dts;
-}
-```
-
-### Rules Loading
-
-```typescript
-// packages/core/src/capability/rules.ts
-
-export interface Rule {
-  /** Filename (e.g., "task-workflow.md") */
-  filename: string;
-  
-  /** The rule content (markdown) */
-  content: string;
-  
-  /** Which capability this rule belongs to */
-  capabilityId: string;
-}
-
-export async function loadRules(capabilityPath: string): Promise<Rule[]> {
-  const rulesDir = join(capabilityPath, 'rules');
-  const rules: Rule[] = [];
-  
-  try {
-    for await (const entry of new Bun.Glob('*.md').scan(rulesDir)) {
-      const rulePath = join(rulesDir, entry);
-      const content = await Bun.file(rulePath).text();
-      rules.push({
-        filename: entry,
-        content,
-        capabilityId: basename(capabilityPath),
-      });
-    }
-  } catch {
-    // No rules directory
-  }
-  
-  return rules;
-}
-```
-
----
-
 ## Success Criteria
 
 ### CLI Works
 - [ ] `omnidev init` creates `omni/` and `.omni/` directories
 - [ ] `omnidev doctor` reports Bun version and status
-- [ ] `omnidev capability list` shows `tasks` capability
+- [ ] `omnidev capability list` shows `ralph` capability
 - [ ] `omnidev profile list` shows available profiles
 - [ ] `omnidev profile set <name>` switches profile
-- [ ] `omnidev tasks list` shows task list (empty initially)
-- [ ] `omnidev tasks add "Test task"` creates a task
-- [ ] `omnidev tasks board` opens interactive TUI
+- [ ] `omnidev ralph init` initializes Ralph structure
+- [ ] `omnidev ralph prd create <name>` creates a PRD
+- [ ] `omnidev ralph start` begins orchestration
 
 ### MCP Server Works
 - [ ] `omnidev serve` starts MCP server on stdio
 - [ ] MCP client can call `omni_capabilities` and get response
-- [ ] MCP client can call `tasks_create` and create a task
-- [ ] MCP client can call `tasks_list` and see tasks
+- [ ] MCP client can call `ralph.getPRD` and get PRD
+- [ ] MCP client can call `ralph.getNextStory` and get story
 
 ### Agent Sync Works
 - [ ] `omnidev agents sync` generates `.omni/generated/rules.md`
@@ -877,51 +495,6 @@ export async function loadRules(capabilityPath: string): Promise<Rule[]> {
 
 ---
 
-## Development Phases
-
-### Phase 1: Scaffolding (Day 1-2)
-- [ ] Set up monorepo with Bun workspaces
-- [ ] Create package structure
-- [ ] Basic Stricli CLI with `init` and `doctor`
-- [ ] Basic MCP server that starts
-- [ ] **Directory structure: `omni/` + `.omni/` split**
-
-### Phase 2: Capability System (Day 3-4)
-- [ ] Capability loader (discover, parse, import)
-- [ ] Type definitions
-- [ ] Register CLI commands from capabilities
-- [ ] Register sandbox tools from capabilities
-- [ ] **Environment loading (`.omni/.env` + process env)**
-- [ ] **Env validation (`[env]` in capability.toml)**
-
-### Phase 3: Tasks Capability (Day 5-6)
-- [ ] Task manager implementation (sandbox tools)
-- [ ] CLI commands
-- [ ] OpenTUI views (TaskList, TaskBoard, TaskDetail)
-- [ ] Skills + Rules
-- [ ] **Type definitions file (`types.d.ts`)**
-
-### Phase 4: Agent Sync & Profiles (Day 7)
-- [ ] Profile management (list, set)
-- [ ] Skills loader
-- [ ] Rules loader (profile-aware)
-- [ ] Provider generators (generic, claude, cursor)
-- [ ] `agents sync` command
-- [ ] **Config merging (team + local)**
-
-### Phase 5: Type Generation (Day 8)
-- [ ] Type definitions generator
-- [ ] `omnidev types generate` command
-- [ ] Integration with `omni_query` (`include_types`)
-
-### Phase 6: Polish & Test (Day 9)
-- [ ] End-to-end testing
-- [ ] Error handling (especially env/secrets)
-- [ ] Documentation
-- [ ] Demo recording
-
----
-
 ## Dependencies
 
 ```json
@@ -947,21 +520,10 @@ export async function loadRules(capabilityPath: string): Promise<Rule[]> {
 
 ---
 
-## Open Questions
-
-1. **Stricli + OpenTUI integration**: How exactly do we render TUI after a command runs? Need to verify the integration pattern.
-
-2. **Hot reload**: For MVP, do we restart the server when capabilities change, or implement basic hot reload?
-
-3. **Cursor format**: What exact format does Cursor expect for its rules? Need to verify `.cursor/rules/*.mdc` format.
-
-4. **Claude symlinks**: Does Claude Code actually follow symlinks for skills discovery, or do we need to copy files?
-
----
-
 ## Notes
 
 - Keep it simple. The goal is to prove the architecture, not build everything.
 - Focus on the happy path. Error handling can be improved later.
 - Document as we go. The MVP is also a learning exercise.
 - The `agents sync` command is the key differentiator - one command, all providers.
+- Ralph demonstrates the full capability pattern - skills, rules, CLI, sandbox tools.

@@ -4,732 +4,190 @@
 	"description": "OmniDev MVP - A meta-MCP that exposes 2 tools to LLMs while providing unlimited power through capabilities",
 	"userStories": [
 		{
-			"id": "US-001",
-			"title": "Initialize root Bun workspace",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "Root workspace setup only (package.json, bunfig.toml)",
+			"id": "US-051",
+			"title": "Provider Selection During Init",
+			"description": "As a developer, I want to choose which AI provider I'm using during init so that the correct files are generated for my workflow.",
 			"acceptanceCriteria": [
-				"Root package.json exists with workspaces: ['packages/*', 'capabilities/*']",
-				"Root package.json has private: true and type: module",
-				"bunfig.toml exists",
-				"bun install runs successfully",
-				"Typecheck passes"
+				"`dev init` prompts user to select provider(s): Claude (default), Codex, or Both",
+				"Claude is pre-selected as default",
+				"Selection can be skipped with `--provider=claude|codex|both` flag",
+				"Selected provider(s) stored in `.omni/provider.toml`",
+				"Typecheck passes",
+				"Tests pass"
 			],
 			"priority": 1,
-			"passes": true,
-			"notes": ""
+			"passes": false,
+			"notes": "PRD-010"
 		},
 		{
-			"id": "US-002",
-			"title": "Configure root TypeScript",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "TypeScript configuration only (tsconfig.json)",
+			"id": "US-052",
+			"title": "Provider-Specific File Generation",
+			"description": "As a developer using Codex, I want an AGENTS.md file created so that Codex can read my project instructions.",
 			"acceptanceCriteria": [
-				"Root tsconfig.json exists with strict settings",
-				"Target ES2022, module ESNext, moduleResolution bundler",
-				"noUncheckedIndexedAccess and noImplicitOverride enabled",
-				"Typecheck passes"
+				"For Codex: Create `AGENTS.md` (uppercase) at project root",
+				"For Claude: Create/append to `.claude/claude.md`",
+				"If `.claude/claude.md` already exists, append OmniDev section at bottom",
+				"Both files include placeholder for user to add 2-sentence project description",
+				"Files reference `.omni/generated/rules.md` for capability rules",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 1,
+			"passes": false,
+			"notes": "PRD-010"
+		},
+		{
+			"id": "US-053",
+			"title": "Single .omni Folder with Internal Gitignore",
+			"description": "As a developer, I want a single `.omni` folder with smart gitignore handling so I can choose whether to share config with my team.",
+			"acceptanceCriteria": [
+				"All OmniDev files live in `.omni/` folder",
+				"`.omni/.gitignore` created with patterns for working files",
+				"Working files always ignored: `.env`, `generated/`, `state/`, `sandbox/`",
+				"Init outputs message explaining sharing options",
+				"Do NOT automatically modify project's root `.gitignore`",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 1,
+			"passes": false,
+			"notes": "PRD-010 - Core architecture change"
+		},
+		{
+			"id": "US-054",
+			"title": "Project Description Placeholder",
+			"description": "As a developer, I want a clear placeholder in my instruction file so I know where to add my project description.",
+			"acceptanceCriteria": [
+				"Both AGENTS.md and claude.md include Project Description section with TODO placeholder",
+				"Placeholder is prominent and easy to find",
+				"Init command outputs message reminding user to fill in project description",
+				"Typecheck passes",
+				"Tests pass"
 			],
 			"priority": 2,
-			"passes": true,
-			"notes": ""
+			"passes": false,
+			"notes": "PRD-010"
 		},
 		{
-			"id": "US-003",
-			"title": "Create core package structure",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "packages/core package only",
+			"id": "US-055",
+			"title": "Explicit Capability Enablement",
+			"description": "As a developer, I want capabilities to be explicitly enabled so that nothing runs without my consent.",
 			"acceptanceCriteria": [
-				"packages/core/package.json exists with name @omnidev/core",
-				"packages/core/tsconfig.json extends root config",
-				"packages/core/src/index.ts exists with placeholder export",
-				"Typecheck passes"
+				"Fresh init creates `.omni/capabilities.toml` with no capabilities enabled",
+				"User must run `dev capability enable <name>` to activate a capability",
+				"`dev capability list` shows all available capabilities with enabled/disabled status",
+				"`dev capability enable tasks` enables the tasks capability",
+				"`dev capability disable tasks` disables a capability",
+				"Ralph is available but NOT enabled by default",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 1,
+			"passes": false,
+			"notes": "PRD-011"
+		},
+		{
+			"id": "US-056",
+			"title": "Capability Gitignore Export",
+			"description": "As a capability author, I want to export gitignore patterns so my working files are automatically ignored.",
+			"acceptanceCriteria": [
+				"Capabilities can export `gitignore: string[]` from their `index.ts`",
+				"When capability is enabled, its patterns are added to `.omni/.gitignore`",
+				"When capability is disabled, its patterns are removed from `.omni/.gitignore`",
+				"Patterns are grouped under capability name comment",
+				"`dev agents sync` updates `.omni/.gitignore` with capability patterns",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 2,
+			"passes": false,
+			"notes": "PRD-011 - Key feature for Ralph working files"
+		},
+		{
+			"id": "US-057",
+			"title": "Profile Management",
+			"description": "As a developer, I want to create and switch between profiles so I can have different capability configurations.",
+			"acceptanceCriteria": [
+				"Profiles defined in `.omni/profiles.toml`",
+				"Each profile has `enable` and `disable` lists that modify base capabilities",
+				"`dev profile list` shows all available profiles with active indicator",
+				"`dev profile set <name>` switches to a profile",
+				"`dev profile create <name>` creates a new profile",
+				"Active profile stored in `.omni/active-profile`",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 2,
+			"passes": false,
+			"notes": "PRD-011"
+		},
+		{
+			"id": "US-058",
+			"title": "Config File Structure",
+			"description": "As a team lead, I want a clear config file structure so I understand what each file controls.",
+			"acceptanceCriteria": [
+				"`.omni/config.toml` contains project name and default profile",
+				"`.omni/capabilities.toml` contains which capabilities are enabled",
+				"`.omni/profiles.toml` contains profile definitions",
+				"`.omni/provider.toml` contains selected AI provider(s)",
+				"All files have clear comments explaining their purpose",
+				"Typecheck passes",
+				"Tests pass"
+			],
+			"priority": 1,
+			"passes": false,
+			"notes": "PRD-011"
+		},
+		{
+			"id": "US-059",
+			"title": "Migration from Old Structure",
+			"description": "As an existing user, I want my old `omni/` folder migrated to the new `.omni/` structure.",
+			"acceptanceCriteria": [
+				"On run, detect old `omni/` folder structure",
+				"Offer to migrate to new `.omni/` structure",
+				"Move `omni/config.toml` to `.omni/config.toml`",
+				"Move `omni/capabilities/` to `.omni/capabilities/`",
+				"Create new required files (`.gitignore`, `capabilities.toml`, etc.)",
+				"Delete old `omni/` folder after successful migration",
+				"Show clear migration summary",
+				"Typecheck passes",
+				"Tests pass"
 			],
 			"priority": 3,
-			"passes": true,
-			"notes": ""
+			"passes": false,
+			"notes": "PRD-011 - Can be done after core features"
 		},
 		{
-			"id": "US-004",
-			"title": "Create CLI package structure",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "packages/cli package only",
+			"id": "US-060",
+			"title": "Directory Structure Documentation",
+			"description": "As a developer, I want clear documentation about OmniDev's directory structure so I understand what files exist and why.",
 			"acceptanceCriteria": [
-				"packages/cli/package.json exists with name @omnidev/cli",
-				"packages/cli/package.json has dependency on @omnidev/core",
-				"packages/cli/tsconfig.json extends root config",
-				"packages/cli/src/index.ts exists",
-				"Typecheck passes"
+				"README section explains `.omni` folder structure",
+				"Each config file's purpose is documented",
+				"Internal `.gitignore` behavior is explained",
+				"`dev doctor` validates directory structure",
+				"Typecheck passes",
+				"Tests pass"
 			],
-			"priority": 4,
-			"passes": true,
-			"notes": ""
+			"priority": 3,
+			"passes": false,
+			"notes": "PRD-012"
 		},
 		{
-			"id": "US-005",
-			"title": "Create MCP package structure",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "packages/mcp package only",
+			"id": "US-061",
+			"title": "Usage Mode Documentation",
+			"description": "As a team lead, I want to understand the two usage modes so I can choose the right approach for my team.",
 			"acceptanceCriteria": [
-				"packages/mcp/package.json exists with name @omnidev/mcp",
-				"packages/mcp/package.json has dependency on @omnidev/core",
-				"packages/mcp/tsconfig.json extends root config",
-				"packages/mcp/src/index.ts exists",
-				"Typecheck passes"
+				"Documentation explains Team Mode (commit `.omni/`)",
+				"Documentation explains Personal Mode (gitignore `.omni`)",
+				"Pros/cons of each mode are listed",
+				"Init output reminds user of options",
+				"Typecheck passes",
+				"Tests pass"
 			],
-			"priority": 5,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-006",
-			"title": "Create tasks capability placeholder",
-			"taskFile": "scripts/ralph/tasks/prd-001-bun-monorepo-setup.md",
-			"scope": "capabilities/tasks placeholder only",
-			"acceptanceCriteria": [
-				"capabilities/tasks/package.json exists with name tasks",
-				"capabilities/tasks/capability.toml exists with basic metadata",
-				"capabilities/tasks/index.ts exists with placeholder",
-				"bun install works with workspace",
-				"Typecheck passes"
-			],
-			"priority": 6,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-007",
-			"title": "Install and configure Biome",
-			"taskFile": "scripts/ralph/tasks/prd-002-code-quality-infrastructure.md",
-			"scope": "Biome installation and configuration only",
-			"acceptanceCriteria": [
-				"Biome installed as dev dependency at root",
-				"biome.json configuration exists at root",
-				"Biome configured for TypeScript with strict rules",
-				"Ignores node_modules, dist, generated files",
-				"Typecheck passes"
-			],
-			"priority": 7,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-008",
-			"title": "Add quality check scripts",
-			"taskFile": "scripts/ralph/tasks/prd-002-code-quality-infrastructure.md",
-			"scope": "NPM scripts only",
-			"acceptanceCriteria": [
-				"bun run lint works",
-				"bun run lint:fix works",
-				"bun run format works",
-				"bun run format:check works",
-				"bun run check runs typecheck + lint + format:check",
-				"Typecheck passes"
-			],
-			"priority": 8,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-009",
-			"title": "Set up Lefthook git hooks",
-			"taskFile": "scripts/ralph/tasks/prd-002-code-quality-infrastructure.md",
-			"scope": "Lefthook setup only",
-			"acceptanceCriteria": [
-				"Lefthook installed as dev dependency",
-				"lefthook.yml configuration exists",
-				"Pre-commit hook runs typecheck, lint, format:check",
-				"Prepare script installs hooks",
-				"Typecheck passes"
-			],
-			"priority": 9,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-010",
-			"title": "Configure VSCode/Cursor integration",
-			"taskFile": "scripts/ralph/tasks/prd-002-code-quality-infrastructure.md",
-			"scope": "VSCode settings only",
-			"acceptanceCriteria": [
-				".vscode/settings.json exists with Biome as formatter",
-				"Format on save enabled",
-				".vscode/extensions.json recommends Biome",
-				"Typecheck passes"
-			],
-			"priority": 10,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-011",
-			"title": "Configure Bun test runner",
-			"taskFile": "scripts/ralph/tasks/prd-003-testing-infrastructure.md",
-			"scope": "Test runner configuration only",
-			"acceptanceCriteria": [
-				"bun test works from root directory",
-				"Tests discovered in **/*.test.ts pattern",
-				"bunfig.toml has test configuration",
-				"Typecheck passes"
-			],
-			"priority": 11,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-012",
-			"title": "Set up code coverage",
-			"taskFile": "scripts/ralph/tasks/prd-003-testing-infrastructure.md",
-			"scope": "Coverage configuration only",
-			"acceptanceCriteria": [
-				"bun test --coverage produces report",
-				"Coverage threshold set to 70%",
-				"Coverage excludes test files and type definitions",
-				"Typecheck passes"
-			],
-			"priority": 12,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-013",
-			"title": "Create test utilities",
-			"taskFile": "scripts/ralph/tasks/prd-003-testing-infrastructure.md",
-			"scope": "Test utilities in packages/core only",
-			"acceptanceCriteria": [
-				"packages/core/src/test-utils/index.ts exists",
-				"Mock factories for creating test data exist",
-				"Helper functions for async testing exist",
-				"Typecheck passes"
-			],
-			"priority": 13,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-014",
-			"title": "Add test running to git hooks",
-			"taskFile": "scripts/ralph/tasks/prd-003-testing-infrastructure.md",
-			"scope": "Lefthook test integration only",
-			"acceptanceCriteria": [
-				"lefthook.yml includes test running in pre-commit",
-				"Tests run after lint/format checks",
-				"Test run uses --bail for fast failure",
-				"Typecheck passes"
-			],
-			"priority": 14,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-015",
-			"title": "Define core TypeScript types",
-			"taskFile": "scripts/ralph/tasks/prd-004-core-types-and-config.md",
-			"scope": "Type definitions only (packages/core/src/types/)",
-			"acceptanceCriteria": [
-				"Capability, CapabilityConfig interfaces defined",
-				"Skill, Rule, Doc interfaces defined",
-				"OmniConfig, Profile interfaces defined",
-				"LoadedCapability interface defined",
-				"All types exported from @omnidev/core",
-				"Typecheck passes"
-			],
-			"priority": 15,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-016",
-			"title": "Implement TOML parser",
-			"taskFile": "scripts/ralph/tasks/prd-004-core-types-and-config.md",
-			"scope": "TOML parsing only",
-			"acceptanceCriteria": [
-				"smol-toml installed as dependency",
-				"parseToml function parses TOML string to object",
-				"Parser provides helpful error messages",
-				"Tests cover parsing scenarios",
-				"Typecheck passes"
-			],
-			"priority": 16,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-017",
-			"title": "Implement config loader",
-			"taskFile": "scripts/ralph/tasks/prd-004-core-types-and-config.md",
-			"scope": "Config loading and merging only",
-			"acceptanceCriteria": [
-				"loadConfig reads omni/config.toml",
-				"loadConfig reads .omni/config.local.toml if exists",
-				"Configs merged with local taking precedence",
-				"Missing files handled gracefully",
-				"Tests cover merge scenarios",
-				"Typecheck passes"
-			],
-			"priority": 17,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-018",
-			"title": "Implement profile resolution",
-			"taskFile": "scripts/ralph/tasks/prd-004-core-types-and-config.md",
-			"scope": "Profile logic only",
-			"acceptanceCriteria": [
-				"getActiveProfile reads from .omni/active-profile",
-				"resolveEnabledCapabilities combines base + profile",
-				"Profile enable/disable logic correct",
-				"Default profile used when none active",
-				"Tests cover profile scenarios",
-				"Typecheck passes"
-			],
-			"priority": 18,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-019",
-			"title": "Implement environment loading",
-			"taskFile": "scripts/ralph/tasks/prd-004-core-types-and-config.md",
-			"scope": "Environment handling only",
-			"acceptanceCriteria": [
-				"loadEnvironment reads .omni/.env file",
-				"process.env takes precedence",
-				"validateEnv checks required vars",
-				"Missing required vars throw helpful errors",
-				"Tests cover env scenarios",
-				"Typecheck passes"
-			],
-			"priority": 19,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-020",
-			"title": "Implement capability discovery",
-			"taskFile": "scripts/ralph/tasks/prd-005-capability-system.md",
-			"scope": "Capability discovery only",
-			"acceptanceCriteria": [
-				"discoverCapabilities scans omni/capabilities/",
-				"Directories with capability.toml identified",
-				"Returns list of capability paths",
-				"Empty directories handled gracefully",
-				"Tests cover discovery scenarios",
-				"Typecheck passes"
-			],
-			"priority": 20,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-021",
-			"title": "Implement capability config loading",
-			"taskFile": "scripts/ralph/tasks/prd-005-capability-system.md",
-			"scope": "Capability config parsing only",
-			"acceptanceCriteria": [
-				"loadCapabilityConfig reads capability.toml",
-				"Validates required fields (id, name, version)",
-				"Handles optional fields",
-				"Reserved names rejected",
-				"Tests cover config loading",
-				"Typecheck passes"
-			],
-			"priority": 21,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-022",
-			"title": "Implement skills loading",
-			"taskFile": "scripts/ralph/tasks/prd-005-capability-system.md",
-			"scope": "Skills loading only",
-			"acceptanceCriteria": [
-				"loadSkills scans skills/*/SKILL.md",
-				"YAML frontmatter parsed correctly",
-				"Markdown content extracted as instructions",
-				"Returns array of Skill objects",
-				"Tests cover skill loading",
-				"Typecheck passes"
-			],
-			"priority": 22,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-023",
-			"title": "Implement rules and docs loading",
-			"taskFile": "scripts/ralph/tasks/prd-005-capability-system.md",
-			"scope": "Rules and docs loading only",
-			"acceptanceCriteria": [
-				"loadRules scans rules/*.md",
-				"loadDocs loads definition.md and docs/*.md",
-				"Returns arrays of Rule and Doc objects",
-				"Empty directories handled gracefully",
-				"Tests cover loading scenarios",
-				"Typecheck passes"
-			],
-			"priority": 23,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-024",
-			"title": "Implement capability registry",
-			"taskFile": "scripts/ralph/tasks/prd-005-capability-system.md",
-			"scope": "Registry building only",
-			"acceptanceCriteria": [
-				"buildCapabilityRegistry loads all discovered capabilities",
-				"Filters to enabled capabilities based on config/profile",
-				"Validates environment requirements",
-				"Provides helper functions to query registry",
-				"Tests cover registry scenarios",
-				"Typecheck passes"
-			],
-			"priority": 24,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-025",
-			"title": "Set up Stricli CLI framework",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "CLI framework setup only",
-			"acceptanceCriteria": [
-				"@stricli/core installed as dependency",
-				"CLI application bootstrapped in src/app.ts",
-				"Entry point in src/index.ts runs CLI",
-				"bun run packages/cli/src/index.ts --help shows help",
-				"Typecheck passes"
-			],
-			"priority": 25,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-026",
-			"title": "Implement omnidev init command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Init command only",
-			"acceptanceCriteria": [
-				"Creates omni/ directory with config.toml",
-				"Creates .omni/ directory",
-				"Creates agents.md and .claude/claude.md reference files",
-				"Updates .gitignore",
-				"Shows success message with next steps",
-				"Typecheck passes"
-			],
-			"priority": 26,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-027",
-			"title": "Implement omnidev doctor command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Doctor command only",
-			"acceptanceCriteria": [
-				"Checks Bun version",
-				"Checks omni/ and .omni/ directories exist",
-				"Checks config.toml is valid",
-				"Reports status of each check",
-				"Suggests fixes for failures",
-				"Typecheck passes"
-			],
-			"priority": 27,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-028",
-			"title": "Implement capability list command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Capability list command only",
-			"acceptanceCriteria": [
-				"Lists all discovered capabilities",
-				"Shows enabled/disabled status",
-				"Shows name, id, version",
-				"Handles no capabilities gracefully",
-				"Typecheck passes"
-			],
-			"priority": 28,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-029",
-			"title": "Implement profile commands",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Profile list and set commands only",
-			"acceptanceCriteria": [
-				"omnidev profile list shows defined profiles",
-				"Shows which profile is active",
-				"omnidev profile set validates profile exists",
-				"Writes to .omni/active-profile",
-				"Triggers agents sync automatically",
-				"Typecheck passes"
-			],
-			"priority": 29,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-030",
-			"title": "Implement agents sync command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Agents sync command only",
-			"acceptanceCriteria": [
-				"Collects skills and rules from enabled capabilities",
-				"Generates .omni/generated/rules.md",
-				"Writes skills to .claude/skills/",
-				"Writes rules to .cursor/rules/omnidev-*.mdc",
-				"Shows list of generated files",
-				"Typecheck passes"
-			],
-			"priority": 30,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-031",
-			"title": "Implement types generate command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Types generate command only",
-			"acceptanceCriteria": [
-				"Collects type definitions from enabled capabilities",
-				"Generates .omni/generated/types.d.ts",
-				"Shows success message with file path",
-				"Typecheck passes"
-			],
-			"priority": 31,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-032",
-			"title": "Set up MCP server framework",
-			"taskFile": "scripts/ralph/tasks/prd-007-mcp-server.md",
-			"scope": "MCP server framework setup only",
-			"acceptanceCriteria": [
-				"@modelcontextprotocol/sdk installed",
-				"MCP server created in src/server.ts",
-				"Uses stdio transport",
-				"Server starts and accepts connections",
-				"Typecheck passes"
-			],
-			"priority": 32,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-033",
-			"title": "Implement omni_query tool",
-			"taskFile": "scripts/ralph/tasks/prd-007-mcp-server.md",
-			"scope": "omni_query tool only",
-			"acceptanceCriteria": [
-				"omni_query registered as MCP tool",
-				"Accepts query, limit, include_types parameters",
-				"Searches capabilities, skills, docs",
-				"Returns type definitions when include_types is true",
-				"Returns summary when query is empty",
-				"Tests cover query scenarios",
-				"Typecheck passes"
-			],
-			"priority": 33,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-034",
-			"title": "Set up sandbox environment",
-			"taskFile": "scripts/ralph/tasks/prd-007-mcp-server.md",
-			"scope": "Sandbox setup only",
-			"acceptanceCriteria": [
-				".omni/sandbox/ directory created",
-				"Symlinks to capabilities in sandbox/node_modules/",
-				"Sandbox can import capability modules",
-				"Tests cover sandbox setup",
-				"Typecheck passes"
-			],
-			"priority": 34,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-035",
-			"title": "Implement omni_execute tool",
-			"taskFile": "scripts/ralph/tasks/prd-007-mcp-server.md",
-			"scope": "omni_execute tool only",
-			"acceptanceCriteria": [
-				"omni_execute registered as MCP tool",
-				"Writes code to .omni/sandbox/main.ts",
-				"Executes using bun run",
-				"Returns stdout, stderr, exit_code",
-				"Returns changed_files and diff_stat",
-				"Tests cover execution scenarios",
-				"Typecheck passes"
-			],
-			"priority": 35,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-036",
-			"title": "Implement hot reload and lifecycle",
-			"taskFile": "scripts/ralph/tasks/prd-007-mcp-server.md",
-			"scope": "Hot reload and lifecycle only",
-			"acceptanceCriteria": [
-				"Server watches config and capability files",
-				"Server reloads on changes",
-				"Writes PID to .omni/server.pid",
-				"Handles SIGINT/SIGTERM gracefully",
-				"Typecheck passes"
-			],
-			"priority": 36,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-037",
-			"title": "Implement serve command",
-			"taskFile": "scripts/ralph/tasks/prd-006-cli-package.md",
-			"scope": "Serve command only",
-			"acceptanceCriteria": [
-				"omnidev serve starts MCP server",
-				"Accepts --profile flag",
-				"Shows server status messages",
-				"Handles graceful shutdown",
-				"Typecheck passes"
-			],
-			"priority": 37,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-038",
-			"title": "Create Ralph capability structure",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Capability structure only (capability.toml, package.json, index.ts, types.d.ts, definition.md)",
-			"acceptanceCriteria": [
-				"capabilities/ralph/capability.toml exists with metadata",
-				"capabilities/ralph/package.json exists",
-				"capabilities/ralph/index.ts exists with placeholder exports",
-				"capabilities/ralph/types.d.ts exists with Story, PRD interfaces",
-				"capabilities/ralph/definition.md exists with description",
-				"Capability discovered by loader",
-				"Typecheck passes"
-			],
-			"priority": 38,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-039",
-			"title": "Implement Ralph state management",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "State management only (PRD, story, progress operations in index.ts)",
-			"acceptanceCriteria": [
-				"listPRDs, getPRD, createPRD, updatePRD, archivePRD functions work",
-				"getNextStory, markStoryPassed, markStoryFailed functions work",
-				"appendProgress, getProgress, getPatterns functions work",
-				"getActivePRD, setActivePRD functions work",
-				"State persisted to .omni/ralph/",
-				"Tests cover state operations",
-				"Typecheck passes"
-			],
-			"priority": 39,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-040",
-			"title": "Implement Ralph sync hook",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Sync hook only (creates directory structure, default config)",
-			"acceptanceCriteria": [
-				"Sync creates .omni/ralph/ directory structure",
-				"Sync creates .omni/ralph/prds/ and .omni/ralph/completed-prds/",
-				"Sync creates default config.toml if not exists",
-				"Sync updates .gitignore with .omni/ralph/",
-				"omnidev agents sync triggers Ralph sync",
-				"Typecheck passes"
-			],
-			"priority": 40,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-041",
-			"title": "Implement Ralph CLI commands (core)",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Core CLI commands only (init, start, stop, status)",
-			"acceptanceCriteria": [
-				"omnidev ralph init creates .omni/ralph/ structure",
-				"omnidev ralph start spawns agent and runs iterations",
-				"omnidev ralph start accepts --agent, --iterations, --prd flags",
-				"omnidev ralph stop gracefully stops orchestration",
-				"omnidev ralph status shows active PRD and story progress",
-				"Typecheck passes"
-			],
-			"priority": 41,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-042",
-			"title": "Implement Ralph CLI commands (management)",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Management CLI commands (prd, story, spec, log, patterns subcommands)",
-			"acceptanceCriteria": [
-				"omnidev ralph prd list/create/select/view/archive/delete work",
-				"omnidev ralph story list/pass/reset/add work",
-				"omnidev ralph spec list/create/view work",
-				"omnidev ralph log shows progress log",
-				"omnidev ralph patterns extracts codebase patterns",
-				"Typecheck passes"
-			],
-			"priority": 42,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-043",
-			"title": "Create Ralph skills and rules",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Skills and rules files only",
-			"acceptanceCriteria": [
-				"skills/prd-creation/SKILL.md exists with PRD generation guidance",
-				"skills/ralph-orchestration/SKILL.md exists with iteration workflow",
-				"rules/prd-structure.md exists with PRD format rules",
-				"rules/iteration-workflow.md exists with iteration behavior rules",
-				"docs/agent-prompt.md exists with prompt template",
-				"Skills and rules discovered by loader",
-				"Typecheck passes"
-			],
-			"priority": 43,
-			"passes": true,
-			"notes": ""
-		},
-		{
-			"id": "US-044",
-			"title": "End-to-end integration verification",
-			"taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
-			"scope": "Full integration test",
-			"acceptanceCriteria": [
-				"bun install works from root",
-				"bun run check passes (typecheck + lint + format)",
-				"bun test passes with 70%+ coverage",
-				"omnidev init creates correct structure",
-				"omnidev doctor shows all green",
-				"omnidev capability list shows ralph capability",
-				"omnidev agents sync triggers ralph sync hook",
-				"omnidev ralph init creates .omni/ralph/ structure",
-				"omnidev ralph prd create works interactively",
-				"Typecheck passes"
-			],
-			"priority": 44,
-			"passes": true,
-			"notes": "Final verification story - run all checks including Ralph CLI"
+			"priority": 3,
+			"passes": false,
+			"notes": "PRD-012"
 		}
 	]
 }

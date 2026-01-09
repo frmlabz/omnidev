@@ -13,6 +13,7 @@
 		"build": "echo 'Build not needed for Bun runtime'"
 	},
 	"dependencies": {
+		"@inquirer/prompts": "^8.1.0",
 		"@omnidev/core": "workspace:*",
 		"@stricli/core": "^1.2.5"
 	},

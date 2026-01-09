@@ -22,14 +22,14 @@ describe("init command", () => {
 	});
 
 	test("creates omni/ directory", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync("omni")).toBe(true);
 		expect(existsSync("omni/capabilities")).toBe(true);
 	});
 
 	test("creates omni/config.toml with default config", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync("omni/config.toml")).toBe(true);
 
@@ -41,7 +41,7 @@ describe("init command", () => {
 	});
 
 	test("creates .omni/ directory with subdirectories", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync(".omni")).toBe(true);
 		expect(existsSync(".omni/generated")).toBe(true);
@@ -49,8 +49,17 @@ describe("init command", () => {
 		expect(existsSync(".omni/sandbox")).toBe(true);
 	});
 
+	test("creates .omni/provider.toml with selected provider", async () => {
+		await runInit({}, "claude");
+
+		expect(existsSync(".omni/provider.toml")).toBe(true);
+
+		const content = readFileSync(".omni/provider.toml", "utf-8");
+		expect(content).toContain('provider = "claude"');
+	});
+
 	test("creates agents.md reference file", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync("agents.md")).toBe(true);
 
@@ -61,7 +70,7 @@ describe("init command", () => {
 	});
 
 	test("creates .claude/claude.md reference file", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync(".claude")).toBe(true);
 		expect(existsSync(".claude/claude.md")).toBe(true);
@@ -73,7 +82,7 @@ describe("init command", () => {
 	});
 
 	test("creates .gitignore with OmniDev entries when file does not exist", async () => {
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync(".gitignore")).toBe(true);
 
@@ -86,7 +95,7 @@ describe("init command", () => {
 	test("appends to .gitignore when file exists", async () => {
 		await Bun.write(".gitignore", "node_modules/\n");
 
-		await runInit();
+		await runInit({}, "claude");
 
 		const content = readFileSync(".gitignore", "utf-8");
 		expect(content).toContain("node_modules/");
@@ -95,8 +104,8 @@ describe("init command", () => {
 	});
 
 	test("does not duplicate .gitignore entries on re-run", async () => {
-		await runInit();
-		await runInit();
+		await runInit({}, "claude");
+		await runInit({}, "claude");
 
 		const content = readFileSync(".gitignore", "utf-8");
 		const matches = content.match(/.omni\//g);
@@ -104,9 +113,9 @@ describe("init command", () => {
 	});
 
 	test("is idempotent - safe to run multiple times", async () => {
-		await runInit();
-		await runInit();
-		await runInit();
+		await runInit({}, "claude");
+		await runInit({}, "claude");
+		await runInit({}, "claude");
 
 		expect(existsSync("omni/config.toml")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
@@ -119,7 +128,7 @@ describe("init command", () => {
 		mkdirSync("omni", { recursive: true });
 		await Bun.write("omni/config.toml", customConfig);
 
-		await runInit();
+		await runInit({}, "claude");
 
 		const content = readFileSync("omni/config.toml", "utf-8");
 		expect(content).toBe(customConfig);
@@ -129,7 +138,7 @@ describe("init command", () => {
 		const customAgents = "# Custom agents\n";
 		await Bun.write("agents.md", customAgents);
 
-		await runInit();
+		await runInit({}, "claude");
 
 		const content = readFileSync("agents.md", "utf-8");
 		expect(content).toBe(customAgents);
@@ -138,12 +147,30 @@ describe("init command", () => {
 	test("creates all directories even if some already exist", async () => {
 		mkdirSync("omni", { recursive: true });
 
-		await runInit();
+		await runInit({}, "claude");
 
 		expect(existsSync("omni/capabilities")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
 		expect(existsSync(".omni/generated")).toBe(true);
 		expect(existsSync(".omni/state")).toBe(true);
 		expect(existsSync(".omni/sandbox")).toBe(true);
+	});
+
+	test("accepts provider via positional parameter", async () => {
+		await runInit({}, "codex");
+
+		expect(existsSync(".omni/provider.toml")).toBe(true);
+
+		const content = readFileSync(".omni/provider.toml", "utf-8");
+		expect(content).toContain('provider = "codex"');
+	});
+
+	test("accepts 'both' as provider parameter", async () => {
+		await runInit({}, "both");
+
+		expect(existsSync(".omni/provider.toml")).toBe(true);
+
+		const content = readFileSync(".omni/provider.toml", "utf-8");
+		expect(content).toContain('providers = ["claude", "codex"]');
 	});
 });

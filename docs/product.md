@@ -1,7 +1,7 @@
 # OmniDev Product Specification
 
-> **Status**: MVP Draft v0.7
-> **Last Updated**: 2026-01-08
+> **Status**: MVP Draft v0.8
+> **Last Updated**: 2026-01-09
 
 ## Vision
 
@@ -29,7 +29,7 @@ OmniDev is a meta-MCP that eliminates context bloat by exposing only **2 tools**
 12. [Directory Structure](#directory-structure)
 13. [Configuration System](#configuration-system)
 14. [Profiles System](#profiles-system)
-15. [Task & Plan Management](#task--plan-management)
+15. [Ralph - AI Agent Orchestrator](#ralph---ai-agent-orchestrator)
 16. [CLI Interface](#cli-interface)
 17. [Demo Scenarios](#demo-scenarios)
 18. [Technical Notes](#technical-notes)
@@ -51,7 +51,7 @@ OmniDev is a meta-MCP that eliminates context bloat by exposing only **2 tools**
 OmniDev wraps every piece of functionality into a **Capability**.
 
 *   **MCPs → Code**: An AWS MCP becomes `aws.*` functions in the sandbox.
-*   **Workflows → Code**: Task management becomes `tasks.*` functions.
+*   **Workflows → Code**: PRD management becomes `ralph.*` functions.
 *   **Docs → Code**: Guidelines become searchable/readable context.
 *   **CLI Extensions → Code**: Capabilities can add commands and TUI views to the CLI.
 
@@ -84,7 +84,7 @@ The LLM interacts with the world via **Code**, not JSON tool calls.
 
 ### Core Requirements Summary
 
-1.  **Flexible Task Management**: "Tasks" are just a capability. Users can swap the default task system for a custom Jira or Trello capability.
+1.  **Flexible Orchestration**: Ralph is the built-in AI orchestrator. Users can swap or extend it with custom capabilities.
 2.  **Doc-Driven Development**: Capabilities can ingest documentation (e.g., "Code Guidelines") and expose them to the LLM to enforce standards.
 3.  **MCP-to-Code Conversion**: Any MCP server is automatically converted into a sandboxed library (`server.action()`).
 4.  **Layered Configuration**: Supports teams. A team lead shares a minimal config (repo access, linting rules), and individual developers layer their own tools (debugging, personal notes) on top.
@@ -222,24 +222,31 @@ The LLM needs to know function signatures to write correct code. When requested,
 ```typescript
 // Auto-generated type definitions for enabled capabilities
 
-declare module 'tasks' {
-  export type Status = 'todo' | 'in_progress' | 'blocked' | 'done';
-  
-  export interface Task {
+declare module 'ralph' {
+  export interface Story {
     id: string;
     title: string;
-    description: string | null;
-    status: Status;
-    tags: string[];
-    createdAt: number;
-    updatedAt: number;
+    specFile: string;
+    scope: string;
+    acceptanceCriteria: string[];
+    priority: number;
+    passes: boolean;
+    notes: string;
   }
-  
-  export function create(title: string, description?: string | null, tags?: string[]): Promise<string>;
-  export function list(status?: Status): Promise<Task[]>;
-  export function get(taskId: string): Promise<Task>;
-  export function update(taskId: string, fields: Partial<Omit<Task, 'id' | 'createdAt'>>): Promise<Task>;
-  export function complete(taskId: string): Promise<Task>;
+
+  export interface PRD {
+    name: string;
+    branchName: string;
+    description: string;
+    createdAt: string;
+    userStories: Story[];
+  }
+
+  export function listPRDs(): Promise<string[]>;
+  export function getPRD(name: string): Promise<PRD>;
+  export function createPRD(name: string, options: Partial<PRD>): Promise<PRD>;
+  export function getNextStory(prdName: string): Promise<Story | null>;
+  export function markStoryPassed(prdName: string, storyId: string): Promise<void>;
 }
 
 declare module 'aws' {
@@ -274,18 +281,22 @@ The LLM should write a complete TypeScript file that OmniDev can execute verbati
 
 ```typescript
 // Example sandbox script
-import * as tasks from 'tasks';
+import * as ralph from 'ralph';
 import * as fs from 'fs';
 
 export async function main(): Promise<number> {
-  // Create a task
-  const taskId = await tasks.create("Implement feature X");
+  // Get next story to work on
+  const story = await ralph.getNextStory("user-auth");
   
-  // Read a file
-  const config = JSON.parse(fs.readFileSync("config.json", "utf-8"));
+  if (!story) {
+    console.log("All stories complete!");
+    return 0;
+  }
   
-  // Do work...
-  console.log(`Created task ${taskId} for project ${config.name}`);
+  // Read the spec file
+  const spec = fs.readFileSync(story.specFile, "utf-8");
+  console.log(`Working on: ${story.title}`);
+  console.log(`Spec: ${spec}`);
   
   return 0; // Success
 }
@@ -327,7 +338,7 @@ omni/capabilities/my-capability/
 ├── cli/                # CLI Extensions
 │   ├── commands.ts     # Stricli command definitions
 │   └── views/          # OpenTUI React components
-│       └── TaskList.tsx
+│       └── StatusView.tsx
 ├── docs/               # Knowledge Base
 │   ├── guidelines.md   # Text to be indexed
 │   └── reference.pdf   # PDFs/other formats
@@ -359,12 +370,12 @@ omni/capabilities/my-capability/
 4.  **`tools/` (Sandbox Code)**
     *   Contains `.ts` files with functions exposed to the sandbox.
     *   These are imported by `index.ts` and re-exported under the capability namespace.
-    *   **Export rule (MVP)**: Functions exported from `index.ts` become attributes on the capability module (e.g., `tasks.create()`).
+    *   **Export rule (MVP)**: Functions exported from `index.ts` become attributes on the capability module (e.g., `ralph.getPRD()`).
 
 5.  **`cli/` (CLI Extensions)**
     *   `commands.ts`: Stricli command definitions that extend the CLI.
     *   `views/`: OpenTUI React components for rich terminal UIs.
-    *   These are registered when the capability loads, adding commands like `omnidev tasks list`.
+    *   These are registered when the capability loads, adding commands like `omnidev ralph start`.
 
 6.  **`docs/` (Knowledge)**
     *   Markdown or text files that provide context.
@@ -438,23 +449,26 @@ transport = "stdio"
 Since capabilities are Bun packages, **everything can be programmatic**. The `index.ts` is the single source of truth. Filesystem discovery (markdown files) is optional convenience.
 
 ```typescript
-// capabilities/tasks/index.ts
+// capabilities/ralph/index.ts
 import type { Capability, Skill, Rule, Doc } from '@omnidev/core';
 
 // ============================================
 // 1. SANDBOX TOOLS (functions LLMs can call)
 // ============================================
-export * from './tools/taskManager';
+export * from './state';
+export * from './orchestrator';
 
 // ============================================
 // 2. CLI COMMANDS
 // ============================================
 export const cliCommands = {
-  tasks: {
-    description: 'Manage tasks',
+  ralph: {
+    description: 'AI agent orchestrator',
     subcommands: {
-      list: { /* ... */ },
-      add: { /* ... */ },
+      init: { /* ... */ },
+      start: { /* ... */ },
+      stop: { /* ... */ },
+      status: { /* ... */ },
     },
   },
 };
@@ -462,9 +476,9 @@ export const cliCommands = {
 // ============================================
 // 3. TUI VIEWS
 // ============================================
-export { TaskListView } from './cli/views/TaskList';
+export { StatusView } from './cli/views/Status';
 export const cliViews = {
-  'tasks.list': 'TaskListView',
+  'ralph.status': 'StatusView',
 };
 
 // ============================================
@@ -473,16 +487,16 @@ export const cliViews = {
 // Can export skills directly instead of using skills/*/SKILL.md
 export const skills: Skill[] = [
   {
-    name: 'task-management',
-    description: 'Maintain an explicit plan and update tasks as work progresses.',
+    name: 'prd-creation',
+    description: 'Generate structured PRDs for AI-driven development workflows.',
     instructions: `
 ## When to use this skill
-- Working on multi-step tasks
-- Progress needs to be visible
+- Creating a new feature PRD
+- Breaking down work into stories
 
 ## Key rules
-- Keep exactly one task in_progress at a time
-- Update status as you work
+- Ask clarifying questions first
+- Create acceptance criteria for each story
     `,
   },
 ];
@@ -493,12 +507,12 @@ export const skills: Skill[] = [
 // Can export rules directly instead of using rules/*.md
 export const rules: Rule[] = [
   {
-    name: 'task-workflow',
+    name: 'iteration-workflow',
     content: `
-# Task Workflow Rules
-- Always check current tasks before creating new ones
-- Use clear, actionable titles
-- Complete tasks before starting new ones
+# Iteration Workflow Rules
+- Work on ONE story per iteration
+- Read the spec file before implementing
+- Run quality checks before committing
     `,
   },
 ];
@@ -525,10 +539,10 @@ export async function getDocs(): Promise<Doc[]> {
 // ============================================
 // Can export type defs instead of using types.d.ts file
 export const typeDefinitions = `
-export type Status = 'todo' | 'in_progress' | 'blocked' | 'done';
-export interface Task { id: string; title: string; status: Status; }
-export function create(title: string): Promise<string>;
-export function list(status?: Status): Promise<Task[]>;
+export interface Story { id: string; title: string; passes: boolean; }
+export interface PRD { name: string; userStories: Story[]; }
+export function getPRD(name: string): Promise<PRD>;
+export function getNextStory(prdName: string): Promise<Story | null>;
 `;
 ```
 
@@ -576,8 +590,8 @@ my-project/
 ├── node_modules/             # Shared dependencies (hoisted)
 ├── omni/
 │   └── capabilities/
-│       ├── tasks/
-│       │   ├── package.json  # Dependencies for 'tasks' (e.g. uuid, zod)
+│       ├── ralph/
+│       │   ├── package.json  # Dependencies for 'ralph'
 │       │   ├── capability.toml
 │       │   ├── index.ts
 │       │   └── ...
@@ -608,11 +622,11 @@ When the user runs `bun install` (or `omnidev install`):
 The LLM writes code like:
 
 ```typescript
-import * as tasks from 'tasks';
+import * as ralph from 'ralph';
 // ...
 ```
 
-But `tasks` is located in `omni/capabilities/tasks`. The sandbox needs to resolve this.
+But `ralph` is located in `omni/capabilities/ralph`. The sandbox needs to resolve this.
 
 **Solution: Symlinked Sandbox Modules**
 
@@ -623,128 +637,20 @@ Before running `omni_execute`, OmniDev prepares the sandbox:
 3. Execute the script with `.omni/sandbox/` as the working directory
 
 ```
-.omni/sandbox/node_modules/tasks → ../../../omni/capabilities/tasks
+.omni/sandbox/node_modules/ralph → ../../../omni/capabilities/ralph
 .omni/sandbox/node_modules/aws   → ../../../omni/capabilities/aws
 ```
 
 **Dependency Resolution Flow:**
 
 ```
-import ... from 'tasks'
-    → Found in .omni/sandbox/node_modules/tasks (Symlink)
+import ... from 'ralph'
+    → Found in .omni/sandbox/node_modules/ralph (Symlink)
 
-Inside tasks, it does: import { S3 } from '@aws-sdk/client-s3'
-    → Bun looks in tasks/node_modules (Empty)
+Inside ralph, it does: import { someUtil } from 'lodash'
+    → Bun looks in ralph/node_modules (Empty)
     → Bun walks up the directory tree to project root node_modules
-    → Success! It finds the SDK installed by the workspace
-```
-
-### Implementation Details
-
-#### `capability.toml` vs `package.json`
-
-Keep both, with clear responsibilities:
-
-| File | Purpose |
-|------|---------|
-| `capability.toml` | OmniDev-specific metadata: `[cli]`, `[env]`, `[mcp]`, skills, rules |
-| `package.json` | Standard npm package: dependencies, `main` entry point |
-
-`index.ts` should be the `main` entry in `package.json`.
-
-**Example `package.json` for a capability:**
-
-```json
-{
-  "name": "tasks",
-  "version": "0.1.0",
-  "main": "index.ts",
-  "type": "module",
-  "dependencies": {
-    "zod": "^3.22.0"
-  }
-}
-```
-
-#### `omnidev init` Command Updates
-
-Must generate a root `package.json` if one doesn't exist:
-
-```json
-{
-  "name": "my-omnidev-project",
-  "private": true,
-  "workspaces": [
-    "omni/capabilities/*"
-  ]
-}
-```
-
-#### Sandbox Pre-flight Check
-
-When `omni_execute` receives code, it quickly verifies symlinks exist:
-
-```typescript
-// packages/mcp/src/sandbox.ts
-import { symlink, mkdir } from 'fs/promises';
-import { join } from 'path';
-
-async function prepareSandbox(activeCapabilities: Capability[]) {
-  const sandboxNodeModules = '.omni/sandbox/node_modules';
-  await mkdir(sandboxNodeModules, { recursive: true });
-  
-  for (const cap of activeCapabilities) {
-    const linkPath = join(sandboxNodeModules, cap.config.exports?.module ?? cap.id);
-    const targetPath = `../../../omni/capabilities/${cap.id}`;
-    
-    try {
-      await symlink(targetPath, linkPath);
-    } catch (e) {
-      // Link may already exist
-      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-    }
-  }
-}
-```
-
-### Handling Remote Capabilities (Future)
-
-When the Capability Hub is added:
-
-1. `omnidev install user/cool-tool` downloads the folder to `omni/capabilities/cool-tool/`
-2. OmniDev runs `bun install` at the project root
-3. The workspace picks up the new `package.json` and installs its dependencies
-4. Symlinks are created on next `omni_execute`
-5. Ready to use
-
-### Naming Collision Mitigation
-
-**Risk**: A capability named `fs` or `path` (shadowing built-ins) or `react` (shadowing npm packages).
-
-**Mitigation strategies:**
-
-| Strategy | Description |
-|----------|-------------|
-| **Block reserved names** | Reject capabilities named `fs`, `path`, `http`, `crypto`, etc. |
-| **Namespace prefix** | Force imports to be `@cap/tasks` instead of `tasks` |
-| **Validation on load** | Warn if a capability name shadows a common npm package |
-
-**MVP approach**: Block reserved names. Maintain a deny-list of Node.js built-ins and common npm packages.
-
-```typescript
-const RESERVED_NAMES = [
-  // Node.js built-ins
-  'fs', 'path', 'http', 'https', 'crypto', 'os', 'child_process',
-  'stream', 'buffer', 'util', 'events', 'net', 'url', 'querystring',
-  // Common npm packages
-  'react', 'vue', 'lodash', 'axios', 'express', 'typescript',
-];
-
-function validateCapabilityName(name: string): void {
-  if (RESERVED_NAMES.includes(name)) {
-    throw new Error(`Capability name "${name}" is reserved. Choose a different name.`);
-  }
-}
+    → Success! It finds lodash installed by the workspace
 ```
 
 ### Summary of Advantages
@@ -753,7 +659,7 @@ function validateCapabilityName(name: string): void {
 |---------|-------------|
 | **Zero Build Step** | No bundling with Webpack/Esbuild. Run raw TypeScript via Bun. |
 | **Native Speed** | Symlinks are instant. No file copying. |
-| **Great DX** | Edit `omni/capabilities/tasks/index.ts`, next sandbox run uses changes immediately. |
+| **Great DX** | Edit `omni/capabilities/ralph/index.ts`, next sandbox run uses changes immediately. |
 | **Standard Tooling** | Works with any npm/Bun tooling. `bun install` just works. |
 | **Shared Dependencies** | Common packages hoisted to root. Saves disk space. |
 
@@ -807,38 +713,6 @@ AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
 ```
 
-### Sandbox Injection
-
-The sandbox automatically receives declared environment variables:
-
-```typescript
-// In capability code (tools/github.ts)
-export async function createIssue(title: string) {
-  // GITHUB_TOKEN is available because capability.toml declared it
-  const token = process.env.GITHUB_TOKEN;
-  // ...
-}
-```
-
-**Security notes:**
-*   Only variables declared in `[env]` are passed to capability code
-*   Undeclared variables from the host are NOT available (no ambient access)
-*   This prevents capabilities from reading arbitrary secrets
-
-### Config Overrides
-
-Team defaults can be set in `omni/config.toml`, with personal overrides in `.omni/config.local.toml`:
-
-```toml
-# omni/config.toml (COMMITTED - team defaults)
-[env]
-AWS_REGION = "eu-west-1"  # Team's default region
-
-# .omni/config.local.toml (GITIGNORED - personal overrides)
-[env]
-AWS_PROFILE = "nikola-dev"  # My personal AWS profile
-```
-
 ---
 
 ## Skills & Rules System
@@ -854,15 +728,15 @@ Skills are agent behaviors that follow the [Agent Skills spec](https://github.co
 **Format:**
 ```markdown
 ---
-name: task-management
-description: Maintain an explicit plan and update tasks as work progresses.
+name: prd-creation
+description: Generate structured PRDs for AI-driven development workflows.
 ---
 
 ## Instructions
 
-- Maintain an explicit plan before executing multi-step work.
-- Keep exactly one plan step `in_progress` at a time.
-- When you finish a meaningful unit of work, update the plan before continuing.
+- Ask 3-5 clarifying questions before generating PRD
+- Create user stories with acceptance criteria
+- Link stories to spec files for detailed context
 ```
 
 **Characteristics:**
@@ -878,14 +752,14 @@ Rules are simple markdown files with guidelines, constraints, or policies. They 
 
 **Format:**
 ```markdown
-<!-- rules/code-quality.md -->
+<!-- rules/iteration-workflow.md -->
 
-# Code Quality Rules
+# Iteration Workflow Rules
 
-- Write clean, readable code with meaningful variable names
-- Add comments for complex logic
-- Keep functions small and focused
-- Handle errors appropriately
+- Work on ONE story per iteration
+- Read the spec file before implementing
+- Run quality checks before committing
+- Commit with format: feat: [US-XXX] - Title
 ```
 
 **Characteristics:**
@@ -897,7 +771,7 @@ Rules are simple markdown files with guidelines, constraints, or policies. They 
 
 | Use Case | Skills | Rules |
 |----------|--------|-------|
-| Defining a workflow (e.g., task management) | ✓ | |
+| Defining a workflow (e.g., PRD creation) | ✓ | |
 | Code style guidelines | | ✓ |
 | Tool usage instructions | ✓ | |
 | Review checklist | | ✓ |
@@ -913,13 +787,13 @@ Profiles are **user-created groupings** that enable/disable capabilities at the 
 default_profile = "default"
 
 [capabilities]
-enable = ["tasks", "git"]
+enable = ["ralph", "git"]
 
 [profiles.frontend]
-enable = ["tasks", "git", "react-rules", "css-standards"]
+enable = ["ralph", "git", "react-rules", "css-standards"]
 
 [profiles.backend]  
-enable = ["tasks", "git", "api-rules", "database-rules"]
+enable = ["ralph", "git", "api-rules", "database-rules"]
 ```
 
 When you switch profiles, different capabilities become active. Since skills and rules live inside capabilities, switching profiles effectively changes which skills and rules are included in agent sync output.
@@ -975,238 +849,6 @@ omnidev profile set frontend  # Also runs agents sync
 | `.omni/generated/types.d.ts` | Gitignored | Type definitions for `omni_query` |
 | `.omni/active-profile` | Gitignored | Current profile name |
 
-### Why Skills Go Directly to Provider Locations
-
-Providers discover skills in specific directories:
-- Claude Code looks in `.claude/skills/`
-- Cursor looks in `.cursor/rules/`
-- Codex looks in `.codex/skills/`
-
-We can't change where they look, so we write directly there. **These directories should be gitignored** since they're profile-dependent.
-
-### Committed Reference Files
-
-These files are committed once and rarely change:
-
-**`agents.md`** (committed):
-```markdown
-# Agent Configuration
-
-> Managed by OmniDev. Do not edit directly.
-> Run `omnidev agents sync` to update.
-
-<!-- Import generated rules (gitignored) -->
-@import .omni/generated/rules.md
-```
-
-**`.claude/claude.md`** (committed):
-```markdown
-# Claude Code Configuration
-
-> Managed by OmniDev.
-> Skills are in `.claude/skills/` (gitignored, profile-dependent)
-> Run `omnidev agents sync` to regenerate.
-
-See: `.omni/generated/rules.md` for current rules.
-```
-
-### Example Output Structure
-
-```
-project-root/
-├── agents.md                    # COMMITTED (static reference)
-├── .claude/
-│   ├── claude.md                # COMMITTED (static reference)
-│   └── skills/                  # GITIGNORED (generated directly here)
-│       ├── task-management/
-│       │   └── SKILL.md
-│       └── code-review/
-│           └── SKILL.md
-├── .cursor/
-│   └── rules/
-│       ├── .gitignore           # Ignore omnidev-*.mdc
-│       └── omnidev-tasks.mdc    # GITIGNORED (generated directly here)
-├── omni/                        # COMMITTED
-│   ├── config.toml              # Team config, profiles defined here
-│   └── capabilities/
-│       └── ...
-└── .omni/                       # GITIGNORED
-    ├── config.local.toml        # Personal overrides
-    ├── .env                     # Secrets
-    ├── active-profile           # Current profile name (e.g., "frontend")
-    ├── generated/               # Other generated content
-    │   ├── rules.md             # Compiled rules for current profile
-    │   └── types.d.ts           # Type definitions
-    ├── state/
-    └── sandbox/
-```
-
-### Gitignore Entries
-
-`omnidev init` adds these to `.gitignore`:
-
-```gitignore
-# OmniDev - local state and generated content
-.omni/
-
-# Provider-specific generated content (profile-dependent)
-.claude/skills/
-.cursor/rules/omnidev-*.mdc
-.codex/skills/
-```
-
-### Why This Design?
-
-| Scenario | Old Design | New Design |
-|----------|------------|------------|
-| Switch profile | `agents.md` changes, dirty git | Only gitignored dirs change |
-| Team member pulls | Gets your profile's rules | Gets reference files, generates own |
-| CI/CD | Profile state in repo | Profile set per environment |
-| Skills discovery | Providers can't find them | Written directly where providers look |
-
-### How Profiles Affect Output
-
-Profiles control which capabilities are enabled. When you switch profiles, `.omni/generated/` is updated with the new profile's rules and skills.
-
-**Example:** If you have two profiles:
-- `frontend` profile enables: `tasks`, `react-rules`, `css-standards`
-- `backend` profile enables: `tasks`, `api-rules`, `database-rules`
-
-```bash
-# Switch to frontend profile
-omnidev profile set frontend
-
-# This updates:
-# - .omni/active-profile → "frontend"
-# - .omni/generated/rules.md → rules from tasks, react-rules, css-standards
-# - .omni/generated/skills.md → skills from those capabilities
-# - .omni/generated/types.d.ts → type definitions
-#
-# Git stays clean! Only .omni/ (gitignored) changes.
-```
-
-**Example `.omni/generated/rules.md`** (gitignored, generated):
-```markdown
-# Active Rules
-
-> Profile: frontend
-> Generated: 2026-01-08T10:30:00Z
-> Capabilities: tasks, react-rules, css-standards
-
-## task-workflow (from tasks)
-
-- Always check the current task list before starting new work
-- Keep exactly one task in_progress at a time
-
-## react-best-practices (from react-rules)
-
-- Use functional components with hooks
-- Keep components small and focused
-...
-```
-
----
-
-## Hot Reload & Change Detection
-
-The OmniDev MCP server must react to changes in configuration, capabilities, and generated files.
-
-### What Triggers a Reload
-
-| Change | Effect |
-|--------|--------|
-| `omni/config.toml` modified | Reload config, re-resolve enabled capabilities |
-| `.omni/config.local.toml` modified | Reload config, re-resolve enabled capabilities |
-| `omni/capabilities/*/` modified | Reload affected capability |
-| `.omni/active-profile` modified | Reload with new profile's capabilities |
-| `omnidev profile set <name>` | Write `.omni/active-profile`, trigger sync, notify server |
-| `omnidev agents sync` | Regenerate `.omni/generated/*`, notify server |
-
-### Implementation Options
-
-**Option A: File Watching (Recommended for MVP)**
-
-```typescript
-// packages/mcp/src/watcher.ts
-import { watch } from 'fs';
-
-const WATCH_PATHS = [
-  'omni/config.toml',
-  '.omni/config.local.toml',
-  '.omni/active-profile',
-  'omni/capabilities/',
-];
-
-export function startWatcher(onReload: () => void) {
-  for (const path of WATCH_PATHS) {
-    watch(path, { recursive: true }, (event, filename) => {
-      console.log(`[omnidev] Change detected: ${filename}`);
-      onReload();
-    });
-  }
-}
-```
-
-**Option B: Signal-Based (Unix)**
-
-CLI commands send a signal to the running server:
-
-```bash
-# omnidev profile set frontend
-# 1. Writes .omni/active-profile
-# 2. Runs agents sync
-# 3. Sends SIGHUP to omnidev server (if running)
-kill -HUP $(cat .omni/server.pid)
-```
-
-**Option C: State File Polling**
-
-Server checks `.omni/state/reload-trigger` before each operation:
-
-```typescript
-// Before handling omni_query or omni_execute
-const trigger = await Bun.file('.omni/state/reload-trigger').text();
-if (trigger !== lastTrigger) {
-  await reloadCapabilities();
-  lastTrigger = trigger;
-}
-```
-
-### Automatic Sync on Profile Switch
-
-`omnidev profile set` should be a single command that does everything:
-
-```bash
-omnidev profile set frontend
-```
-
-This command:
-1. Writes `frontend` to `.omni/active-profile`
-2. Runs `omnidev agents sync` (regenerates `.omni/generated/*`)
-3. Notifies the MCP server to reload (if running)
-
-```typescript
-// packages/cli/src/commands/profile.ts
-export async function setProfile(name: string) {
-  // 1. Validate profile exists
-  const config = await loadConfig();
-  if (!config.profiles?.[name]) {
-    throw new Error(`Unknown profile: ${name}`);
-  }
-  
-  // 2. Write active profile
-  await Bun.write('.omni/active-profile', name);
-  
-  // 3. Regenerate agent files
-  await syncAgents();
-  
-  // 4. Notify server (if running)
-  await notifyServer('reload');
-  
-  console.log(`✓ Switched to profile: ${name}`);
-}
-```
-
 ---
 
 ## Sandbox Environment
@@ -1219,7 +861,6 @@ The "sandbox" is best thought of as a **local playground / VM**, not a hard secu
 *   **Isolation (optional)**: Container/WASM/etc can be added later for teams that want stricter boundaries.
 *   **Language**: TypeScript (executed via Bun).
 *   **Repo + network access**: Default to full access (this is a developer tool), with optional guardrails rather than strict sandboxing.
-    *   *Optional: Read-Only* - Useful for analysis-only sessions.
 
 ### Code Mode Execution
 
@@ -1227,20 +868,19 @@ Instead of single tool calls, the sandbox executes scripts:
 
 ```typescript
 // The LLM writes this whole block:
-import * as aws from 'aws';
+import * as ralph from 'ralph';
 import * as fs from 'fs';
 
 export async function main(): Promise<number> {
-  // 1. Get data
-  const config = JSON.parse(fs.readFileSync("config.prod.json", "utf-8"));
+  // 1. Get current PRD state
+  const prd = await ralph.getPRD("user-auth");
+  const story = await ralph.getNextStory("user-auth");
 
-  // 2. Logic & Transformation
-  const bucketName = `backup-${config.id}`;
-
-  // 3. Execution
-  if (!(await aws.s3Exists(bucketName))) {
-    await aws.s3Create(bucketName);
-    console.log(`Created ${bucketName}`);
+  // 2. Read spec and implement
+  if (story) {
+    const spec = fs.readFileSync(story.specFile, "utf-8");
+    console.log(`Implementing: ${story.title}`);
+    // ... implementation work ...
   }
 
   return 0;
@@ -1293,14 +933,22 @@ omnidev/
 │       └── ...
 │
 ├── capabilities/                # Built-in capabilities (shipped with OmniDev)
-│   └── tasks/
+│   └── ralph/
 │       ├── capability.toml
 │       ├── definition.md
 │       ├── index.ts
-│       ├── tools/
-│       ├── cli/
-│       ├── docs/
+│       ├── types.d.ts
+│       ├── state.ts
+│       ├── orchestrator.ts
+│       ├── prompt.ts
+│       ├── rules/
+│       │   ├── prd-structure.md
+│       │   └── iteration-workflow.md
 │       └── skills/
+│           ├── prd-creation/
+│           │   └── SKILL.md
+│           └── ralph-orchestration/
+│               └── SKILL.md
 │
 ├── bunfig.toml
 ├── package.json
@@ -1317,33 +965,24 @@ project-root/
 ├── .claude/
 │   ├── claude.md                       # COMMITTED (static reference)
 │   └── skills/                         # GITIGNORED (skills written directly here)
-│       └── task-management/
+│       ├── prd-creation/
+│       │   └── SKILL.md
+│       └── ralph-orchestration/
 │           └── SKILL.md
 ├── .cursor/
 │   └── rules/
 │       ├── team-rules.mdc              # COMMITTED (team rules, optional)
-│       └── omnidev-tasks.mdc           # GITIGNORED (generated by OmniDev)
+│       └── omnidev-ralph.mdc           # GITIGNORED (generated by OmniDev)
 │
 ├── omni/                               # OMNI_PROJECT (visible, COMMITTED)
 │   ├── config.toml                     # Shared project configuration + profiles
 │   ├── capabilities/                   # THE CAPABILITY REGISTRY
-│   │   ├── tasks/                      # A built-in capability
+│   │   ├── ralph/                      # Built-in Ralph capability
 │   │   │   ├── capability.toml
 │   │   │   ├── definition.md
 │   │   │   ├── index.ts
-│   │   │   ├── types.d.ts              # Type definitions for LLM
-│   │   │   ├── tools/
-│   │   │   │   └── taskManager.ts
-│   │   │   ├── cli/
-│   │   │   │   ├── commands.ts
-│   │   │   │   └── views/
-│   │   │   │       └── TaskList.tsx
-│   │   │   ├── docs/
-│   │   │   ├── rules/
-│   │   │   │   └── task-workflow.md
-│   │   │   └── skills/
-│   │   │       └── task-management/
-│   │   │           └── SKILL.md        # Source skill (in capability)
+│   │   │   ├── types.d.ts
+│   │   │   └── ...
 │   │   ├── aws/                        # An MCP-based capability
 │   │   │   ├── capability.toml         # Includes [mcp] and [env] config
 │   │   │   └── definition.md
@@ -1360,13 +999,16 @@ project-root/
 │   ├── generated/                      # Other generated content
 │   │   ├── rules.md                    # Compiled rules from enabled capabilities
 │   │   └── types.d.ts                  # Combined type definitions
-│   ├── state/                          # Runtime state (tasks DB, cache, etc.)
+│   ├── ralph/                          # Ralph state
+│   │   ├── config.toml
+│   │   ├── active-prd
+│   │   ├── prds/
+│   │   └── completed-prds/
+│   ├── state/                          # Runtime state (cache, etc.)
 │   ├── sandbox/                        # Execution scratch
 │   └── server.pid                      # PID file for hot reload signals
 │
 └── .gitignore                          # Includes: .omni/, .claude/skills/, etc.
-│
-└── .gitignore                          # Must include: .omni/
 ```
 
 **What goes where:**
@@ -1377,7 +1019,8 @@ project-root/
 | `omni/capabilities/` | Committed | Capability code, docs, skills, rules |
 | `.omni/config.local.toml` | Ignored | Personal overrides, extra capabilities |
 | `.omni/.env` | Ignored | API keys, tokens, secrets |
-| `.omni/state/` | Ignored | Task database, session state |
+| `.omni/ralph/` | Ignored | Ralph PRDs, progress, state |
+| `.omni/state/` | Ignored | Cache, session state |
 | `.omni/sandbox/` | Ignored | Temporary code execution |
 | `.omni/types/` | Ignored | Generated TypeScript definitions |
 
@@ -1414,7 +1057,7 @@ default_profile = "coding"
 
 [capabilities]
 # Team-agreed set of capabilities
-enable = ["tasks", "git", "company-lint", "aws"]
+enable = ["ralph", "git", "company-lint", "aws"]
 disable = []
 
 [env]
@@ -1423,7 +1066,7 @@ AWS_REGION = "eu-west-1"
 LOG_LEVEL = "info"
 
 [profiles.planning]
-enable = ["tasks", "research"]
+enable = ["ralph", "research"]
 disable = ["git", "company-lint"]
 
 [profiles.coding]
@@ -1468,23 +1111,80 @@ Profiles are named presets for *which capabilities are active right now* (and op
 
 ---
 
-## Task & Plan Management
+## Ralph - AI Agent Orchestrator
 
-### Tasks as a Capability
+### Ralph as a Capability
 
-The Task system is **not hardcoded**. It is a default capability (`builtin/tasks` or `omni/capabilities/tasks`) that provides:
-1.  **Schema**: Defines what a task looks like (title, status, validators).
-2.  **Functions**: `tasks.list()`, `tasks.complete()`, `tasks.validate()`.
-3.  **CLI Commands**: `omnidev tasks list`, `omnidev tasks add`, etc.
-4.  **TUI Views**: Interactive task list, board view, etc.
-5.  **Context**: Injects prompt instructions on how to manage the plan.
+Ralph is the **built-in AI orchestrator capability**. It enables long-running, PRD-driven development through iterative AI agent invocations. Each iteration works on one user story until all acceptance criteria are met.
 
-For a concrete minimal implementation, see `example-basic.md`.
+Ralph provides:
+1.  **Schema**: Defines what a PRD and Story look like
+2.  **Functions**: `ralph.getPRD()`, `ralph.getNextStory()`, `ralph.markStoryPassed()`, etc.
+3.  **CLI Commands**: `omnidev ralph init`, `omnidev ralph start`, etc.
+4.  **TUI Views**: Interactive status view, PRD list, story list
+5.  **Skills & Rules**: PRD creation skill, iteration workflow rules
 
-If a user wants to use GitHub Issues instead:
-1.  Disable the `tasks` capability.
-2.  Enable a `github-issues` capability.
-3.  The sandbox now has `github.issues.create()` instead of `tasks.create()`, and the CLI has `omnidev github issues list` instead of `omnidev tasks list`.
+### Ralph State Structure
+
+```
+.omni/ralph/
+├── config.toml          # Ralph configuration
+├── active-prd           # Currently active PRD name
+├── prds/
+│   └── <prd-name>/
+│       ├── prd.json     # PRD definition with stories
+│       ├── progress.txt # Progress log with learnings
+│       └── specs/       # Detailed spec files
+└── completed-prds/      # Archived completed PRDs
+```
+
+### Ralph CLI Commands
+
+```bash
+# Core commands
+omnidev ralph init                    # Initialize Ralph in project
+omnidev ralph start [--agent <name>]  # Start orchestration
+omnidev ralph stop                    # Gracefully stop
+omnidev ralph status                  # View current state
+
+# PRD management
+omnidev ralph prd list                # List all PRDs
+omnidev ralph prd create <name>       # Create new PRD
+omnidev ralph prd select <name>       # Set active PRD
+omnidev ralph prd archive <name>      # Archive completed PRD
+
+# Story management
+omnidev ralph story list              # List stories
+omnidev ralph story pass <id>         # Mark passed
+omnidev ralph story reset <id>        # Reset to failed
+
+# Utilities
+omnidev ralph log [--tail <n>]        # View progress log
+omnidev ralph patterns                # View codebase patterns
+```
+
+### Multi-Agent Support
+
+Ralph supports multiple AI agents:
+
+```toml
+# .omni/ralph/config.toml
+[ralph]
+default_agent = "claude"
+default_iterations = 10
+
+[agents.claude]
+command = "npx"
+args = ["-y", "@anthropic-ai/claude-code", "--model", "sonnet", "-p"]
+
+[agents.codex]
+command = "npx"
+args = ["-y", "@openai/codex", "exec", "-"]
+
+[agents.amp]
+command = "amp"
+args = ["--dangerously-allow-all"]
+```
 
 ---
 
@@ -1509,21 +1209,21 @@ The CLI is built with **Stricli** and uses **OpenTUI** for rich terminal interfa
 
 ### Capability-Contributed Commands
 
-Capabilities can contribute commands that appear under `omnidev <capability> <command>`. For example, the `tasks` capability adds:
+Capabilities can contribute commands that appear under `omnidev <capability> <command>`. For example, the `ralph` capability adds:
 
-*   `omnidev tasks list` - List all tasks (with optional TUI view)
-*   `omnidev tasks add <title>` - Create a new task
-*   `omnidev tasks complete <id>` - Mark a task as done
-*   `omnidev tasks board` - Open interactive task board (OpenTUI)
+*   `omnidev ralph init` - Initialize Ralph in project
+*   `omnidev ralph start` - Start PRD-driven orchestration
+*   `omnidev ralph status` - View current PRD and story status
+*   `omnidev ralph prd create` - Create a new PRD
 
 ---
 
 ## Demo Scenarios
 
-1.  **Plan → Execute loop (no context bloat)**
-    *   Enable `tasks` and `git` capabilities.
-    *   Use the `planning` profile to create a plan and tasks.
-    *   Switch to `coding` profile, implement, run tests, and checkpoint/rollback as needed.
+1.  **PRD → Execute loop (no context bloat)**
+    *   Enable `ralph` and `git` capabilities.
+    *   Use Ralph to create a PRD with user stories.
+    *   Run `omnidev ralph start` to begin iterative development.
 
 2.  **Wrap an MCP server as a capability**
     *   Create `omni/capabilities/aws/capability.toml` with an `[mcp]` block.

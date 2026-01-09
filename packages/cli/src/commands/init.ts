@@ -1,7 +1,10 @@
 import { buildCommand } from "@stricli/core";
 import { existsSync, mkdirSync, appendFileSync } from "node:fs";
+import type { Provider } from "@omnidev/core";
+import { writeProviderConfig, parseProviderFlag } from "@omnidev/core";
+import { promptForProvider } from "../prompts/provider.js";
 
-export async function runInit() {
+export async function runInit(_flags: Record<string, never>, provider?: string) {
 	console.log("Initializing OmniDev...");
 
 	// Create omni/ directory
@@ -19,13 +22,24 @@ export async function runInit() {
 	mkdirSync(".omni/state", { recursive: true });
 	mkdirSync(".omni/sandbox", { recursive: true });
 
+	// Get provider selection
+	let providers: Provider[];
+	if (provider) {
+		providers = parseProviderFlag(provider);
+	} else {
+		providers = await promptForProvider();
+	}
+
+	// Save provider config
+	await writeProviderConfig({ providers });
+
 	// Create reference files
 	await createReferenceFiles();
 
 	// Update .gitignore
 	await updateGitignore();
 
-	console.log("✓ OmniDev initialized!");
+	console.log(`✓ OmniDev initialized for ${providers.join(" and ")}!`);
 	console.log("");
 	console.log("Next steps:");
 	console.log("  1. Edit omni/config.toml to configure capabilities");
@@ -34,7 +48,19 @@ export async function runInit() {
 }
 
 export const initCommand = buildCommand({
-	parameters: {},
+	parameters: {
+		flags: {},
+		positional: {
+			kind: "tuple" as const,
+			parameters: [
+				{
+					brief: "AI provider: claude, codex, or both",
+					parse: String,
+					optional: true,
+				},
+			],
+		},
+	},
 	docs: {
 		brief: "Initialize OmniDev in the current project",
 	},
