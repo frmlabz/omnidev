@@ -1,0 +1,19 @@
+{
+  "name": "@omnidev/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "omnidev": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "echo 'Build not needed for Bun runtime'"
+  },
+  "dependencies": {
+    "@omnidev/core": "workspace:*"
+  },
+  "devDependencies": {}
+}
