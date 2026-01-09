@@ -7,7 +7,7 @@ import { loadDocs } from "./docs";
 import { loadRules } from "./rules";
 import { loadSkills } from "./skills";
 
-const CAPABILITIES_DIR = "omni/capabilities";
+const CAPABILITIES_DIR = ".omni/capabilities";
 
 /**
  * Reserved capability names that cannot be used.
@@ -37,7 +37,7 @@ const RESERVED_NAMES = [
 ];
 
 /**
- * Discovers capabilities by scanning the omni/capabilities directory.
+ * Discovers capabilities by scanning the .omni/capabilities directory.
  * A directory is considered a capability if it contains a capability.toml file.
  *
  * @returns Array of capability directory paths

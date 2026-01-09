@@ -13,20 +13,22 @@ import { promptForProvider } from "../prompts/provider.js";
 export async function runInit(_flags: Record<string, never>, provider?: string) {
 	console.log("Initializing OmniDev...");
 
-	// Create omni/ directory
-	mkdirSync("omni", { recursive: true });
-	mkdirSync("omni/capabilities", { recursive: true });
-
-	// Create config.toml
-	if (!existsSync("omni/config.toml")) {
-		await Bun.write("omni/config.toml", defaultConfig());
-	}
-
-	// Create .omni/ directory
+	// Create .omni/ directory structure
 	mkdirSync(".omni", { recursive: true });
+	mkdirSync(".omni/capabilities", { recursive: true });
 	mkdirSync(".omni/generated", { recursive: true });
 	mkdirSync(".omni/state", { recursive: true });
 	mkdirSync(".omni/sandbox", { recursive: true });
+
+	// Create .omni/config.toml
+	if (!existsSync(".omni/config.toml")) {
+		await Bun.write(".omni/config.toml", defaultConfig());
+	}
+
+	// Create .omni/.gitignore for internal working files
+	if (!existsSync(".omni/.gitignore")) {
+		await Bun.write(".omni/.gitignore", internalGitignore());
+	}
 
 	// Get provider selection
 	let providers: Provider[];
@@ -41,9 +43,6 @@ export async function runInit(_flags: Record<string, never>, provider?: string) 
 
 	// Create provider-specific files
 	await createProviderFiles(providers);
-
-	// Update .gitignore
-	await updateGitignore();
 
 	console.log(`✓ OmniDev initialized for ${providers.join(" and ")}!`);
 	console.log("");
@@ -129,23 +128,25 @@ async function createProviderFiles(providers: Provider[]) {
 	}
 }
 
-async function updateGitignore() {
-	const gitignorePath = ".gitignore";
-	const omnidevEntries = `
-# OmniDev - local state and generated content
-.omni/
+function internalGitignore(): string {
+	return `# OmniDev working files - always ignored
+# These files change frequently and are machine-specific
 
-# Provider-specific generated content (profile-dependent)
-.claude/skills/
-.cursor/rules/omnidev-*.mdc
+# Secrets
+.env
+
+# Generated content (rebuilt on sync)
+generated/
+
+# Runtime state
+state/
+
+# Sandbox execution
+sandbox/
+
+# Logs
+*.log
+
+# Capability-specific patterns are appended below by each capability
 `;
-
-	if (existsSync(gitignorePath)) {
-		const content = await Bun.file(gitignorePath).text();
-		if (!content.includes(".omni/")) {
-			appendFileSync(gitignorePath, omnidevEntries);
-		}
-	} else {
-		await Bun.write(gitignorePath, omnidevEntries.trim());
-	}
 }

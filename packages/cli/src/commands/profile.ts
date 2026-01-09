@@ -52,8 +52,8 @@ export const profileRoutes = buildRouteMap({
 
 export async function runProfileList(): Promise<void> {
 	try {
-		// Check if omni/config.toml exists
-		if (!existsSync("omni/config.toml")) {
+		// Check if .omni/config.toml exists
+		if (!existsSync(".omni/config.toml")) {
 			console.log("✗ No config file found");
 			console.log("  Run: omnidev init");
 			process.exit(1);
@@ -118,8 +118,8 @@ export async function runProfileList(): Promise<void> {
 
 export async function runProfileSet(profileName: string): Promise<void> {
 	try {
-		// Check if omni/config.toml exists
-		if (!existsSync("omni/config.toml")) {
+		// Check if .omni/config.toml exists
+		if (!existsSync(".omni/config.toml")) {
 			console.log("✗ No config file found");
 			console.log("  Run: omnidev init");
 			process.exit(1);

@@ -68,9 +68,9 @@ describe("profile commands", () => {
 
 		test("should show message when no profiles defined", async () => {
 			// Create minimal config without profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 default_profile = "default"
 
@@ -88,9 +88,9 @@ enable = ["tasks"]
 
 		test("should list all profiles from config", async () => {
 			// Create config with profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 default_profile = "default"
 
@@ -119,10 +119,10 @@ disable = ["planner"]
 
 		test("should show active profile with marker", async () => {
 			// Create config with profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 default_profile = "default"
 
@@ -147,9 +147,9 @@ enable = ["planner"]
 
 		test("should show profile capabilities", async () => {
 			// Create config with profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 default_profile = "default"
 
@@ -174,9 +174,9 @@ disable = ["tasks"]
 
 		test("should use default_profile when no active profile", async () => {
 			// Create config with default_profile
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 default_profile = "planning"
 
@@ -197,8 +197,8 @@ enable = ["planner"]
 
 		test("should handle invalid config gracefully", async () => {
 			// Create invalid config
-			mkdirSync("omni", { recursive: true });
-			await Bun.write("omni/config.toml", "invalid toml [[[");
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(".omni/config.toml", "invalid toml [[[");
 
 			try {
 				await runProfileList();
@@ -226,9 +226,9 @@ enable = ["planner"]
 
 		test("should show error when profile does not exist", async () => {
 			// Create config without the requested profile
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -250,10 +250,10 @@ enable = ["planner"]
 
 		test("should set active profile", async () => {
 			// Create config with profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -275,10 +275,10 @@ enable = ["planner"]
 
 		test("should trigger agents sync after setting profile", async () => {
 			// Create config with profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 
 [profiles.planning]
@@ -296,9 +296,9 @@ enable = ["planner"]
 
 		test("should show list of available profiles when profile not found", async () => {
 			// Create config with multiple profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -323,9 +323,9 @@ enable = ["planner"]
 
 		test("should handle empty profiles config", async () => {
 			// Create config without any profiles
-			mkdirSync("omni", { recursive: true });
+			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				"omni/config.toml",
+				".omni/config.toml",
 				`project = "test-project"
 
 [capabilities]
@@ -347,8 +347,8 @@ enable = ["tasks"]
 
 		test("should handle invalid config gracefully", async () => {
 			// Create invalid config
-			mkdirSync("omni", { recursive: true });
-			await Bun.write("omni/config.toml", "invalid toml [[[");
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(".omni/config.toml", "invalid toml [[[");
 
 			try {
 				await runProfileSet("planning");

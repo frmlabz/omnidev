@@ -16,7 +16,7 @@ export async function runDoctor(): Promise<void> {
 	console.log("==============");
 	console.log("");
 
-	const checks = [checkBunVersion(), checkOmniDir(), checkOmniLocalDir(), checkConfig()];
+	const checks = [checkBunVersion(), checkOmniLocalDir(), checkConfig()];
 
 	let allPassed = true;
 	for (const check of checks) {
@@ -75,24 +75,6 @@ async function checkBunVersion(): Promise<Check> {
 	};
 }
 
-async function checkOmniDir(): Promise<Check> {
-	const exists = existsSync("omni");
-	if (!exists) {
-		return {
-			name: "omni/ directory",
-			passed: false,
-			message: "Not found",
-			fix: "Run: omnidev init",
-		};
-	}
-
-	return {
-		name: "omni/ directory",
-		passed: true,
-		message: "Found",
-	};
-}
-
 async function checkOmniLocalDir(): Promise<Check> {
 	const exists = existsSync(".omni");
 	if (!exists) {
@@ -112,7 +94,7 @@ async function checkOmniLocalDir(): Promise<Check> {
 }
 
 async function checkConfig(): Promise<Check> {
-	const configPath = "omni/config.toml";
+	const configPath = ".omni/config.toml";
 	if (!existsSync(configPath)) {
 		return {
 			name: "Configuration",
@@ -135,7 +117,7 @@ async function checkConfig(): Promise<Check> {
 			name: "Configuration",
 			passed: false,
 			message: `Invalid: ${error instanceof Error ? error.message : String(error)}`,
-			fix: "Check omni/config.toml syntax",
+			fix: "Check .omni/config.toml syntax",
 		};
 	}
 }

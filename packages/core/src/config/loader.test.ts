@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { loadConfig } from "./loader";
 
 const TEST_DIR = "/tmp/omnidev-test-loader";
-const TEAM_CONFIG = "omni/config.toml";
+const CONFIG_PATH = ".omni/config.toml";
 const LOCAL_CONFIG = ".omni/config.local.toml";
 
 // Save and restore the current working directory
@@ -44,10 +44,10 @@ describe("loadConfig", () => {
 		});
 	});
 
-	test("loads team config when only team config exists", async () => {
-		mkdirSync("omni", { recursive: true });
+	test("loads config when only main config exists", async () => {
+		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 project = "my-project"
 default_profile = "dev"
@@ -80,14 +80,14 @@ enable = ["local-only"]
 		expect(config.capabilities?.enable).toEqual(["local-only"]);
 	});
 
-	test("merges team and local configs with local taking precedence", async () => {
-		mkdirSync("omni", { recursive: true });
+	test("merges main and local configs with local taking precedence", async () => {
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
-project = "team-project"
+project = "main-project"
 default_profile = "production"
 
 [capabilities]
@@ -95,7 +95,7 @@ enable = ["tasks"]
 disable = []
 
 [env]
-API_URL = "https://team-api.com"
+API_URL = "https://main-api.com"
 `,
 		);
 
@@ -118,7 +118,7 @@ DEBUG = "true"
 		// Local overrides should take precedence
 		expect(config.project).toBe("local-override");
 
-		// Capabilities should be merged (both team and local enable arrays)
+		// Capabilities should be merged (both main and local enable arrays)
 		expect(config.capabilities?.enable).toEqual(["tasks", "git"]);
 
 		// Env should be merged with local taking precedence
@@ -127,11 +127,11 @@ DEBUG = "true"
 	});
 
 	test("merges capabilities enable arrays", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 [capabilities]
 enable = ["tasks", "git"]
@@ -151,11 +151,11 @@ enable = ["local-capability"]
 	});
 
 	test("merges capabilities disable arrays", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 [capabilities]
 disable = ["experimental"]
@@ -175,11 +175,11 @@ disable = ["deprecated"]
 	});
 
 	test("merges profiles with local taking precedence", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 [profiles.dev]
 enable = ["tasks"]
@@ -203,9 +203,9 @@ enable = ["local-tasks"]
 	});
 
 	test("handles empty capabilities sections gracefully", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 project = "test"
 `,
@@ -216,9 +216,9 @@ project = "test"
 		expect(config.capabilities?.disable).toEqual([]);
 	});
 
-	test("handles invalid TOML in team config", async () => {
-		mkdirSync("omni", { recursive: true });
-		writeFileSync(TEAM_CONFIG, "invalid toml [[[");
+	test("handles invalid TOML in main config", async () => {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(CONFIG_PATH, "invalid toml [[[");
 
 		await expect(loadConfig()).rejects.toThrow("Invalid TOML in config");
 	});
@@ -231,11 +231,11 @@ project = "test"
 	});
 
 	test("merges env objects correctly", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 [env]
 VAR1 = "team1"
@@ -258,12 +258,12 @@ VAR3 = "local3"
 		expect(config.env?.VAR3).toBe("local3");
 	});
 
-	test("preserves default_profile from team when not in local", async () => {
-		mkdirSync("omni", { recursive: true });
+	test("preserves default_profile from main when not in local", async () => {
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 default_profile = "production"
 `,
@@ -281,11 +281,11 @@ project = "local"
 	});
 
 	test("overrides default_profile with local value", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		writeFileSync(
-			TEAM_CONFIG,
+			CONFIG_PATH,
 			`
 default_profile = "production"
 `,

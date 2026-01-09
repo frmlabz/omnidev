@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import type { OmniConfig } from "../types";
 import { parseOmniConfig } from "./parser";
 
-const TEAM_CONFIG = "omni/config.toml";
+const CONFIG_PATH = ".omni/config.toml";
 const LOCAL_CONFIG = ".omni/config.local.toml";
 
 /**
@@ -31,19 +31,19 @@ function mergeConfigs(base: OmniConfig, override: OmniConfig): OmniConfig {
 }
 
 /**
- * Load and merge team and local configuration files
+ * Load and merge config and local configuration files
  * @returns Merged OmniConfig object
  *
- * Reads omni/config.toml (team config) and .omni/config.local.toml (local config).
- * Local config takes precedence over team config. Missing files are treated as empty configs.
+ * Reads .omni/config.toml (main config) and .omni/config.local.toml (local overrides).
+ * Local config takes precedence over main config. Missing files are treated as empty configs.
  */
 export async function loadConfig(): Promise<OmniConfig> {
-	let teamConfig: OmniConfig = {};
+	let baseConfig: OmniConfig = {};
 	let localConfig: OmniConfig = {};
 
-	if (existsSync(TEAM_CONFIG)) {
-		const content = await Bun.file(TEAM_CONFIG).text();
-		teamConfig = parseOmniConfig(content);
+	if (existsSync(CONFIG_PATH)) {
+		const content = await Bun.file(CONFIG_PATH).text();
+		baseConfig = parseOmniConfig(content);
 	}
 
 	if (existsSync(LOCAL_CONFIG)) {
@@ -51,5 +51,5 @@ export async function loadConfig(): Promise<OmniConfig> {
 		localConfig = parseOmniConfig(content);
 	}
 
-	return mergeConfigs(teamConfig, localConfig);
+	return mergeConfigs(baseConfig, localConfig);
 }

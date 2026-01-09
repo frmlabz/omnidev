@@ -8,10 +8,10 @@ import { watch } from "node:fs";
 import { existsSync } from "node:fs";
 
 const WATCH_PATHS = [
-	"omni/config.toml",
+	".omni/config.toml",
 	".omni/config.local.toml",
 	".omni/active-profile",
-	"omni/capabilities/",
+	".omni/capabilities/",
 ];
 
 /**

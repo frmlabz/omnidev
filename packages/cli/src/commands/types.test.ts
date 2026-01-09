@@ -28,7 +28,7 @@ describe("types generate command", () => {
 	test("should create required directory", async () => {
 		// Create minimal config
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = []`,
@@ -42,7 +42,7 @@ enable = []`,
 	test("should generate types.d.ts with no capabilities", async () => {
 		// Create minimal config
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = []`,
@@ -81,7 +81,7 @@ export interface TestInterface {
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["test-cap"]`,
@@ -129,7 +129,7 @@ description = "Second capability"`,
 		await Bun.write(join(cap2Path, "types.d.ts"), `export function functionTwo(): void;`);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["cap-one", "cap-two"]`,
@@ -157,7 +157,7 @@ description = "A capability without types"`,
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["no-types-cap"]`,
@@ -200,7 +200,7 @@ description = "No types"`,
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["with-types", "without-types"]`,
@@ -216,7 +216,7 @@ enable = ["with-types", "without-types"]`,
 	test("should overwrite existing types.d.ts", async () => {
 		// Create initial config and run generate
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = []`,
@@ -268,7 +268,7 @@ description = "Second capability"`,
 
 		// Config enables only cap-one
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 default_profile = "default"
 [capabilities]
@@ -291,7 +291,7 @@ enable = ["cap-one"]
 		await Bun.write(join(capPath, "capability.toml"), "invalid toml [[[");
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = []`,
@@ -328,7 +328,7 @@ export function testFunction(): void;
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["test-cap"]`,
@@ -359,7 +359,7 @@ description = "Empty types file"`,
 		await Bun.write(join(capPath, "types.d.ts"), "   \n\n   ");
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["empty-types"]`,

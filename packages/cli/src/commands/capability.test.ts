@@ -34,10 +34,10 @@ describe("capability list command", () => {
 
 	test("shows message when no capabilities found", async () => {
 		// Create minimal setup
-		mkdirSync("omni", { recursive: true });
-		mkdirSync("omni/capabilities", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
+		mkdirSync(".omni/capabilities", { recursive: true });
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = []
@@ -63,9 +63,9 @@ enable = []
 
 	test("lists all discovered capabilities with enabled status", async () => {
 		// Create test structure
-		mkdirSync("omni/capabilities/tasks", { recursive: true });
+		mkdirSync(".omni/capabilities/tasks", { recursive: true });
 		await Bun.write(
-			"omni/capabilities/tasks/capability.toml",
+			".omni/capabilities/tasks/capability.toml",
 			`[capability]
 id = "tasks"
 name = "Task Management"
@@ -74,9 +74,9 @@ description = "Task tracking"
 `,
 		);
 
-		mkdirSync("omni/capabilities/notes", { recursive: true });
+		mkdirSync(".omni/capabilities/notes", { recursive: true });
 		await Bun.write(
-			"omni/capabilities/notes/capability.toml",
+			".omni/capabilities/notes/capability.toml",
 			`[capability]
 id = "notes"
 name = "Note Taking"
@@ -86,7 +86,7 @@ description = "Note management"
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["tasks"]
@@ -121,9 +121,9 @@ disable = ["notes"]
 	});
 
 	test("shows capability id and version", async () => {
-		mkdirSync("omni/capabilities/test-cap", { recursive: true });
+		mkdirSync(".omni/capabilities/test-cap", { recursive: true });
 		await Bun.write(
-			"omni/capabilities/test-cap/capability.toml",
+			".omni/capabilities/test-cap/capability.toml",
 			`[capability]
 id = "test-cap"
 name = "Test Capability"
@@ -133,7 +133,7 @@ description = "Test"
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["test-cap"]
@@ -158,9 +158,9 @@ enable = ["test-cap"]
 	});
 
 	test("handles invalid capability gracefully", async () => {
-		mkdirSync("omni/capabilities/valid", { recursive: true });
+		mkdirSync(".omni/capabilities/valid", { recursive: true });
 		await Bun.write(
-			"omni/capabilities/valid/capability.toml",
+			".omni/capabilities/valid/capability.toml",
 			`[capability]
 id = "valid"
 name = "Valid"
@@ -169,11 +169,11 @@ description = "Valid capability"
 `,
 		);
 
-		mkdirSync("omni/capabilities/invalid", { recursive: true });
-		await Bun.write("omni/capabilities/invalid/capability.toml", "invalid toml [[[");
+		mkdirSync(".omni/capabilities/invalid", { recursive: true });
+		await Bun.write(".omni/capabilities/invalid/capability.toml", "invalid toml [[[");
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["valid", "invalid"]
@@ -205,9 +205,9 @@ enable = ["valid", "invalid"]
 	});
 
 	test("respects profile when determining enabled status", async () => {
-		mkdirSync("omni/capabilities/tasks", { recursive: true });
+		mkdirSync(".omni/capabilities/tasks", { recursive: true });
 		await Bun.write(
-			"omni/capabilities/tasks/capability.toml",
+			".omni/capabilities/tasks/capability.toml",
 			`[capability]
 id = "tasks"
 name = "Tasks"
@@ -217,7 +217,7 @@ description = "Task tracking"
 		);
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 default_profile = "coding"
 
@@ -250,9 +250,9 @@ enable = ["tasks"]
 
 	test("exits with code 1 on error", async () => {
 		// Create an omni directory but with invalid config to trigger error
-		mkdirSync("omni", { recursive: true });
-		mkdirSync("omni/capabilities", { recursive: true });
-		await Bun.write("omni/config.toml", "invalid toml [[[");
+		mkdirSync(".omni", { recursive: true });
+		mkdirSync(".omni/capabilities", { recursive: true });
+		await Bun.write(".omni/config.toml", "invalid toml [[[");
 		mkdirSync(".omni", { recursive: true });
 
 		const originalError = console.error;
@@ -286,7 +286,7 @@ description = "${cap} capability"
 		}
 
 		await Bun.write(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 [capabilities]
 enable = ["alpha", "beta", "gamma"]

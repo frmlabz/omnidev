@@ -21,19 +21,19 @@ describe("init command", () => {
 		}
 	});
 
-	test("creates omni/ directory", async () => {
+	test("creates .omni/ directory", async () => {
 		await runInit({}, "claude");
 
-		expect(existsSync("omni")).toBe(true);
-		expect(existsSync("omni/capabilities")).toBe(true);
+		expect(existsSync(".omni")).toBe(true);
+		expect(existsSync(".omni/capabilities")).toBe(true);
 	});
 
-	test("creates omni/config.toml with default config", async () => {
+	test("creates .omni/config.toml with default config", async () => {
 		await runInit({}, "claude");
 
-		expect(existsSync("omni/config.toml")).toBe(true);
+		expect(existsSync(".omni/config.toml")).toBe(true);
 
-		const content = readFileSync("omni/config.toml", "utf-8");
+		const content = readFileSync(".omni/config.toml", "utf-8");
 		expect(content).toContain('project = "my-project"');
 		expect(content).toContain('default_profile = "default"');
 		expect(content).toContain("[capabilities]");
@@ -133,35 +133,36 @@ describe("init command", () => {
 		expect(matches?.length).toBe(1);
 	});
 
-	test("creates .gitignore with OmniDev entries when file does not exist", async () => {
+	test("creates .omni/.gitignore with internal patterns", async () => {
 		await runInit({}, "claude");
 
-		expect(existsSync(".gitignore")).toBe(true);
+		expect(existsSync(".omni/.gitignore")).toBe(true);
 
-		const content = readFileSync(".gitignore", "utf-8");
-		expect(content).toContain(".omni/");
-		expect(content).toContain(".claude/skills/");
-		expect(content).toContain(".cursor/rules/omnidev-*.mdc");
+		const content = readFileSync(".omni/.gitignore", "utf-8");
+		expect(content).toContain("# OmniDev working files - always ignored");
+		expect(content).toContain(".env");
+		expect(content).toContain("generated/");
+		expect(content).toContain("state/");
+		expect(content).toContain("sandbox/");
+		expect(content).toContain("*.log");
 	});
 
-	test("appends to .gitignore when file exists", async () => {
-		await Bun.write(".gitignore", "node_modules/\n");
+	test("does not modify project's root .gitignore", async () => {
+		// Create a root .gitignore with custom content
+		await Bun.write(".gitignore", "node_modules/\n*.log\n");
 
 		await runInit({}, "claude");
 
+		// Verify .gitignore was not modified
 		const content = readFileSync(".gitignore", "utf-8");
-		expect(content).toContain("node_modules/");
-		expect(content).toContain(".omni/");
-		expect(content).toContain(".claude/skills/");
+		expect(content).toBe("node_modules/\n*.log\n");
+		expect(content).not.toContain(".omni/");
 	});
 
-	test("does not duplicate .gitignore entries on re-run", async () => {
-		await runInit({}, "claude");
+	test("does not create root .gitignore if it doesn't exist", async () => {
 		await runInit({}, "claude");
 
-		const content = readFileSync(".gitignore", "utf-8");
-		const matches = content.match(/.omni\//g);
-		expect(matches?.length).toBe(1);
+		expect(existsSync(".gitignore")).toBe(false);
 	});
 
 	test("is idempotent - safe to run multiple times", async () => {
@@ -169,7 +170,7 @@ describe("init command", () => {
 		await runInit({}, "claude");
 		await runInit({}, "claude");
 
-		expect(existsSync("omni/config.toml")).toBe(true);
+		expect(existsSync(".omni/config.toml")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
 		expect(existsSync(".claude/claude.md")).toBe(true);
 
@@ -179,12 +180,12 @@ describe("init command", () => {
 
 	test("does not overwrite existing config.toml", async () => {
 		const customConfig = 'project = "custom"\n';
-		mkdirSync("omni", { recursive: true });
-		await Bun.write("omni/config.toml", customConfig);
+		mkdirSync(".omni", { recursive: true });
+		await Bun.write(".omni/config.toml", customConfig);
 
 		await runInit({}, "claude");
 
-		const content = readFileSync("omni/config.toml", "utf-8");
+		const content = readFileSync(".omni/config.toml", "utf-8");
 		expect(content).toBe(customConfig);
 	});
 
@@ -199,11 +200,11 @@ describe("init command", () => {
 	});
 
 	test("creates all directories even if some already exist", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 
 		await runInit({}, "claude");
 
-		expect(existsSync("omni/capabilities")).toBe(true);
+		expect(existsSync(".omni/capabilities")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
 		expect(existsSync(".omni/generated")).toBe(true);
 		expect(existsSync(".omni/state")).toBe(true);

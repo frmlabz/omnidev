@@ -48,10 +48,10 @@ describe("doctor command", () => {
 
 	test("should pass all checks when setup is complete", async () => {
 		// Setup complete OmniDev structure
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 default_profile = "default"
 
@@ -66,27 +66,8 @@ disable = []
 		expect(exitCalled).toBe(false);
 	});
 
-	test("should fail when omni/ directory is missing", async () => {
-		mkdirSync(".omni", { recursive: true });
-
-		await runDoctor();
-
-		expect(exitCalled).toBe(true);
-		expect(exitCode).toBe(1);
-	});
-
 	test("should fail when .omni/ directory is missing", async () => {
-		mkdirSync("omni", { recursive: true });
-		writeFileSync(
-			"omni/config.toml",
-			`project = "test"
-default_profile = "default"
-
-[capabilities]
-enable = []
-disable = []
-`,
-		);
+		// Don't create .omni - the test expects it to be missing
 
 		await runDoctor();
 
@@ -95,7 +76,7 @@ disable = []
 	});
 
 	test("should fail when config.toml is missing", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		await runDoctor();
@@ -105,9 +86,9 @@ disable = []
 	});
 
 	test("should fail when config.toml is invalid", async () => {
-		mkdirSync("omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
-		writeFileSync("omni/config.toml", "invalid toml [[[");
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(".omni/config.toml", "invalid toml [[[");
 
 		await runDoctor();
 
@@ -118,10 +99,10 @@ disable = []
 	test("should check Bun version is 1.0+", async () => {
 		// We can't change Bun.version in tests, but we can verify the check runs
 		// The version check should pass in our dev environment
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 default_profile = "default"
 
@@ -148,7 +129,7 @@ disable = []
 
 	test("should handle partial setup", async () => {
 		// Only create omni/ directory
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 
 		await runDoctor();
 
@@ -157,11 +138,11 @@ disable = []
 	});
 
 	test("should fail when config has invalid syntax", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		// Create a config with invalid TOML syntax
-		writeFileSync("omni/config.toml", "invalid = [[[]]");
+		writeFileSync(".omni/config.toml", "invalid = [[[]]");
 
 		await runDoctor();
 
@@ -170,12 +151,12 @@ disable = []
 	});
 
 	test("should pass with minimal valid config", async () => {
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		// Minimal valid config
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`project = "test"
 default_profile = "default"
 

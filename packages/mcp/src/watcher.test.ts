@@ -17,7 +17,7 @@ describe("startWatcher", () => {
 		mkdirSync(`${TEST_DIR}/omni/capabilities`, { recursive: true });
 
 		// Write initial config files
-		Bun.write(`${TEST_DIR}/omni/config.toml`, '[capability]\nid = "test"');
+		Bun.write(`${TEST_DIR}/.omni/config.toml`, '[capability]\nid = "test"');
 		Bun.write(`${TEST_DIR}/.omni/active-profile`, "default");
 
 		// Change to test directory
@@ -65,7 +65,7 @@ describe("startWatcher", () => {
 		startWatcher(onReload);
 
 		// Modify config file to trigger watcher
-		await Bun.write("omni/config.toml", '[capability]\nid = "changed"');
+		await Bun.write(".omni/config.toml", '[capability]\nid = "changed"');
 
 		// Wait for file system event + debounce (500ms) + buffer
 		await new Promise((resolve) => setTimeout(resolve, 800));
@@ -86,11 +86,11 @@ describe("startWatcher", () => {
 		const startTime = Date.now();
 
 		// Make multiple rapid changes
-		await Bun.write("omni/config.toml", '[capability]\nid = "change1"');
+		await Bun.write(".omni/config.toml", '[capability]\nid = "change1"');
 		await new Promise((resolve) => setTimeout(resolve, 100));
-		await Bun.write("omni/config.toml", '[capability]\nid = "change2"');
+		await Bun.write(".omni/config.toml", '[capability]\nid = "change2"');
 		await new Promise((resolve) => setTimeout(resolve, 100));
-		await Bun.write("omni/config.toml", '[capability]\nid = "change3"');
+		await Bun.write(".omni/config.toml", '[capability]\nid = "change3"');
 
 		// Wait for debounce (500ms from last change) + buffer
 		await new Promise((resolve) => setTimeout(resolve, 800));

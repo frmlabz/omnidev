@@ -39,27 +39,8 @@ describe("serve command", () => {
 		}
 	});
 
-	test("should fail when omni/ directory is missing", async () => {
-		// Create .omni/ but not omni/
-		mkdirSync(".omni", { recursive: true });
-
-		const mockExit = mock((code?: number) => {
-			throw new Error(`process.exit: ${code}`);
-		}) as typeof process.exit;
-		const originalExit = process.exit;
-		process.exit = mockExit;
-
-		try {
-			await expect(runServe({})).rejects.toThrow("process.exit: 1");
-			expect(mockExit).toHaveBeenCalledWith(1);
-		} finally {
-			process.exit = originalExit;
-		}
-	});
-
 	test("should fail when .omni/ directory is missing", async () => {
-		// Create omni/ but not .omni/
-		mkdirSync("omni", { recursive: true });
+		// Don't create .omni/ - test expects it to be missing
 
 		const mockExit = mock((code?: number) => {
 			throw new Error(`process.exit: ${code}`);
@@ -77,12 +58,12 @@ describe("serve command", () => {
 
 	test("should fail when profile does not exist", async () => {
 		// Set up directories
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		// Create a config without the requested profile
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`
 [capability]
 project = "test"
@@ -107,12 +88,12 @@ project = "test"
 
 	test("should set profile when provided and valid", async () => {
 		// Set up directories
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		// Create config with profiles
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`
 [capability]
 project = "test"
@@ -164,12 +145,12 @@ default_profile = "default"
 
 	test("should start server without profile flag", async () => {
 		// Set up directories
-		mkdirSync("omni", { recursive: true });
+		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 
 		// Create config
 		writeFileSync(
-			"omni/config.toml",
+			".omni/config.toml",
 			`
 [capability]
 project = "test"

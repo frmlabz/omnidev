@@ -34,7 +34,7 @@ describe("discoverCapabilities", () => {
 
 	test("returns empty array when capabilities directory does not exist", async () => {
 		// Remove the capabilities directory
-		rmSync("omni/capabilities", { recursive: true, force: true });
+		rmSync(".omni/capabilities", { recursive: true, force: true });
 
 		const capabilities = await discoverCapabilities();
 
@@ -49,20 +49,20 @@ describe("discoverCapabilities", () => {
 
 	test("discovers a single capability with capability.toml", async () => {
 		// Create a capability directory with capability.toml
-		const capPath = join("omni", "capabilities", "test-cap");
+		const capPath = join(".omni", "capabilities", "test-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(join(capPath, "capability.toml"), '[capability]\nid = "test-cap"');
 
 		const capabilities = await discoverCapabilities();
 
-		expect(capabilities).toEqual(["omni/capabilities/test-cap"]);
+		expect(capabilities).toEqual([".omni/capabilities/test-cap"]);
 	});
 
 	test("discovers multiple capabilities with capability.toml", async () => {
 		// Create multiple capability directories
-		const cap1Path = join("omni", "capabilities", "capability-1");
-		const cap2Path = join("omni", "capabilities", "capability-2");
-		const cap3Path = join("omni", "capabilities", "capability-3");
+		const cap1Path = join(".omni", "capabilities", "capability-1");
+		const cap2Path = join(".omni", "capabilities", "capability-2");
+		const cap3Path = join(".omni", "capabilities", "capability-3");
 
 		mkdirSync(cap1Path, { recursive: true });
 		mkdirSync(cap2Path, { recursive: true });
@@ -75,44 +75,47 @@ describe("discoverCapabilities", () => {
 		const capabilities = await discoverCapabilities();
 
 		expect(capabilities).toHaveLength(3);
-		expect(capabilities).toContain("omni/capabilities/capability-1");
-		expect(capabilities).toContain("omni/capabilities/capability-2");
-		expect(capabilities).toContain("omni/capabilities/capability-3");
+		expect(capabilities).toContain(".omni/capabilities/capability-1");
+		expect(capabilities).toContain(".omni/capabilities/capability-2");
+		expect(capabilities).toContain(".omni/capabilities/capability-3");
 	});
 
 	test("ignores directories without capability.toml", async () => {
 		// Create directory without capability.toml
-		const notACapPath = join("omni", "capabilities", "not-a-capability");
+		const notACapPath = join(".omni", "capabilities", "not-a-capability");
 		mkdirSync(notACapPath, { recursive: true });
 		writeFileSync(join(notACapPath, "README.md"), "# Not a capability");
 
 		// Create a valid capability
-		const validCapPath = join("omni", "capabilities", "valid-cap");
+		const validCapPath = join(".omni", "capabilities", "valid-cap");
 		mkdirSync(validCapPath, { recursive: true });
 		writeFileSync(join(validCapPath, "capability.toml"), '[capability]\nid = "valid-cap"');
 
 		const capabilities = await discoverCapabilities();
 
-		expect(capabilities).toEqual(["omni/capabilities/valid-cap"]);
+		expect(capabilities).toEqual([".omni/capabilities/valid-cap"]);
 	});
 
 	test("ignores files in capabilities directory", async () => {
+		// Create the capabilities directory first
+		mkdirSync(join(".omni", "capabilities"), { recursive: true });
+
 		// Create a file in the capabilities directory (not a subdirectory)
-		writeFileSync(join("omni", "capabilities", "README.md"), "# Capabilities");
+		writeFileSync(join(".omni", "capabilities", "README.md"), "# Capabilities");
 
 		// Create a valid capability
-		const validCapPath = join("omni", "capabilities", "valid-cap");
+		const validCapPath = join(".omni", "capabilities", "valid-cap");
 		mkdirSync(validCapPath, { recursive: true });
 		writeFileSync(join(validCapPath, "capability.toml"), '[capability]\nid = "valid-cap"');
 
 		const capabilities = await discoverCapabilities();
 
-		expect(capabilities).toEqual(["omni/capabilities/valid-cap"]);
+		expect(capabilities).toEqual([".omni/capabilities/valid-cap"]);
 	});
 
 	test("handles nested directories correctly (does not recurse)", async () => {
 		// Create a nested structure - should only discover top-level capabilities
-		const cap1Path = join("omni", "capabilities", "capability-1");
+		const cap1Path = join(".omni", "capabilities", "capability-1");
 		const nestedCapPath = join(cap1Path, "nested-capability");
 
 		mkdirSync(cap1Path, { recursive: true });
@@ -124,24 +127,24 @@ describe("discoverCapabilities", () => {
 		const capabilities = await discoverCapabilities();
 
 		// Should only find the top-level capability, not the nested one
-		expect(capabilities).toEqual(["omni/capabilities/capability-1"]);
+		expect(capabilities).toEqual([".omni/capabilities/capability-1"]);
 	});
 
 	test("returns paths in consistent format", async () => {
-		const capPath = join("omni", "capabilities", "test-cap");
+		const capPath = join(".omni", "capabilities", "test-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(join(capPath, "capability.toml"), '[capability]\nid = "test-cap"');
 
 		const capabilities = await discoverCapabilities();
 
 		// Path should use forward slashes or be normalized
-		expect(capabilities[0]).toMatch(/^omni\/capabilities\/test-cap$/);
+		expect(capabilities[0]).toMatch(/^\.omni\/capabilities\/test-cap$/);
 	});
 });
 
 describe("loadCapabilityConfig", () => {
 	const testDir = "test-capability-config-loading";
-	const capabilitiesDir = join(testDir, "omni", "capabilities");
+	const capabilitiesDir = join(testDir, ".omni", "capabilities");
 	let originalCwd: string;
 
 	beforeEach(() => {
@@ -169,7 +172,7 @@ describe("loadCapabilityConfig", () => {
 	});
 
 	test("loads valid capability config with all required fields", async () => {
-		const capPath = join("omni", "capabilities", "test-cap");
+		const capPath = join(".omni", "capabilities", "test-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -189,7 +192,7 @@ description = "A test capability"`,
 	});
 
 	test("loads capability config with optional exports field", async () => {
-		const capPath = join("omni", "capabilities", "with-exports");
+		const capPath = join(".omni", "capabilities", "with-exports");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -210,7 +213,7 @@ functions = ["create", "list", "get"]`,
 	});
 
 	test("loads capability config with optional env field", async () => {
-		const capPath = join("omni", "capabilities", "with-env");
+		const capPath = join(".omni", "capabilities", "with-env");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -237,7 +240,7 @@ secret = true`,
 	});
 
 	test("loads capability config with optional mcp field", async () => {
-		const capPath = join("omni", "capabilities", "with-mcp");
+		const capPath = join(".omni", "capabilities", "with-mcp");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -258,7 +261,7 @@ tools = ["test_tool"]`,
 	});
 
 	test("throws error for reserved capability name (fs)", async () => {
-		const capPath = join("omni", "capabilities", "fs");
+		const capPath = join(".omni", "capabilities", "fs");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -275,7 +278,7 @@ description = "Reserved name"`,
 	});
 
 	test("throws error for reserved capability name (react)", async () => {
-		const capPath = join("omni", "capabilities", "react-cap");
+		const capPath = join(".omni", "capabilities", "react-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -292,7 +295,7 @@ description = "Reserved name"`,
 	});
 
 	test("throws error for reserved capability name (typescript)", async () => {
-		const capPath = join("omni", "capabilities", "ts-cap");
+		const capPath = join(".omni", "capabilities", "ts-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -309,7 +312,7 @@ description = "Reserved name"`,
 	});
 
 	test("throws error when capability.toml is missing", async () => {
-		const capPath = join("omni", "capabilities", "missing-config");
+		const capPath = join(".omni", "capabilities", "missing-config");
 		mkdirSync(capPath, { recursive: true });
 
 		// No capability.toml file created
@@ -318,7 +321,7 @@ description = "Reserved name"`,
 	});
 
 	test("throws error when capability.toml has missing required fields", async () => {
-		const capPath = join("omni", "capabilities", "invalid");
+		const capPath = join(".omni", "capabilities", "invalid");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -331,7 +334,7 @@ id = "invalid"
 	});
 
 	test("throws error when capability.toml has invalid TOML syntax", async () => {
-		const capPath = join("omni", "capabilities", "bad-toml");
+		const capPath = join(".omni", "capabilities", "bad-toml");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -344,7 +347,7 @@ id = "bad-toml"
 	});
 
 	test("allows non-reserved capability names", async () => {
-		const capPath = join("omni", "capabilities", "my-custom-capability");
+		const capPath = join(".omni", "capabilities", "my-custom-capability");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -362,7 +365,7 @@ description = "A custom capability"`,
 	});
 
 	test("handles capability config with all optional fields defined", async () => {
-		const capPath = join("omni", "capabilities", "complete-cap");
+		const capPath = join(".omni", "capabilities", "complete-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -430,7 +433,7 @@ describe("loadCapability", () => {
 	});
 
 	test("loads capability with minimal config (no optional fields)", async () => {
-		const capPath = join("omni", "capabilities", "minimal-cap");
+		const capPath = join(".omni", "capabilities", "minimal-cap");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -454,7 +457,7 @@ description = "A minimal capability"`,
 	});
 
 	test("loads capability with skills from filesystem", async () => {
-		const capPath = join("omni", "capabilities", "with-skills");
+		const capPath = join(".omni", "capabilities", "with-skills");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -487,7 +490,7 @@ Do something useful`,
 	});
 
 	test("loads capability with rules from filesystem", async () => {
-		const capPath = join("omni", "capabilities", "with-rules");
+		const capPath = join(".omni", "capabilities", "with-rules");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -512,7 +515,7 @@ description = "Has rules"`,
 	});
 
 	test("loads capability with docs from filesystem", async () => {
-		const capPath = join("omni", "capabilities", "with-docs");
+		const capPath = join(".omni", "capabilities", "with-docs");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -539,7 +542,7 @@ description = "Has docs"`,
 	});
 
 	test("loads capability with type definitions from filesystem", async () => {
-		const capPath = join("omni", "capabilities", "with-types");
+		const capPath = join(".omni", "capabilities", "with-types");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -559,7 +562,7 @@ description = "Has type definitions"`,
 	});
 
 	test("loads capability with exports from index.ts", async () => {
-		const capPath = join("omni", "capabilities", "with-exports");
+		const capPath = join(".omni", "capabilities", "with-exports");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -580,7 +583,7 @@ description = "Has exports"`,
 	});
 
 	test("validates environment variables when config has env requirements", async () => {
-		const capPath = join("omni", "capabilities", "needs-env");
+		const capPath = join(".omni", "capabilities", "needs-env");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -603,7 +606,7 @@ required = true`,
 	});
 
 	test("programmatic skills take precedence over filesystem", async () => {
-		const capPath = join("omni", "capabilities", "programmatic-skills");
+		const capPath = join(".omni", "capabilities", "programmatic-skills");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -648,7 +651,7 @@ From filesystem`,
 	});
 
 	test("programmatic rules take precedence over filesystem", async () => {
-		const capPath = join("omni", "capabilities", "programmatic-rules");
+		const capPath = join(".omni", "capabilities", "programmatic-rules");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -685,7 +688,7 @@ description = "Has programmatic rules"`,
 	});
 
 	test("programmatic docs take precedence over filesystem", async () => {
-		const capPath = join("omni", "capabilities", "programmatic-docs");
+		const capPath = join(".omni", "capabilities", "programmatic-docs");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -720,7 +723,7 @@ description = "Has programmatic docs"`,
 	});
 
 	test("programmatic type definitions take precedence over filesystem", async () => {
-		const capPath = join("omni", "capabilities", "programmatic-types");
+		const capPath = join(".omni", "capabilities", "programmatic-types");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -747,7 +750,7 @@ description = "Has programmatic type definitions"`,
 	});
 
 	test("throws error when index.ts has import errors", async () => {
-		const capPath = join("omni", "capabilities", "bad-import");
+		const capPath = join(".omni", "capabilities", "bad-import");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -766,7 +769,7 @@ description = "Has import errors"`,
 	});
 
 	test("loads complete capability with all features", async () => {
-		const capPath = join("omni", "capabilities", "complete");
+		const capPath = join(".omni", "capabilities", "complete");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),

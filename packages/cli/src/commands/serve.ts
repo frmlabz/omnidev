@@ -10,7 +10,7 @@ export async function runServe(flags: ServeFlags): Promise<void> {
 	console.log("Starting OmniDev MCP server...");
 
 	// Check if OmniDev is initialized
-	if (!existsSync("omni") || !existsSync(".omni")) {
+	if (!existsSync(".omni")) {
 		console.error("✗ OmniDev not initialized. Run: omnidev init");
 		process.exit(1);
 	}

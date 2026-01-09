@@ -5,8 +5,8 @@ import { buildCapabilityRegistry } from "./registry";
 
 describe("buildCapabilityRegistry", () => {
 	const testDir = "test-capability-registry";
-	const capabilitiesDir = join(testDir, "omni", "capabilities");
 	const omniDir = join(testDir, ".omni");
+	const capabilitiesDir = join(testDir, ".omni", "capabilities");
 	let originalCwd: string;
 
 	beforeEach(() => {
@@ -21,9 +21,8 @@ describe("buildCapabilityRegistry", () => {
 		mkdirSync(omniDir, { recursive: true });
 
 		// Create default config
-		mkdirSync(join(testDir, "omni"), { recursive: true });
 		writeFileSync(
-			join(testDir, "omni", "config.toml"),
+			join(testDir, ".omni", "config.toml"),
 			`[capabilities]
 enable = ["cap1", "cap2"]`,
 		);
@@ -54,7 +53,7 @@ enable = ["cap1", "cap2"]`,
 
 	test("builds registry with single enabled capability", async () => {
 		// Create capability
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -74,7 +73,7 @@ description = "First capability"`,
 
 	test("builds registry with multiple enabled capabilities", async () => {
 		// Create cap1
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -86,7 +85,7 @@ description = "First capability"`,
 		);
 
 		// Create cap2
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -108,13 +107,13 @@ description = "Second capability"`,
 	test("filters out disabled capabilities", async () => {
 		// Update config to only enable cap1
 		writeFileSync(
-			join("omni", "config.toml"),
+			join(".omni", "config.toml"),
 			`[capabilities]
 enable = ["cap1"]`,
 		);
 
 		// Create cap1 (enabled)
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -126,7 +125,7 @@ description = "Enabled capability"`,
 		);
 
 		// Create cap2 (not enabled)
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -147,7 +146,7 @@ description = "Disabled capability"`,
 	test("respects active profile configuration", async () => {
 		// Create base config enabling cap1
 		writeFileSync(
-			join("omni", "config.toml"),
+			join(".omni", "config.toml"),
 			`[capabilities]
 enable = ["cap1"]
 
@@ -159,7 +158,7 @@ enable = ["cap2"]`,
 		writeFileSync(join(".omni", "active-profile"), "dev");
 
 		// Create cap1
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -171,7 +170,7 @@ description = "Base capability"`,
 		);
 
 		// Create cap2
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -192,7 +191,7 @@ description = "Profile capability"`,
 
 	test("getAllSkills returns skills from all capabilities", async () => {
 		// Create cap1 with skill
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -214,7 +213,7 @@ Instructions 1`,
 		);
 
 		// Create cap2 with skill
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -245,7 +244,7 @@ Instructions 2`,
 
 	test("getAllRules returns rules from all capabilities", async () => {
 		// Create cap1 with rule
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -260,7 +259,7 @@ description = "Has rule"`,
 		writeFileSync(join(rulesPath, "rule1.md"), "Rule 1 content");
 
 		// Create cap2 with rule
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -284,7 +283,7 @@ description = "Has rule"`,
 
 	test("getAllDocs returns docs from all capabilities", async () => {
 		// Create cap1 with doc
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -297,7 +296,7 @@ description = "Has doc"`,
 		writeFileSync(join(cap1Path, "definition.md"), "# Cap1 Definition");
 
 		// Create cap2 with doc
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -320,7 +319,7 @@ description = "Has doc"`,
 
 	test("handles capability loading errors gracefully", async () => {
 		// Create valid capability
-		const cap1Path = join("omni", "capabilities", "cap1");
+		const cap1Path = join(".omni", "capabilities", "cap1");
 		mkdirSync(cap1Path, { recursive: true });
 		writeFileSync(
 			join(cap1Path, "capability.toml"),
@@ -332,7 +331,7 @@ description = "Valid"`,
 		);
 
 		// Create invalid capability
-		const cap2Path = join("omni", "capabilities", "cap2");
+		const cap2Path = join(".omni", "capabilities", "cap2");
 		mkdirSync(cap2Path, { recursive: true });
 		writeFileSync(
 			join(cap2Path, "capability.toml"),
@@ -351,7 +350,7 @@ id = "cap2"
 
 	test("validates environment requirements before loading", async () => {
 		// Create capability requiring env var
-		const capPath = join("omni", "capabilities", "cap1");
+		const capPath = join(".omni", "capabilities", "cap1");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -376,7 +375,7 @@ required = true`,
 		writeFileSync(join(".omni", ".env"), "REQUIRED_VAR=test-value");
 
 		// Create capability requiring env var
-		const capPath = join("omni", "capabilities", "cap1");
+		const capPath = join(".omni", "capabilities", "cap1");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -411,7 +410,7 @@ required = true`,
 
 	test("getAllSkills returns empty array when capabilities have no skills", async () => {
 		// Create capability without skills
-		const capPath = join("omni", "capabilities", "cap1");
+		const capPath = join(".omni", "capabilities", "cap1");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -429,7 +428,7 @@ description = "Has no skills"`,
 
 	test("getAllRules returns empty array when capabilities have no rules", async () => {
 		// Create capability without rules
-		const capPath = join("omni", "capabilities", "cap1");
+		const capPath = join(".omni", "capabilities", "cap1");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
@@ -447,7 +446,7 @@ description = "Has no rules"`,
 
 	test("getAllDocs returns empty array when capabilities have no docs", async () => {
 		// Create capability without docs
-		const capPath = join("omni", "capabilities", "cap1");
+		const capPath = join(".omni", "capabilities", "cap1");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
 			join(capPath, "capability.toml"),
