@@ -1,0 +1,13 @@
+{
+  "name": "@omnidev/core",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "echo 'Build not needed for Bun runtime'"
+  },
+  "devDependencies": {}
+}

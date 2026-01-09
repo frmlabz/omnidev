@@ -39,7 +39,7 @@
     "skipLibCheck": true,
 
     // Bun-specific
-    "types": ["bun-types"],
+    "types": ["bun"],
 
     // Workspace path mapping
     "paths": {
