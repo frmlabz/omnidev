@@ -8,6 +8,7 @@ export interface CapabilityMetadata {
 
 export interface CapabilityExports {
 	module?: string;
+	gitignore?: string[];
 }
 
 export interface EnvDeclaration {
@@ -108,5 +109,6 @@ export interface LoadedCapability {
 	rules: Rule[];
 	docs: Doc[];
 	typeDefinitions?: string;
+	gitignore?: string[];
 	exports: Record<string, unknown>;
 }

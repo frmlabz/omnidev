@@ -178,6 +178,12 @@ export async function loadCapability(
 			? typeDefinitionsFromExports
 			: await loadTypeDefinitions(capabilityPath);
 
+	// Extract gitignore patterns from exports
+	const gitignore =
+		"gitignore" in exports && Array.isArray(exportsAny.gitignore)
+			? (exportsAny.gitignore as string[])
+			: undefined;
+
 	// Build result object with explicit handling for optional typeDefinitions
 	const result: LoadedCapability = {
 		id,
@@ -192,6 +198,11 @@ export async function loadCapability(
 	// Only add typeDefinitions if it exists
 	if (typeDefinitions !== undefined) {
 		result.typeDefinitions = typeDefinitions;
+	}
+
+	// Only add gitignore if it exists
+	if (gitignore !== undefined) {
+		result.gitignore = gitignore;
 	}
 
 	return result;

@@ -2,6 +2,7 @@ import { buildCommand, buildRouteMap } from "@stricli/core";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Rule } from "@omnidev/core";
+import { rebuildGitignore } from "@omnidev/core";
 
 export async function runAgentsSync(): Promise<void> {
 	const { buildCapabilityRegistry } = await import("@omnidev/core");
@@ -12,6 +13,15 @@ export async function runAgentsSync(): Promise<void> {
 	const capabilities = registry.getAllCapabilities();
 	const skills = registry.getAllSkills();
 	const rules = registry.getAllRules();
+
+	// Rebuild .omni/.gitignore with all enabled capability patterns
+	const gitignorePatterns = new Map<string, string[]>();
+	for (const capability of capabilities) {
+		if (capability.gitignore && capability.gitignore.length > 0) {
+			gitignorePatterns.set(capability.id, capability.gitignore);
+		}
+	}
+	await rebuildGitignore(gitignorePatterns);
 
 	// Call sync hooks for capabilities that have them
 	for (const capability of capabilities) {
@@ -59,6 +69,7 @@ ${skill.instructions}`,
 	}
 
 	console.log("✓ Generated:");
+	console.log("  - .omni/.gitignore (capability patterns)");
 	console.log("  - .omni/generated/rules.md");
 	console.log(`  - .claude/skills/ (${skills.length} skills)`);
 	console.log(`  - .cursor/rules/ (${rules.length} rules)`);
