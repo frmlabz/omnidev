@@ -907,3 +907,36 @@ Files changed:
 - Bun test exits with code 1 when outputting coverage to stderr (use --no-verify for commits)
 ---
 
+## [2026-01-09 21:15] - US-038
+- Implemented Ralph capability structure for OmniDev
+- Created capabilities/ralph/capability.toml with metadata (id, name, version, description)
+- Configured Ralph as a capability with sync hook and CLI commands
+- Created capabilities/ralph/package.json following OmniDev package structure
+- Created capabilities/ralph/index.ts with placeholder exports for future state management
+- Created capabilities/ralph/types.d.ts with comprehensive TypeScript interfaces:
+  - Story interface for user story definitions
+  - PRD interface for Product Requirements Documents
+  - AgentConfig interface for agent configuration
+  - RalphConfig interface for Ralph configuration
+- Created capabilities/ralph/definition.md with detailed capability description
+- Verified capability is discovered and loaded successfully by OmniDev loader
+- All quality checks pass (typecheck + lint + format)
+
+Files changed:
+- capabilities/ralph/capability.toml (created)
+- capabilities/ralph/package.json (created)
+- capabilities/ralph/index.ts (created)
+- capabilities/ralph/types.d.ts (created)
+- capabilities/ralph/definition.md (created)
+
+**Learnings for future iterations:**
+- Ralph capability structure follows standard OmniDev capability patterns
+- capability.toml requires [capability] section header with id, name, version, description
+- Sync hook configured with on_sync = "sync" for future implementation
+- CLI commands array ["ralph"] declares Ralph commands will be available
+- Type definitions should include comprehensive interfaces for all data structures
+- Placeholder exports in index.ts with comments for future implementation guidance
+- loadCapabilityConfig successfully loads and validates the Ralph capability
+- Definition.md provides user-facing documentation for the capability
+---
+
