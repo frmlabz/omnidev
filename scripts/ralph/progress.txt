@@ -48,3 +48,32 @@
 ## Progress Log
 
 Started: Fri Jan 9 2026
+
+## 2026-01-09 15:30 - US-051
+- Implemented provider selection during initialization
+- Added Provider type and ProviderConfig to core package (packages/core/src/types/index.ts)
+- Created provider config loader/writer (packages/core/src/config/provider.ts)
+- Added interactive provider selection prompt using @inquirer/prompts
+- Updated init command to accept optional provider positional parameter
+- Provider can be specified via: `dev init [provider]` where provider is claude, codex, or both
+- Selected provider(s) stored in `.omni/provider.toml`
+- All tests pass (424 passing tests)
+- Quality checks pass (typecheck, lint, format)
+
+Files changed:
+- packages/core/src/types/index.ts - Added Provider types and getActiveProviders()
+- packages/core/src/config/provider.ts - Provider config management
+- packages/core/src/config/provider.test.ts - Tests for provider parsing
+- packages/core/src/types/index.test.ts - Tests for getActiveProviders()
+- packages/cli/src/prompts/provider.ts - Interactive checkbox prompt
+- packages/cli/src/commands/init.ts - Updated to use provider selection
+- packages/cli/src/commands/init.test.ts - Updated all tests to pass provider param
+- packages/cli/package.json - Added @inquirer/prompts dependency
+
+**Learnings for future iterations:**
+- Stricli uses positional parameters, not buildOption() for CLI args
+- Use `optional: true` in parameter definition for optional positional args
+- Function signature: `async function(flags: {}, param?: string)`
+- Tests must pass provider parameter to avoid interactive prompts
+- Template literals preferred over string concatenation (lint rule)
+---
