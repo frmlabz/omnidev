@@ -1,6 +1,7 @@
 import { buildApplication, buildRouteMap } from '@stricli/core';
 import { doctorCommand } from './commands/doctor';
 import { initCommand } from './commands/init';
+import { serveCommand } from './commands/serve';
 import { capabilityRoutes } from './commands/capability';
 import { profileRoutes } from './commands/profile';
 import { agentsRoutes } from './commands/agents';
@@ -11,6 +12,7 @@ const app = buildApplication(
 		routes: {
 			init: initCommand,
 			doctor: doctorCommand,
+			serve: serveCommand,
 			capability: capabilityRoutes,
 			profile: profileRoutes,
 			agents: agentsRoutes,
