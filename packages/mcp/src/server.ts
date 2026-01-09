@@ -10,13 +10,16 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { buildCapabilityRegistry } from '@omnidev/core';
 import { handleOmniQuery } from './tools/query.js';
 import { handleOmniExecute } from './tools/execute.js';
+import { setupSandbox } from './sandbox.js';
+import { startWatcher } from './watcher.js';
+import { mkdirSync } from 'node:fs';
 
 /**
  * Start the MCP server with stdio transport
  */
 export async function startServer(): Promise<void> {
 	// Build capability registry
-	const registry = await buildCapabilityRegistry();
+	let registry = await buildCapabilityRegistry();
 
 	// Create MCP server instance
 	const server = new Server(
@@ -102,9 +105,29 @@ export async function startServer(): Promise<void> {
 		}
 	});
 
+	// Setup sandbox symlinks
+	await setupSandbox(registry.getAllCapabilities());
+
+	// Write PID file
+	mkdirSync('.omni', { recursive: true });
+	await Bun.write('.omni/server.pid', process.pid.toString());
+
+	// Start file watcher for hot reload
+	startWatcher(async () => {
+		console.error('[omnidev] Reloading capabilities...');
+		registry = await buildCapabilityRegistry();
+		await setupSandbox(registry.getAllCapabilities());
+	});
+
 	// Handle shutdown
 	const shutdown = async () => {
 		console.error('[omnidev] Shutting down...');
+		try {
+			const pidFile = Bun.file('.omni/server.pid');
+			await pidFile.delete();
+		} catch {
+			// Ignore errors if file doesn't exist
+		}
 		process.exit(0);
 	};
 
