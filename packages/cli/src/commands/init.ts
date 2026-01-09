@@ -9,11 +9,55 @@ import {
 	generateClaudeAppendSection,
 	writeCapabilitiesState,
 	writeProfiles,
+	hasOldStructure,
+	hasNewStructure,
+	getMigrationSummary,
+	migrateStructure,
 } from "@omnidev/core";
 import { promptForProvider } from "../prompts/provider.js";
+import { confirm } from "@inquirer/prompts";
 
 export async function runInit(_flags: Record<string, never>, provider?: string) {
 	console.log("Initializing OmniDev...");
+
+	// Check for old omni/ structure and offer migration
+	if (hasOldStructure() && !hasNewStructure()) {
+		console.log("");
+		console.log("⚠️  Found old OmniDev structure (omni/ folder)");
+		console.log("");
+		console.log("Would you like to migrate to the new .omni/ structure?");
+		console.log("This will:");
+		const summary = getMigrationSummary();
+		for (const line of summary) {
+			console.log(`  ${line}`);
+		}
+		console.log("");
+
+		const shouldMigrate = await confirm({
+			message: "Proceed with migration?",
+			default: true,
+		});
+
+		if (shouldMigrate) {
+			console.log("");
+			console.log("Migrating to new structure...");
+			try {
+				await migrateStructure();
+				console.log("✓ Migration completed successfully!");
+				console.log("");
+			} catch (error) {
+				console.error(
+					"✗ Migration failed:",
+					error instanceof Error ? error.message : String(error),
+				);
+				process.exit(1);
+			}
+		} else {
+			console.log("");
+			console.log("Migration cancelled. OmniDev will not be initialized.");
+			process.exit(0);
+		}
+	}
 
 	// Create .omni/ directory structure
 	mkdirSync(".omni", { recursive: true });
