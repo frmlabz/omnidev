@@ -5,7 +5,7 @@ description: "Create prd.json orchestration file that links to detailed task fil
 
 # Ralph PRD Orchestrator
 
-Creates `prd.json` orchestration files that link to detailed task files in `.work/tasks/`.
+Creates `prd.json` orchestration files that link to detailed task files in `scripts/ralph/tasks/`.
 
 ---
 

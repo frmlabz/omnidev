@@ -33,14 +33,6 @@ The PRD story is just an overview. The `taskFile` contains the real requirements
 
 The `scope` field tells you which part of the task to implement in this story.
 
-## Project Context
-
-Read these for additional context:
-- `AGENT.md` — Agent workflow overview
-- `docs/technical.md` — Architecture overview
-- `docs/db.md` — Database patterns
-- `docs/orpc.md` — API patterns
-
 ## Progress Report Format
 
 APPEND to `scripts/ralph/progress.txt` (never replace, always append):
