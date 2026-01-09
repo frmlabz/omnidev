@@ -4,6 +4,7 @@ import { initCommand } from './commands/init';
 import { capabilityRoutes } from './commands/capability';
 import { profileRoutes } from './commands/profile';
 import { agentsRoutes } from './commands/agents';
+import { typesRoutes } from './commands/types';
 
 const app = buildApplication(
 	buildRouteMap({
@@ -13,6 +14,7 @@ const app = buildApplication(
 			capability: capabilityRoutes,
 			profile: profileRoutes,
 			agents: agentsRoutes,
+			types: typesRoutes,
 		},
 		docs: {
 			brief: 'OmniDev commands',
