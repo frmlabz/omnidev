@@ -1,7 +1,13 @@
 import { buildCommand } from "@stricli/core";
 import { existsSync, mkdirSync, appendFileSync } from "node:fs";
 import type { Provider } from "@omnidev/core";
-import { writeProviderConfig, parseProviderFlag } from "@omnidev/core";
+import {
+	writeProviderConfig,
+	parseProviderFlag,
+	generateAgentsTemplate,
+	generateClaudeTemplate,
+	generateClaudeAppendSection,
+} from "@omnidev/core";
 import { promptForProvider } from "../prompts/provider.js";
 
 export async function runInit(_flags: Record<string, never>, provider?: string) {
@@ -33,18 +39,26 @@ export async function runInit(_flags: Record<string, never>, provider?: string) 
 	// Save provider config
 	await writeProviderConfig({ providers });
 
-	// Create reference files
-	await createReferenceFiles();
+	// Create provider-specific files
+	await createProviderFiles(providers);
 
 	// Update .gitignore
 	await updateGitignore();
 
 	console.log(`✓ OmniDev initialized for ${providers.join(" and ")}!`);
 	console.log("");
-	console.log("Next steps:");
-	console.log("  1. Edit omni/config.toml to configure capabilities");
-	console.log("  2. Run: omnidev capability list");
-	console.log("  3. Run: omnidev agents sync");
+	console.log("📝 Don't forget to add your project description to:");
+	for (const p of providers) {
+		if (p === "codex") {
+			console.log("   • AGENTS.md (Codex)");
+		} else if (p === "claude") {
+			console.log("   • .claude/claude.md (Claude)");
+		}
+	}
+	console.log("");
+	console.log("📁 Sharing options:");
+	console.log("   • To share config with team: commit the .omni/ folder");
+	console.log("   • To keep personal: add '.omni' to your project's .gitignore");
 }
 
 export const initCommand = buildCommand({
@@ -89,35 +103,29 @@ disable = []
 `;
 }
 
-async function createReferenceFiles() {
-	// agents.md
-	if (!existsSync("agents.md")) {
-		await Bun.write(
-			"agents.md",
-			`# Agent Configuration
-
-> Managed by OmniDev. Do not edit directly.
-> Run \`omnidev agents sync\` to regenerate.
-
-See: .omni/generated/rules.md for current rules.
-`,
-		);
+async function createProviderFiles(providers: Provider[]) {
+	// Create AGENTS.md for Codex
+	if (providers.includes("codex")) {
+		if (!existsSync("AGENTS.md")) {
+			await Bun.write("AGENTS.md", generateAgentsTemplate());
+		}
 	}
 
-	// .claude/claude.md
-	mkdirSync(".claude", { recursive: true });
-	if (!existsSync(".claude/claude.md")) {
-		await Bun.write(
-			".claude/claude.md",
-			`# Claude Code Configuration
+	// Create/append to .claude/claude.md for Claude
+	if (providers.includes("claude")) {
+		mkdirSync(".claude", { recursive: true });
 
-> Managed by OmniDev.
-> Skills are in \`.claude/skills/\` (gitignored, profile-dependent)
-> Run \`omnidev agents sync\` to regenerate.
-
-See: .omni/generated/rules.md for current rules.
-`,
-		);
+		if (!existsSync(".claude/claude.md")) {
+			// Create new file
+			await Bun.write(".claude/claude.md", generateClaudeTemplate());
+		} else {
+			// Check if OmniDev section already exists
+			const existingContent = await Bun.file(".claude/claude.md").text();
+			if (!existingContent.includes("# OmniDev Configuration")) {
+				// Append OmniDev section
+				appendFileSync(".claude/claude.md", generateClaudeAppendSection());
+			}
+		}
 	}
 }
 

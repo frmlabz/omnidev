@@ -22,3 +22,7 @@ export * from "./test-utils";
 
 // Export capability system
 export * from "./capability";
+
+// Export templates
+export * from "./templates/agents";
+export * from "./templates/claude";

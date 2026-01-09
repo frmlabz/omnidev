@@ -58,27 +58,79 @@ describe("init command", () => {
 		expect(content).toContain('provider = "claude"');
 	});
 
-	test("creates agents.md reference file", async () => {
-		await runInit({}, "claude");
+	test("creates AGENTS.md for Codex provider", async () => {
+		await runInit({}, "codex");
 
-		expect(existsSync("agents.md")).toBe(true);
+		expect(existsSync("AGENTS.md")).toBe(true);
 
-		const content = readFileSync("agents.md", "utf-8");
-		expect(content).toContain("# Agent Configuration");
-		expect(content).toContain("Managed by OmniDev");
-		expect(content).toContain("omnidev agents sync");
+		const content = readFileSync("AGENTS.md", "utf-8");
+		expect(content).toContain("# Project Instructions");
+		expect(content).toContain("## Project Description");
+		expect(content).toContain("<!-- TODO: Add 2-3 sentences describing your project -->");
+		expect(content).toContain("@import .omni/generated/rules.md");
 	});
 
-	test("creates .claude/claude.md reference file", async () => {
+	test("does not create AGENTS.md for Claude provider", async () => {
+		await runInit({}, "claude");
+
+		expect(existsSync("AGENTS.md")).toBe(false);
+	});
+
+	test("creates .claude/claude.md for Claude provider", async () => {
 		await runInit({}, "claude");
 
 		expect(existsSync(".claude")).toBe(true);
 		expect(existsSync(".claude/claude.md")).toBe(true);
 
 		const content = readFileSync(".claude/claude.md", "utf-8");
-		expect(content).toContain("# Claude Code Configuration");
-		expect(content).toContain("Managed by OmniDev");
-		expect(content).toContain(".claude/skills/");
+		expect(content).toContain("# Project Instructions");
+		expect(content).toContain("## Project Description");
+		expect(content).toContain("<!-- TODO: Add 2-3 sentences describing your project -->");
+		expect(content).toContain("@import .omni/generated/rules.md");
+	});
+
+	test("does not create .claude/claude.md for Codex provider", async () => {
+		await runInit({}, "codex");
+
+		expect(existsSync(".claude")).toBe(false);
+	});
+
+	test("creates both AGENTS.md and claude.md for 'both' providers", async () => {
+		await runInit({}, "both");
+
+		expect(existsSync("AGENTS.md")).toBe(true);
+		expect(existsSync(".claude/claude.md")).toBe(true);
+
+		const agentsContent = readFileSync("AGENTS.md", "utf-8");
+		expect(agentsContent).toContain("# Project Instructions");
+
+		const claudeContent = readFileSync(".claude/claude.md", "utf-8");
+		expect(claudeContent).toContain("# Project Instructions");
+	});
+
+	test("appends to existing .claude/claude.md", async () => {
+		mkdirSync(".claude", { recursive: true });
+		await Bun.write(".claude/claude.md", "# My Existing Config\n\nExisting content here.\n");
+
+		await runInit({}, "claude");
+
+		const content = readFileSync(".claude/claude.md", "utf-8");
+		expect(content).toContain("# My Existing Config");
+		expect(content).toContain("Existing content here");
+		expect(content).toContain("---");
+		expect(content).toContain("# OmniDev Configuration");
+		expect(content).toContain("## Project Description");
+	});
+
+	test("does not duplicate OmniDev section when appending to claude.md", async () => {
+		mkdirSync(".claude", { recursive: true });
+		await Bun.write(".claude/claude.md", "# My Config\n\n---\n\n# OmniDev Configuration\n");
+
+		await runInit({}, "claude");
+
+		const content = readFileSync(".claude/claude.md", "utf-8");
+		const matches = content.match(/# OmniDev Configuration/g);
+		expect(matches?.length).toBe(1);
 	});
 
 	test("creates .gitignore with OmniDev entries when file does not exist", async () => {
@@ -119,8 +171,10 @@ describe("init command", () => {
 
 		expect(existsSync("omni/config.toml")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
-		expect(existsSync("agents.md")).toBe(true);
 		expect(existsSync(".claude/claude.md")).toBe(true);
+
+		// Should not create AGENTS.md for Claude
+		expect(existsSync("AGENTS.md")).toBe(false);
 	});
 
 	test("does not overwrite existing config.toml", async () => {
@@ -134,13 +188,13 @@ describe("init command", () => {
 		expect(content).toBe(customConfig);
 	});
 
-	test("does not overwrite existing reference files", async () => {
+	test("does not overwrite existing AGENTS.md", async () => {
 		const customAgents = "# Custom agents\n";
-		await Bun.write("agents.md", customAgents);
+		await Bun.write("AGENTS.md", customAgents);
 
-		await runInit({}, "claude");
+		await runInit({}, "codex");
 
-		const content = readFileSync("agents.md", "utf-8");
+		const content = readFileSync("AGENTS.md", "utf-8");
 		expect(content).toBe(customAgents);
 	});
 
