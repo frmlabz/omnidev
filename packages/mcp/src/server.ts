@@ -9,6 +9,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { buildCapabilityRegistry } from '@omnidev/core';
 import { handleOmniQuery } from './tools/query.js';
+import { handleOmniExecute } from './tools/execute.js';
 
 /**
  * Start the MCP server with stdio transport
@@ -56,6 +57,21 @@ export async function startServer(): Promise<void> {
 						},
 					},
 				},
+				{
+					name: 'omni_execute',
+					description: 'Execute TypeScript code in the sandbox with access to capability modules.',
+					inputSchema: {
+						type: 'object',
+						properties: {
+							code: {
+								type: 'string',
+								description:
+									'Full TypeScript file contents with export async function main(): Promise<number>',
+							},
+						},
+						required: ['code'],
+					},
+				},
 			],
 		};
 	});
@@ -68,6 +84,8 @@ export async function startServer(): Promise<void> {
 			switch (name) {
 				case 'omni_query':
 					return await handleOmniQuery(registry, args);
+				case 'omni_execute':
+					return await handleOmniExecute(registry, args);
 				default:
 					throw new Error(`Unknown tool: ${name}`);
 			}
