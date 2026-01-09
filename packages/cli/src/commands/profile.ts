@@ -6,6 +6,7 @@ import {
 	loadProfiles,
 	resolveEnabledCapabilities,
 	setActiveProfile,
+	setProfile,
 } from "@omnidev/core";
 
 const listCommand = buildCommand({
@@ -41,10 +42,34 @@ const setCommand = buildCommand({
 	func: runSetCommand,
 });
 
+async function runCreateCommand(_flags: Record<string, never>, profileName: string): Promise<void> {
+	await runProfileCreate(profileName);
+}
+
+const createCommand = buildCommand({
+	docs: {
+		brief: "Create a new profile",
+	},
+	parameters: {
+		flags: {},
+		positional: {
+			kind: "tuple" as const,
+			parameters: [
+				{
+					brief: "Profile name",
+					parse: String,
+				},
+			],
+		},
+	},
+	func: runCreateCommand,
+});
+
 export const profileRoutes = buildRouteMap({
 	routes: {
 		list: listCommand,
 		set: setCommand,
+		create: createCommand,
 	},
 	docs: {
 		brief: "Manage capability profiles",
@@ -161,6 +186,45 @@ export async function runProfileSet(profileName: string): Promise<void> {
 		console.log("  Run: omnidev agents sync (when available)");
 	} catch (error) {
 		console.error("✗ Error setting profile:", error);
+		process.exit(1);
+	}
+}
+
+export async function runProfileCreate(profileName: string): Promise<void> {
+	try {
+		// Check if .omni/config.toml exists
+		if (!existsSync(".omni/config.toml")) {
+			console.log("✗ No config file found");
+			console.log("  Run: omnidev init");
+			process.exit(1);
+		}
+
+		// Load profiles
+		const profilesConfig = await loadProfiles();
+
+		// Check if profile already exists
+		const profiles = profilesConfig.profiles ?? {};
+		if (profileName in profiles) {
+			console.log(`✗ Profile "${profileName}" already exists`);
+			console.log("");
+			console.log("Use 'dev profile list' to see all profiles");
+			console.log("Or edit .omni/profiles.toml directly to modify it");
+			process.exit(1);
+		}
+
+		// Create new empty profile
+		await setProfile(profileName, {
+			enable: [],
+			disable: [],
+		});
+
+		console.log(`✓ Created profile: ${profileName}`);
+		console.log("");
+		console.log("Next steps:");
+		console.log("  1. Edit .omni/profiles.toml to configure capability lists");
+		console.log(`  2. Run 'dev profile set ${profileName}' to activate it`);
+	} catch (error) {
+		console.error("✗ Error creating profile:", error);
 		process.exit(1);
 	}
 }

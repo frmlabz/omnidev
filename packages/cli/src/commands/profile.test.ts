@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { runProfileList, runProfileSet } from "./profile";
+import { runProfileList, runProfileSet, runProfileCreate } from "./profile";
 
 describe("profile commands", () => {
 	let testDir: string;
@@ -382,6 +382,138 @@ enable = ["tasks"]
 
 			expect(exitCode).toBe(1);
 			expect(consoleErrors.join("\n")).toContain("Error setting profile");
+		});
+	});
+
+	describe("runProfileCreate", () => {
+		test("should show error when config file does not exist", async () => {
+			try {
+				await runProfileCreate("newprofile");
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			expect(consoleOutput.join("\n")).toContain("No config file found");
+			expect(consoleOutput.join("\n")).toContain("Run: omnidev init");
+		});
+
+		test("should create new profile with empty enable/disable lists", async () => {
+			// Create config
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(
+				".omni/config.toml",
+				`project = "test-project"
+`,
+			);
+			await Bun.write(
+				".omni/profiles.toml",
+				`[profiles.default]
+`,
+			);
+
+			await runProfileCreate("newprofile");
+
+			expect(exitCode).toBeUndefined();
+			expect(consoleOutput.join("\n")).toContain("Created profile: newprofile");
+
+			// Verify file was written
+			const profilesContent = await Bun.file(".omni/profiles.toml").text();
+			expect(profilesContent).toContain("[profiles.newprofile]");
+			expect(profilesContent).toContain("enable = []");
+			expect(profilesContent).toContain("disable = []");
+		});
+
+		test("should show error when profile already exists", async () => {
+			// Create config with existing profile
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(
+				".omni/config.toml",
+				`project = "test-project"
+`,
+			);
+			await Bun.write(
+				".omni/profiles.toml",
+				`[profiles.default]
+
+[profiles.existing]
+enable = ["tasks"]
+`,
+			);
+
+			try {
+				await runProfileCreate("existing");
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			const output = consoleOutput.join("\n");
+			expect(output).toContain('Profile "existing" already exists');
+			expect(output).toContain("dev profile list");
+		});
+
+		test("should show next steps after creating profile", async () => {
+			// Create config
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(
+				".omni/config.toml",
+				`project = "test-project"
+`,
+			);
+			await Bun.write(
+				".omni/profiles.toml",
+				`[profiles.default]
+`,
+			);
+
+			await runProfileCreate("myprofile");
+
+			expect(exitCode).toBeUndefined();
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Next steps:");
+			expect(output).toContain("Edit .omni/profiles.toml");
+			expect(output).toContain("dev profile set myprofile");
+		});
+
+		test("should handle invalid profiles.toml gracefully", async () => {
+			// Create valid config but invalid profiles.toml
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(
+				".omni/config.toml",
+				`project = "test-project"
+`,
+			);
+			await Bun.write(".omni/profiles.toml", "invalid toml [[[");
+
+			try {
+				await runProfileCreate("newprofile");
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			expect(consoleErrors.join("\n")).toContain("Error creating profile");
+		});
+
+		test("should create profile even when profiles.toml does not exist", async () => {
+			// Create config without profiles.toml
+			mkdirSync(".omni", { recursive: true });
+			await Bun.write(
+				".omni/config.toml",
+				`project = "test-project"
+`,
+			);
+
+			await runProfileCreate("firstprofile");
+
+			expect(exitCode).toBeUndefined();
+			expect(consoleOutput.join("\n")).toContain("Created profile: firstprofile");
+
+			// Verify file was created
+			expect(existsSync(".omni/profiles.toml")).toBe(true);
+			const profilesContent = await Bun.file(".omni/profiles.toml").text();
+			expect(profilesContent).toContain("[profiles.firstprofile]");
 		});
 	});
 });
