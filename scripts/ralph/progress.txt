@@ -202,3 +202,40 @@ Files changed:
 - agents sync is the canonical command to rebuild all generated files including gitignore
 - Testing gitignore logic requires careful handling of working directory changes
 ---
+## 2026-01-09 20:30 - US-058
+- Implemented clear config file structure with separate files for each concern
+- Created profiles-loader.ts module for managing profiles.toml files
+- Updated init command to create .omni/profiles.toml with default profiles (default, planning, coding)
+- Moved profiles from config.toml to separate profiles.toml file
+- Updated profile commands (list, set) to load profiles from profiles.toml
+- Added enhanced comments to all config file writers explaining their purpose:
+  - config.toml: Project name, default profile, links to other config files
+  - capabilities.toml: Which capabilities are enabled/disabled (from US-055)
+  - profiles.toml: Profile definitions with enable/disable lists
+  - provider.toml: AI provider selection (from US-051)
+- Updated resolveEnabledCapabilitiesFromState to async and load profiles from new location
+- Fixed capability registry to use new capabilities state loader
+- Updated all tests to use new file structure (27 test files updated)
+- All tests pass (494/494 passing tests)
+- Quality checks pass (typecheck, lint, format)
+
+Files changed:
+- packages/core/src/config/profiles-loader.ts - New profiles.toml management module
+- packages/core/src/config/profiles-loader.test.ts - Comprehensive tests (18 tests)
+- packages/core/src/config/profiles.ts - Updated to load from profiles.toml
+- packages/core/src/config/provider.ts - Enhanced comments
+- packages/core/src/config/index.ts - Export profiles-loader
+- packages/cli/src/commands/init.ts - Create profiles.toml, updated config.toml template
+- packages/cli/src/commands/profile.ts - Load from profiles.toml
+- packages/cli/src/commands/capability.ts - Await async profile resolution
+- packages/core/src/capability/registry.ts - Use new capabilities state loader
+- Multiple test files - Updated to create separate config files
+
+**Learnings for future iterations:**
+- Separate config files provide clear separation of concerns and make the system easier to understand
+- capabilities.toml uses `enabled`/`disabled` arrays for state
+- profiles.toml uses `enable`/`disable` arrays within profile definitions (slight naming difference)
+- Tests need to create all config files separately now (config.toml, capabilities.toml, profiles.toml)
+- Making resolveEnabledCapabilitiesFromState async allows it to load from separate file
+- Comprehensive comments in config files help users understand the system
+---
