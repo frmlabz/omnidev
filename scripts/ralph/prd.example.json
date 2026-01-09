@@ -1,34 +1,33 @@
 {
-  "project": "Nutribox",
-  "branchName": "ralph/example-feature",
-  "description": "Example Feature - Template PRD for Ralph",
-  "userStories": [
-    {
-      "id": "US-001",
-      "title": "Add field to database",
-      "description": "As a developer, I need to store data so it persists.",
-      "acceptanceCriteria": [
-        "Add column to table with appropriate type and default",
-        "Generate and run migration successfully",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-002",
-      "title": "Display data in UI",
-      "description": "As a user, I want to see the data at a glance.",
-      "acceptanceCriteria": [
-        "Data is visible on the relevant page",
-        "Typecheck passes",
-        "Verify in browser using Playwrighter MCP"
-      ],
-      "priority": 2,
-      "passes": false,
-      "notes": ""
-    }
-  ]
+	"project": "Nutribox",
+	"branchName": "ralph/example-feature",
+	"description": "Example Feature - Template PRD for Ralph",
+	"userStories": [
+		{
+			"id": "US-001",
+			"title": "Add field to database",
+			"description": "As a developer, I need to store data so it persists.",
+			"acceptanceCriteria": [
+				"Add column to table with appropriate type and default",
+				"Generate and run migration successfully",
+				"Typecheck passes"
+			],
+			"priority": 1,
+			"passes": false,
+			"notes": ""
+		},
+		{
+			"id": "US-002",
+			"title": "Display data in UI",
+			"description": "As a user, I want to see the data at a glance.",
+			"acceptanceCriteria": [
+				"Data is visible on the relevant page",
+				"Typecheck passes",
+				"Verify in browser using Playwrighter MCP"
+			],
+			"priority": 2,
+			"passes": false,
+			"notes": ""
+		}
+	]
 }
-

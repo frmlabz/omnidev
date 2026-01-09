@@ -1,20 +1,25 @@
 {
-  "name": "omnidev",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "workspaces": [
-    "packages/*",
-    "capabilities/*"
-  ],
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "bun run --filter '*' build",
-    "clean": "rm -rf packages/*/dist capabilities/*/dist"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.11",
-    "@types/bun": "^1.1.17",
-    "typescript": "^5.7.2"
-  }
+	"name": "omnidev",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"capabilities/*"
+	],
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write .",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"check": "bun run typecheck && bun run lint && bun run format:check",
+		"build": "bun run --filter '*' build",
+		"clean": "rm -rf packages/*/dist capabilities/*/dist"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.11",
+		"@types/bun": "^1.1.17",
+		"typescript": "^5.7.2"
+	}
 }

@@ -6,6 +6,6 @@
  * capabilities, and the MCP server.
  */
 
-import { getVersion } from "@omnidev/core";
+import { getVersion } from '@omnidev/core';
 
 console.log(`OmniDev CLI v${getVersion()}`);

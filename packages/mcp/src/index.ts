@@ -5,8 +5,8 @@
  * exposes omni_query and omni_execute tools to LLMs.
  */
 
-import { getVersion } from "@omnidev/core";
+import { getVersion } from '@omnidev/core';
 
 export function startServer(): void {
-  console.log(`OmniDev MCP Server v${getVersion()}`);
+	console.log(`OmniDev MCP Server v${getVersion()}`);
 }

@@ -5,8 +5,8 @@
  * used across the CLI and MCP server packages.
  */
 
-export const version = "0.1.0";
+export const version = '0.1.0';
 
 export function getVersion(): string {
-  return version;
+	return version;
 }
