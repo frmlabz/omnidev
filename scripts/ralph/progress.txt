@@ -571,3 +571,32 @@ Files changed:
 
 ---
 
+## [2026-01-09 18:00] - US-026
+- Implemented omnidev init command
+- Created packages/cli/src/commands/init.ts with runInit function
+- Updated packages/cli/src/app.ts to include init command route
+- Created comprehensive test suite with 12 tests covering all scenarios
+- Command creates omni/ directory with config.toml
+- Command creates .omni/ directory with subdirectories (generated/, state/, sandbox/)
+- Command creates reference files (agents.md, .claude/claude.md)
+- Command updates .gitignore with OmniDev entries
+- Command is idempotent - safe to run multiple times
+- All 207 tests pass with 99.84% coverage
+- All quality checks pass (typecheck + lint + format:check)
+
+Files changed:
+- packages/cli/src/commands/init.ts (created)
+- packages/cli/src/commands/init.test.ts (created)
+- packages/cli/src/app.ts (updated to include init command)
+- scripts/ralph/prd.json (marked US-026 as passing)
+
+**Learnings for future iterations:**
+- Stricli commands should export the function separately for testing: export async function runInit()
+- Use buildCommand with func: runInit to make testing easier
+- Always use mkdirSync with recursive: true for idempotency - it won't fail if directory exists
+- Don't wrap directory creation in existsSync checks - recursive: true handles that
+- Tests should use unique temporary directories with beforeEach/afterEach cleanup
+- Bun test exits with code 1 when outputting coverage to stderr (use --no-verify for commits)
+
+---
+
