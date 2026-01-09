@@ -104,22 +104,25 @@ omnidev serve
 
 | Command | Description |
 |---------|-------------|
-| `omnidev init` | Create `omni/` and `.omni/` directories with starter config |
+| `omnidev init` | Create `.omni/` directory with complete configuration structure |
 | `omnidev serve` | Start the MCP server |
-| `omnidev doctor` | Check runtime dependencies and configuration |
+| `omnidev doctor` | Check runtime dependencies and validate directory structure |
 
 ### Capability Management
 
 | Command | Description |
 |---------|-------------|
-| `omnidev capability list` | List discovered capabilities |
+| `omnidev capability list` | List discovered capabilities with enabled/disabled status |
+| `omnidev capability enable <name>` | Enable a capability and update gitignore |
+| `omnidev capability disable <name>` | Disable a capability and remove gitignore patterns |
 
 ### Profile Management
 
 | Command | Description |
 |---------|-------------|
-| `omnidev profile list` | List available profiles |
+| `omnidev profile list` | List available profiles with active indicator |
 | `omnidev profile set <name>` | Switch active profile (auto-syncs) |
+| `omnidev profile create <name>` | Create a new profile |
 
 ### Agent Sync
 
@@ -213,34 +216,155 @@ omnidev/
 
 ```
 project-root/
-├── agents.md                    # COMMITTED (reference file)
+├── AGENTS.md                    # Codex provider instructions (if selected)
 ├── .claude/
-│   ├── claude.md                # COMMITTED (reference file)
-│   └── skills/                  # GITIGNORED (generated)
-├── .cursor/
-│   └── rules/
-│       └── omnidev-*.mdc        # GITIGNORED (generated)
-├── omni/                        # COMMITTED
-│   ├── config.toml              # Team config, profiles
-│   └── capabilities/            # Project-specific capabilities
-└── .omni/                       # GITIGNORED
-    ├── config.local.toml        # Personal overrides
-    ├── .env                     # Secrets
+│   └── claude.md                # Claude provider instructions (if selected)
+└── .omni/                       # Single OmniDev folder
+    ├── .gitignore               # Internal gitignore
+    │
+    ├── # === Configuration Files === #
+    ├── config.toml              # Project name, default profile
+    ├── provider.toml            # AI provider selection
+    ├── capabilities.toml        # Enabled capabilities
+    ├── profiles.toml            # Profile definitions
     ├── active-profile           # Current profile name
-    ├── generated/               # Generated content
-    ├── ralph/                   # Ralph PRDs and state
-    └── state/                   # Runtime state
+    │
+    ├── # === Secrets (always ignored) === #
+    ├── .env                     # Environment variables
+    │
+    ├── # === Capabilities === #
+    ├── capabilities/            # Custom capability definitions
+    │   └── my-capability/
+    │       ├── capability.toml
+    │       ├── index.ts
+    │       ├── skills/
+    │       └── rules/
+    │
+    ├── # === Generated (always ignored) === #
+    ├── generated/
+    │   └── rules.md             # Aggregated rules for agents
+    │
+    ├── # === Runtime (always ignored) === #
+    ├── state/                   # Capability state storage
+    └── sandbox/                 # Sandbox execution
 ```
+
+### Understanding the `.omni` Folder
+
+OmniDev uses a **single `.omni` folder** for all configuration and working files. An internal `.omni/.gitignore` file controls what gets shared vs ignored, giving you two usage modes:
+
+#### Team Mode (Shared Configuration)
+
+**How:** Commit the `.omni/` folder to your repository.
+
+**What gets shared:**
+- Capability definitions and rules
+- Enabled capabilities list
+- Profile definitions
+- Provider selection
+- Project configuration
+
+**What stays private:**
+- Secrets in `.env`
+- Generated files (`generated/`)
+- Runtime state (`state/`)
+- Sandbox files (`sandbox/`)
+- Capability working files (via their gitignore exports)
+
+**Best for:**
+- Teams who want consistent AI agent behavior
+- Projects with custom capabilities
+- Standardized workflows across developers
+
+#### Personal Mode (Private Configuration)
+
+**How:** Add `.omni` to your project's root `.gitignore`.
+
+**What happens:**
+- All OmniDev configuration is local to you
+- Each developer sets up independently
+- No shared capabilities or profiles
+
+**Best for:**
+- Personal projects
+- Experimentation
+- Teams who prefer independence
+
+### Configuration Files
+
+Each configuration file in `.omni/` serves a specific purpose:
+
+| File | Purpose | Created By |
+|------|---------|-----------|
+| `config.toml` | Project name and default profile | `omnidev init` |
+| `provider.toml` | Selected AI provider(s): Claude, Codex, or both | `omnidev init` |
+| `capabilities.toml` | Which capabilities are enabled/disabled | `omnidev init`, `omnidev capability enable/disable` |
+| `profiles.toml` | Profile definitions with capability overrides | `omnidev init`, `omnidev profile create` |
+| `active-profile` | Name of currently active profile | `omnidev profile set` |
+| `.gitignore` | Internal gitignore patterns (core + capability-exported) | `omnidev init`, `omnidev capability enable/disable`, `omnidev agents sync` |
+
+All configuration files use TOML format with inline comments explaining their purpose.
+
+### Internal Gitignore Structure
+
+The `.omni/.gitignore` file has two sections:
+
+**1. OmniDev Core (always ignored):**
+- `.env` — Secrets
+- `generated/` — Generated content
+- `state/` — Runtime state
+- `sandbox/` — Sandbox execution
+- `*.log` — Log files
+
+**2. Capability Patterns (auto-managed):**
+- Added when `omnidev capability enable <name>` is run
+- Removed when `omnidev capability disable <name>` is run
+- Each capability's patterns are grouped under a comment
+
+Example:
+
+```gitignore
+# ================================================
+# OmniDev Core - Always Ignored
+# ================================================
+
+.env
+generated/
+state/
+sandbox/
+*.log
+
+# ================================================
+# Capability Patterns - Auto-Managed
+# ================================================
+
+# ralph capability
+work/
+*.tmp
+progress.txt
+```
+
+Capabilities can export gitignore patterns via their `index.ts`:
+
+```typescript
+export const gitignore = [
+  'work/',
+  '*.tmp',
+  'progress.txt'
+];
+```
+
+Run `omnidev agents sync` to rebuild the `.omni/.gitignore` with all enabled capability patterns.
 
 ## Capabilities
 
-A capability is a directory in `omni/capabilities/` containing:
+A capability is a directory in `.omni/capabilities/` containing:
 
 ```
-omni/capabilities/my-capability/
+.omni/capabilities/my-capability/
 ├── capability.toml     # Metadata & config (required)
 ├── definition.md       # Description (required)
-├── index.ts            # Exports: tools, CLI commands, views
+├── index.ts            # Exports: tools, CLI commands, views, gitignore
 ├── types.d.ts          # Type definitions for LLM
 ├── skills/             # Agent behaviors (SKILL.md files)
 ├── rules/              # Guidelines (*.md files)
@@ -323,37 +447,66 @@ omnidev ralph log --tail 50
 
 ## Configuration
 
-### Team Configuration (`omni/config.toml`)
+### Project Configuration (`.omni/config.toml`)
 
 ```toml
+# Project Settings
+# This file defines the project name and default profile.
+# See profiles.toml for profile definitions.
+# See capabilities.toml for enabled capabilities.
+
 project = "my-project"
 default_profile = "default"
+```
 
-[capabilities]
-enable = ["ralph", "git"]
+### Provider Selection (`.omni/provider.toml`)
 
-[profiles.planning]
+```toml
+# AI Provider Selection
+# Choose which AI providers to support: Claude, Codex, or both.
+# This controls which instruction files are generated (AGENTS.md, .claude/claude.md).
+
+claude = true
+codex = false
+```
+
+### Capabilities (`.omni/capabilities.toml`)
+
+```toml
+# Capability State Management
+# This file tracks which capabilities are enabled or disabled.
+# Use: omnidev capability enable/disable <name>
+
+enabled = ["tasks"]
+disabled = []
+```
+
+### Profiles (`.omni/profiles.toml`)
+
+```toml
+# Profile Definitions
+# Profiles allow switching capability sets for different workflows.
+# Active profile stored in .omni/active-profile file.
+
+[default]
+enable = []
+disable = []
+
+[planning]
 enable = ["ralph", "research"]
 disable = ["git"]
 
-[profiles.coding]
+[coding]
 enable = ["ralph", "git"]
 disable = ["research"]
-```
-
-### Local Overrides (`.omni/config.local.toml`)
-
-```toml
-[capabilities]
-enable = ["my-debug-tools"]
-
-[env]
-LOG_LEVEL = "debug"
 ```
 
 ### Secrets (`.omni/.env`)
 
 ```bash
+# Environment Variables and Secrets
+# This file is always gitignored (via .omni/.gitignore)
+
 GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 AWS_ACCESS_KEY_ID=AKIA...
 ```

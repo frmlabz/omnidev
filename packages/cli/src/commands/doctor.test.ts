@@ -10,6 +10,46 @@ describe("doctor command", () => {
 	let exitCalled: boolean;
 	let exitCode: number;
 
+	// Helper to create complete .omni structure
+	function createCompleteStructure() {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(
+			".omni/config.toml",
+			`project = "test"
+default_profile = "default"
+`,
+		);
+		writeFileSync(
+			".omni/provider.toml",
+			`claude = true
+codex = false
+`,
+		);
+		writeFileSync(
+			".omni/capabilities.toml",
+			`enabled = []
+disabled = []
+`,
+		);
+		writeFileSync(
+			".omni/profiles.toml",
+			`[default]
+enable = []
+disable = []
+`,
+		);
+		writeFileSync(
+			".omni/.gitignore",
+			`# OmniDev Core
+.env
+generated/
+state/
+sandbox/
+*.log
+`,
+		);
+	}
+
 	beforeEach(() => {
 		// Create a unique test directory
 		testDir = join(
@@ -48,18 +88,7 @@ describe("doctor command", () => {
 
 	test("should pass all checks when setup is complete", async () => {
 		// Setup complete OmniDev structure
-		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
-		writeFileSync(
-			".omni/config.toml",
-			`project = "test"
-default_profile = "default"
-
-[capabilities]
-enable = []
-disable = []
-`,
-		);
+		createCompleteStructure();
 
 		await runDoctor();
 
@@ -77,7 +106,6 @@ disable = []
 
 	test("should fail when config.toml is missing", async () => {
 		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
 
 		await runDoctor();
 
@@ -86,7 +114,6 @@ disable = []
 	});
 
 	test("should fail when config.toml is invalid", async () => {
-		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(".omni/config.toml", "invalid toml [[[");
 
@@ -99,18 +126,7 @@ disable = []
 	test("should check Bun version is 1.0+", async () => {
 		// We can't change Bun.version in tests, but we can verify the check runs
 		// The version check should pass in our dev environment
-		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
-		writeFileSync(
-			".omni/config.toml",
-			`project = "test"
-default_profile = "default"
-
-[capabilities]
-enable = []
-disable = []
-`,
-		);
+		createCompleteStructure();
 
 		await runDoctor();
 
@@ -139,7 +155,6 @@ disable = []
 
 	test("should fail when config has invalid syntax", async () => {
 		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
 
 		// Create a config with invalid TOML syntax
 		writeFileSync(".omni/config.toml", "invalid = [[[]]");
@@ -151,23 +166,121 @@ disable = []
 	});
 
 	test("should pass with minimal valid config", async () => {
-		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
+		createCompleteStructure();
 
-		// Minimal valid config
+		await runDoctor();
+
+		expect(exitCalled).toBe(false);
+	});
+
+	test("should validate provider.toml exists", async () => {
+		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
 			".omni/config.toml",
 			`project = "test"
 default_profile = "default"
+`,
+		);
+		// Missing provider.toml
 
-[capabilities]
+		await runDoctor();
+
+		expect(exitCalled).toBe(true);
+		expect(exitCode).toBe(1);
+	});
+
+	test("should validate capabilities.toml exists", async () => {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(
+			".omni/config.toml",
+			`project = "test"
+default_profile = "default"
+`,
+		);
+		writeFileSync(
+			".omni/provider.toml",
+			`claude = true
+codex = false
+`,
+		);
+		// Missing capabilities.toml
+
+		await runDoctor();
+
+		expect(exitCalled).toBe(true);
+		expect(exitCode).toBe(1);
+	});
+
+	test("should validate profiles.toml exists", async () => {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(
+			".omni/config.toml",
+			`project = "test"
+default_profile = "default"
+`,
+		);
+		writeFileSync(
+			".omni/provider.toml",
+			`claude = true
+codex = false
+`,
+		);
+		writeFileSync(
+			".omni/capabilities.toml",
+			`enabled = []
+disabled = []
+`,
+		);
+		// Missing profiles.toml
+
+		await runDoctor();
+
+		expect(exitCalled).toBe(true);
+		expect(exitCode).toBe(1);
+	});
+
+	test("should validate internal .gitignore exists", async () => {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(
+			".omni/config.toml",
+			`project = "test"
+default_profile = "default"
+`,
+		);
+		writeFileSync(
+			".omni/provider.toml",
+			`claude = true
+codex = false
+`,
+		);
+		writeFileSync(
+			".omni/capabilities.toml",
+			`enabled = []
+disabled = []
+`,
+		);
+		writeFileSync(
+			".omni/profiles.toml",
+			`[default]
 enable = []
 disable = []
 `,
 		);
+		// Missing .omni/.gitignore
 
 		await runDoctor();
 
+		expect(exitCalled).toBe(true);
+		expect(exitCode).toBe(1);
+	});
+
+	test("should pass when capabilities directory is missing (no custom capabilities)", async () => {
+		createCompleteStructure();
+		// Don't create .omni/capabilities directory
+
+		await runDoctor();
+
+		// Should still pass - capabilities directory is optional
 		expect(exitCalled).toBe(false);
 	});
 });
