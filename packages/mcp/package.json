@@ -10,6 +10,7 @@
 		"build": "echo 'Build not needed for Bun runtime'"
 	},
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.25.2",
 		"@omnidev/core": "workspace:*"
 	},
 	"devDependencies": {}
