@@ -15,11 +15,13 @@
 		"format:check": "biome format .",
 		"check": "bun run typecheck && bun run lint && bun run format:check",
 		"build": "bun run --filter '*' build",
-		"clean": "rm -rf packages/*/dist capabilities/*/dist"
+		"clean": "rm -rf packages/*/dist capabilities/*/dist",
+		"prepare": "lefthook install"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
 		"@types/bun": "^1.1.17",
+		"lefthook": "^2.0.13",
 		"typescript": "^5.7.2"
 	}
 }
