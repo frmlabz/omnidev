@@ -1,0 +1,11 @@
+# Tasks Capability Configuration
+
+[capability]
+id = "tasks"
+name = "Task Management"
+version = "0.1.0"
+description = "Built-in task management capability for tracking work"
+
+[capability.metadata]
+author = "OmniDev Team"
+repository = "https://github.com/omnidev/omnidev"
