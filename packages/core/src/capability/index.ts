@@ -1,0 +1,1 @@
+export { discoverCapabilities } from './loader';

@@ -19,3 +19,6 @@ export * from './config';
 
 // Export test utilities
 export * from './test-utils';
+
+// Export capability system
+export * from './capability';
