@@ -58,7 +58,10 @@ export async function buildDynamicApp() {
  * Load CLI commands from enabled capabilities
  */
 async function loadCapabilityCommands(): Promise<Record<string, unknown>> {
-	const { buildCapabilityRegistry } = await import("@omnidev/core");
+	const { buildCapabilityRegistry, installCapabilityDependencies } = await import("@omnidev/core");
+
+	// Install dependencies first (silent to avoid noise during CLI startup)
+	await installCapabilityDependencies(true);
 
 	const registry = await buildCapabilityRegistry();
 	const capabilities = registry.getAllCapabilities();

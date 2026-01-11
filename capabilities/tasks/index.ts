@@ -1,16 +1,43 @@
 /**
  * Tasks Capability
  *
- * Built-in capability for task management in OmniDev.
- * Provides tools for creating, tracking, and completing tasks.
+ * Task management capability for OmniDev.
+ * Provides CLI commands and sandbox-accessible functions for managing tasks.
  */
 
-export interface Task {
-	id: string;
-	title: string;
-	status: "pending" | "in_progress" | "completed" | "blocked";
-	createdAt: string;
-}
+import type { CapabilityExport } from "@omnidev/core";
+import { taskRoutes } from "./cli.js";
+import { sync } from "./sync.js";
 
-export const capabilityId = "tasks";
-export const capabilityVersion = "0.1.0";
+// Export types for TypeScript consumers
+export type {
+	Task,
+	TaskStatus,
+	Comment,
+	CommentAuthor,
+	CreateTaskInput,
+	UpdateTaskInput,
+	TaskFilter,
+} from "./types.js";
+
+// Export sandbox functions (accessible via omni_execute)
+export {
+	createTask,
+	getTasks,
+	getTask,
+	updateTask,
+	deleteTask,
+	addComment,
+	updateTaskStatus,
+} from "./operations.js";
+
+// Default export: CapabilityExport
+export default {
+	cliCommands: {
+		task: taskRoutes,
+	},
+
+	gitignore: ["tasks/"],
+
+	sync,
+} satisfies CapabilityExport;

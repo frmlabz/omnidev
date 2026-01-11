@@ -3,8 +3,17 @@
 [capability]
 id = "tasks"
 name = "Task Management"
-version = "0.1.0"
-description = "Built-in task management capability for tracking work"
+version = "1.0.0"
+description = "Task tracking with comments and priorities"
+
+[capability.requires]
+env = []
+
+[capability.sync]
+on_sync = "sync"
+
+[capability.cli]
+commands = ["task"]
 
 [capability.metadata]
 author = "OmniDev Team"

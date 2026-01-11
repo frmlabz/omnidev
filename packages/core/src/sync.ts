@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { spawn } from "node:child_process";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { rebuildGitignore } from "./gitignore/manager";
@@ -9,6 +10,62 @@ export interface SyncResult {
 	skillCount: number;
 	ruleCount: number;
 	docCount: number;
+}
+
+/**
+ * Install dependencies for capabilities in .omni/capabilities/
+ * Only installs for capabilities that have a package.json
+ */
+export async function installCapabilityDependencies(silent: boolean): Promise<void> {
+	const { existsSync, readdirSync } = await import("node:fs");
+	const { join } = await import("node:path");
+
+	const capabilitiesDir = ".omni/capabilities";
+
+	// Check if .omni/capabilities exists
+	if (!existsSync(capabilitiesDir)) {
+		return; // Nothing to install
+	}
+
+	const entries = readdirSync(capabilitiesDir, { withFileTypes: true });
+
+	for (const entry of entries) {
+		if (!entry.isDirectory()) {
+			continue;
+		}
+
+		const capabilityPath = join(capabilitiesDir, entry.name);
+		const packageJsonPath = join(capabilityPath, "package.json");
+
+		// Skip if no package.json
+		if (!existsSync(packageJsonPath)) {
+			continue;
+		}
+
+		if (!silent) {
+			console.log(`Installing dependencies for ${capabilityPath}...`);
+		}
+
+		// Run bun install in the capability directory
+		await new Promise<void>((resolve, reject) => {
+			const proc = spawn("bun", ["install"], {
+				cwd: capabilityPath,
+				stdio: silent ? "ignore" : "inherit",
+			});
+
+			proc.on("close", (code) => {
+				if (code === 0) {
+					resolve();
+				} else {
+					reject(new Error(`Failed to install dependencies for ${capabilityPath}`));
+				}
+			});
+
+			proc.on("error", (error) => {
+				reject(error);
+			});
+		});
+	}
 }
 
 /**
@@ -22,6 +79,10 @@ export async function syncAgentConfiguration(options?: { silent?: boolean }): Pr
 		console.log("Syncing agent configuration...");
 	}
 
+	// Install capability dependencies before building registry
+	await installCapabilityDependencies(silent);
+
+	// Build registry
 	const registry = await buildCapabilityRegistry();
 	const capabilities = registry.getAllCapabilities();
 	const skills = registry.getAllSkills();
