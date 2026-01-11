@@ -1,11 +1,12 @@
 /**
  * omni_query tool implementation
  *
- * Searches across capabilities, skills, and docs. Returns type definitions when requested.
+ * Simple search across capabilities, skills, docs, and rules.
+ * For sandbox environment and tool introspection, use omni_sandbox_environment.
  */
 
+import { appendFileSync, mkdirSync } from "node:fs";
 import type { CapabilityRegistry } from "@omnidev/core";
-import { mkdirSync, appendFileSync } from "node:fs";
 
 const LOG_FILE = ".omni/logs/mcp-server.log";
 
@@ -31,28 +32,29 @@ function debug(message: string, data?: unknown): void {
 
 interface QueryArgs {
 	query?: string;
-	limit?: number;
-	include_types?: boolean;
 }
 
 /**
  * Handle omni_query tool calls
  *
+ * Simple search across capabilities, skills, docs, and rules.
+ * Returns matching results as a list.
+ *
  * @param registry - Capability registry to search
- * @param args - Query arguments (query, limit, include_types)
+ * @param args - Query arguments (just query string)
  * @returns MCP tool response with search results
  */
 export async function handleOmniQuery(
 	registry: CapabilityRegistry,
 	args: unknown,
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
-	const { query = "", limit = 10, include_types = false } = (args as QueryArgs) || {};
+	const { query = "" } = (args as QueryArgs) || {};
 
-	debug("Query received", { query, limit, include_types });
+	debug("Query received", { query });
 
 	const results: string[] = [];
 
-	// If no query, return summary
+	// If no query, return summary of all capabilities
 	if (!query.trim()) {
 		debug("Empty query - returning capability summary");
 		const capabilities = registry.getAllCapabilities();
@@ -60,10 +62,11 @@ export async function handleOmniQuery(
 		for (const cap of capabilities) {
 			results.push(`  - ${cap.id}: ${cap.config.capability.description}`);
 		}
+		results.push("");
+		results.push("Use omni_sandbox_environment to discover available tools.");
 	} else {
 		debug(`Searching for: "${query}"`);
 
-		// Search capabilities, skills, docs
 		const queryLower = query.toLowerCase();
 
 		// Search capabilities
@@ -96,87 +99,27 @@ export async function handleOmniQuery(
 				results.push(`[doc:${doc.capabilityId}/${doc.name}] ${snippet}...`);
 			}
 		}
+
+		// Search rules
+		for (const rule of registry.getAllRules()) {
+			if (
+				rule.name.toLowerCase().includes(queryLower) ||
+				rule.content.toLowerCase().includes(queryLower)
+			) {
+				const snippet = rule.content.slice(0, 100).replace(/\n/g, " ");
+				results.push(`[rule:${rule.capabilityId}/${rule.name}] ${snippet}...`);
+			}
+		}
 	}
 
-	// Add type definitions if explicitly requested
-	let typeDefinitions = "";
-	if (include_types) {
-		debug("Generating type definitions for tool-enabled capabilities");
-		typeDefinitions = generateTypeDefinitions(registry);
-	}
-
-	const limitedResults = results.slice(0, limit);
-	let response = limitedResults.join("\n");
-
-	if (typeDefinitions) {
-		response += `\n\n--- Type Definitions ---\n\n${typeDefinitions}`;
-	}
-
-	debug(`Returning ${limitedResults.length} results (limit: ${limit})`);
+	debug(`Returning ${results.length} results`);
 
 	return {
 		content: [
 			{
 				type: "text",
-				text: response,
+				text: results.join("\n"),
 			},
 		],
 	};
-}
-
-/**
- * Generate TypeScript type definitions for capabilities with tools
- *
- * Only includes type definitions for capabilities that export mcpTools,
- * since those are the only types relevant for sandbox execution.
- * CLI-only capabilities are filtered out.
- *
- * @param registry - Capability registry
- * @returns TypeScript type definitions as string
- */
-function generateTypeDefinitions(registry: CapabilityRegistry): string {
-	let dts = "// Auto-generated type definitions for sandbox tools\n";
-	dts += "// Only includes capabilities that export mcpTools\n\n";
-
-	let hasToolCapabilities = false;
-	const allCapabilities = registry.getAllCapabilities();
-
-	debug(`Checking ${allCapabilities.length} capabilities for mcpTools`);
-
-	for (const cap of allCapabilities) {
-		// Skip capabilities that don't have mcpTools
-		// biome-ignore lint/suspicious/noExplicitAny: Dynamic exports need runtime type checking
-		const exports = cap.exports as any;
-		const toolCount = exports?.mcpTools ? Object.keys(exports.mcpTools).length : 0;
-
-		if (toolCount === 0) {
-			debug(`Skipping ${cap.id} - no mcpTools (has ${Object.keys(exports || {}).join(", ")})`);
-			continue;
-		}
-
-		debug(`Including ${cap.id} - has ${toolCount} mcpTools`);
-		hasToolCapabilities = true;
-		const moduleName = cap.config.exports?.module ?? cap.id;
-		dts += `declare module '${moduleName}' {\n`;
-
-		if (cap.typeDefinitions) {
-			// Indent each line
-			const indented = cap.typeDefinitions
-				.split("\n")
-				.map((line) => `  ${line}`)
-				.join("\n");
-			dts += indented;
-		} else {
-			dts += "  // No type definitions available\n";
-		}
-
-		dts += "\n}\n\n";
-	}
-
-	if (!hasToolCapabilities) {
-		debug("No capabilities with tools found");
-		dts += "// No capabilities with tools are currently enabled\n";
-	}
-
-	return dts;
 }

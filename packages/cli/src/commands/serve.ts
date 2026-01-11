@@ -1,6 +1,6 @@
-import { buildCommand } from "@stricli/core";
 import { existsSync } from "node:fs";
 import { setActiveProfile } from "@omnidev/core";
+import { buildCommand } from "@stricli/core";
 
 interface ServeFlags {
 	profile?: string;

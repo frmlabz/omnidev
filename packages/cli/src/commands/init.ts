@@ -1,14 +1,14 @@
-import { buildCommand } from "@stricli/core";
 import { existsSync, mkdirSync } from "node:fs";
 import type { Provider } from "@omnidev/core";
 import {
-	parseProviderFlag,
 	generateAgentsTemplate,
 	generateClaudeTemplate,
 	generateInstructionsTemplate,
-	writeConfig,
+	parseProviderFlag,
 	syncAgentConfiguration,
+	writeConfig,
 } from "@omnidev/core";
+import { buildCommand } from "@stricli/core";
 import { promptForProvider } from "../prompts/provider.js";
 
 export async function runInit(_flags: Record<string, never>, provider?: string) {

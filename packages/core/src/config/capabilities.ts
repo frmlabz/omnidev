@@ -1,5 +1,5 @@
-import { addCapabilityPatterns, removeCapabilityPatterns } from "../gitignore/manager.js";
 import { discoverCapabilities, loadCapability } from "../capability/loader.js";
+import { addCapabilityPatterns, removeCapabilityPatterns } from "../gitignore/manager.js";
 import { loadConfig, writeConfig } from "./loader.js";
 import { getActiveProfile, resolveEnabledCapabilities } from "./profiles.js";
 

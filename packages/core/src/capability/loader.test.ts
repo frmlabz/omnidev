@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverCapabilities, loadCapabilityConfig, loadCapability } from "./loader";
+import { discoverCapabilities, loadCapability, loadCapabilityConfig } from "./loader";
 
 describe("discoverCapabilities", () => {
 	let testDir: string;

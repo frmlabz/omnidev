@@ -1,5 +1,5 @@
-import { buildCommand } from "@stricli/core";
 import { existsSync } from "node:fs";
+import { buildCommand } from "@stricli/core";
 
 export const doctorCommand = buildCommand({
 	docs: {

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { Rule, Doc } from "../types";
+import type { Doc, Rule } from "../types";
 
 /**
  * Load rules from a capability's rules/ directory

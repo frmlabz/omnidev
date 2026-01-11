@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdirSync, appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import type { CapabilityRegistry } from "@omnidev/core";
 
 const LOG_FILE = ".omni/logs/mcp-server.log";
@@ -47,12 +47,34 @@ export async function handleOmniExecute(
 	}
 
 	debug("Writing user code to sandbox");
-	// Write code to sandbox
+	// Write code to sandbox wrapped in a main function
 	mkdirSync(".omni/sandbox", { recursive: true });
-	await Bun.write(".omni/sandbox/main.ts", code);
+
+	// Wrap user code in an async main function that returns 0 on success
+	const wrappedCode = `
+export async function main(): Promise<number> {
+	try {
+		${code}
+		return 0;
+	} catch (error) {
+		console.error(error);
+		return 1;
+	}
+}
+`;
+	await Bun.write(".omni/sandbox/main.ts", wrappedCode);
+
+	// Write a runner that imports and calls main()
+	const runnerCode = `
+import { main } from "./main.ts";
+
+const exitCode = await main();
+process.exit(exitCode);
+`;
+	await Bun.write(".omni/sandbox/_runner.ts", runnerCode);
 
 	debug("Executing code...");
-	// Execute with Bun
+	// Execute with Bun - run the runner which calls main()
 	const result = await executeCode();
 	debug("Execution complete", {
 		exitCode: result.exitCode,
@@ -92,7 +114,7 @@ async function executeCode(): Promise<{
 	stderr: string;
 }> {
 	return new Promise((resolve) => {
-		const proc = spawn("bun", ["run", ".omni/sandbox/main.ts"], {
+		const proc = spawn("bun", ["run", ".omni/sandbox/_runner.ts"], {
 			cwd: process.cwd(),
 			env: {
 				...process.env,

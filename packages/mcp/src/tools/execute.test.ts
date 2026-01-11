@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { handleOmniExecute } from "./execute";
 import type { CapabilityRegistry } from "@omnidev/core";
+import { handleOmniExecute } from "./execute";
 
 describe("handleOmniExecute", () => {
 	let testDir: string;
@@ -54,7 +54,9 @@ describe("handleOmniExecute", () => {
 		await handleOmniExecute(mockRegistry, { code });
 
 		const writtenCode = await Bun.file(".omni/sandbox/main.ts").text();
-		expect(writtenCode).toBe(code);
+		// The code should be wrapped in an async main function
+		expect(writtenCode).toContain(code);
+		expect(writtenCode).toContain("export async function main()");
 	});
 
 	test("should execute code and return stdout", async () => {

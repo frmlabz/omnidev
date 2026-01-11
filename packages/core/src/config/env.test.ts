@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { isSecretEnvVar, loadEnvironment, validateEnv } from "./env";
 import type { EnvDeclaration } from "../types";
+import { isSecretEnvVar, loadEnvironment, validateEnv } from "./env";
 
 describe("loadEnvironment", () => {
 	const originalCwd = process.cwd();

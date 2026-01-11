@@ -4,10 +4,10 @@
  * Handles agent spawning and iteration loops for PRD-driven development.
  */
 
-import { spawn } from "bun";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentConfig, RalphConfig, Story } from "./types.d.ts";
+import { spawn } from "bun";
+import { generatePrompt } from "./prompt.ts";
 import {
 	archivePRD,
 	getNextStory,
@@ -16,7 +16,7 @@ import {
 	updateLastRun,
 	updateStoryStatus,
 } from "./state.ts";
-import { generatePrompt } from "./prompt.ts";
+import type { AgentConfig, RalphConfig, Story } from "./types.d.ts";
 
 const RALPH_DIR = ".omni/ralph";
 const CONFIG_PATH = join(RALPH_DIR, "config.toml");

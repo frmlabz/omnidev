@@ -7,6 +7,16 @@
  * - Spy and mock function utilities
  */
 
+// Re-export all helper functions
+export {
+	captureConsole,
+	createDeferredPromise,
+	createMockFn,
+	createSpy,
+	delay,
+	expectToThrowAsync,
+	waitForCondition,
+} from "./helpers";
 // Re-export all mock factories
 export {
 	createMockCapability,
@@ -18,14 +28,3 @@ export {
 	type MockRule,
 	type MockSkill,
 } from "./mocks";
-
-// Re-export all helper functions
-export {
-	captureConsole,
-	createDeferredPromise,
-	createMockFn,
-	createSpy,
-	delay,
-	expectToThrowAsync,
-	waitForCondition,
-} from "./helpers";

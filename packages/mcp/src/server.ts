@@ -4,15 +4,18 @@
  * Provides omni_query and omni_execute tools to LLMs via Model Context Protocol
  */
 
+import { appendFileSync, mkdirSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import * as z from "zod";
 import { buildCapabilityRegistry } from "@omnidev/core";
-import { handleOmniQuery } from "./tools/query.js";
+import * as z from "zod";
+import { McpController } from "./controller/index.js";
+import { createRelayServer } from "./relay/index.js";
+import { setupMcpWrappers, setupSandbox } from "./sandbox.js";
 import { handleOmniExecute } from "./tools/execute.js";
-import { setupSandbox } from "./sandbox.js";
+import { handleOmniQuery } from "./tools/query.js";
+import { handleSandboxEnvironment } from "./tools/sandbox-environment.js";
 import { startWatcher } from "./watcher.js";
-import { mkdirSync, appendFileSync } from "node:fs";
 
 const LOG_FILE = ".omni/logs/mcp-server.log";
 
@@ -70,24 +73,19 @@ export async function startServer(): Promise<void> {
 			version: "0.1.0",
 		});
 
-		// Register omni_query tool
+		// Register omni_query tool (simple search)
 		debug("Registering omni_query tool...");
 		server.registerTool(
 			"omni_query",
 			{
-				title: "Query OmniDev Capabilities",
+				title: "Search OmniDev",
 				description:
-					"Search capabilities, docs, and skills. Returns type definitions when include_types is true.",
+					"Search capabilities, docs, skills, and rules. Use omni_sandbox_environment for tool introspection.",
 				inputSchema: {
 					query: z
 						.string()
 						.optional()
 						.describe("Search query. Empty returns summary of enabled capabilities."),
-					limit: z.number().optional().describe("Maximum results to return (default: 10)"),
-					include_types: z
-						.boolean()
-						.optional()
-						.describe("Include TypeScript type definitions in response"),
 				},
 			},
 			async (args) => {
@@ -98,6 +96,41 @@ export async function startServer(): Promise<void> {
 					return result;
 				} catch (error) {
 					debug("omni_query tool failed", {
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined,
+					});
+					throw error;
+				}
+			},
+		);
+
+		// Register omni_sandbox_environment tool
+		debug("Registering omni_sandbox_environment tool...");
+		server.registerTool(
+			"omni_sandbox_environment",
+			{
+				title: "Sandbox Environment",
+				description:
+					"Discover available sandbox tools. No params = overview, capability = module details, capability + tool = full specification.",
+				inputSchema: {
+					capability: z
+						.string()
+						.optional()
+						.describe("Capability ID to get details for. Omit for overview of all modules."),
+					tool: z
+						.string()
+						.optional()
+						.describe("Tool name to get full specification. Requires capability."),
+				},
+			},
+			async (args) => {
+				debug("omni_sandbox_environment tool called", args);
+				try {
+					const result = await handleSandboxEnvironment(registry, args);
+					debug("omni_sandbox_environment tool completed successfully");
+					return result;
+				} catch (error) {
+					debug("omni_sandbox_environment tool failed", {
 						error: error instanceof Error ? error.message : String(error),
 						stack: error instanceof Error ? error.stack : undefined,
 					});
@@ -142,6 +175,38 @@ export async function startServer(): Promise<void> {
 		await setupSandbox(registry.getAllCapabilities());
 		debug("Sandbox setup complete");
 
+		// Initialize MCP controller for child MCP servers
+		debug("Initializing MCP controller...");
+		const mcpController = new McpController();
+
+		// Start HTTP relay server for sandbox->MCP communication
+		const RELAY_PORT = Number(process.env["OMNI_RELAY_PORT"]) || 9876;
+		mcpController.setRelayPort(RELAY_PORT);
+		// Keep reference to prevent GC, but we don't need to use it directly
+		const _relayServer = createRelayServer(mcpController, RELAY_PORT);
+		void _relayServer;
+		await Bun.write(".omni/state/relay-port", RELAY_PORT.toString());
+		debug(`HTTP relay server started on port ${RELAY_PORT}`);
+
+		// Spawn child MCPs for capabilities with [mcp] section
+		const mcpCapabilities = registry.getAllCapabilities().filter((c) => c.config.mcp);
+		debug(`Found ${mcpCapabilities.length} MCP capabilities to spawn`);
+
+		for (const cap of mcpCapabilities) {
+			try {
+				await mcpController.spawnChild(cap);
+			} catch (error) {
+				debug(`Failed to spawn MCP for ${cap.id}`, {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
+		// Generate MCP wrappers for sandbox
+		debug("Generating MCP wrappers for sandbox...");
+		await setupMcpWrappers(registry.getAllCapabilities(), mcpController, RELAY_PORT);
+		debug("MCP wrappers generated");
+
 		// Write PID file
 		debug("Writing PID file...");
 		mkdirSync(".omni/state", { recursive: true });
@@ -154,12 +219,29 @@ export async function startServer(): Promise<void> {
 			debug("Reloading capabilities...");
 			registry = await buildCapabilityRegistry();
 			await setupSandbox(registry.getAllCapabilities());
+
+			// Sync MCP children (stop removed, start new)
+			await mcpController.syncCapabilities(registry.getAllCapabilities());
+
+			// Regenerate MCP wrappers
+			await setupMcpWrappers(registry.getAllCapabilities(), mcpController, RELAY_PORT);
+
 			debug("Capabilities reloaded");
 		});
 
 		// Handle shutdown
 		const shutdown = async () => {
 			debug("Shutting down...");
+
+			// Stop all MCP children
+			try {
+				await mcpController.stopAll();
+			} catch (error) {
+				debug("Error stopping MCP children", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+
 			try {
 				const pidFile = Bun.file(".omni/state/server.pid");
 				await pidFile.delete();

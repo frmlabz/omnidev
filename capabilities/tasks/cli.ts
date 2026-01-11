@@ -5,16 +5,16 @@
  */
 
 import { buildCommand, buildRouteMap } from "@stricli/core";
-import type { TaskStatus } from "./types.js";
 import {
-	createTask,
-	getTasks,
-	getTask,
-	updateTask,
-	deleteTask as deleteTaskOp,
 	addComment,
+	createTask,
+	deleteTask as deleteTaskOp,
+	getTask,
+	getTasks,
+	updateTask,
 	updateTaskStatus,
 } from "./operations.js";
+import type { TaskStatus } from "./types.js";
 
 /**
  * Create a new task
@@ -25,16 +25,8 @@ async function runCreate(
 		tags?: string;
 		priority?: number;
 	},
-	title?: string,
+	title: string,
 ): Promise<void> {
-	if (!title) {
-		console.error("Error: Task title is required");
-		console.error(
-			"\nUsage: omnidev task create <title> [--description ...] [--tags ...] [--priority N]",
-		);
-		process.exit(1);
-	}
-
 	const tags = flags.tags ? flags.tags.split(",").map((t) => t.trim()) : [];
 
 	try {
@@ -338,7 +330,7 @@ const createCommand = buildCommand({
 				{
 					brief: "Task title",
 					parse: String,
-					optional: true,
+					optional: false,
 				},
 			],
 		},

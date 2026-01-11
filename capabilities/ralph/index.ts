@@ -19,7 +19,7 @@ export default {
 	sync,
 } satisfies CapabilityExport;
 
-// Named exports for programmatic usage
-export * from "./state.js";
 export { loadRalphConfig, runAgent, runOrchestration } from "./orchestrator.js";
 export { generatePrompt } from "./prompt.js";
+// Named exports for programmatic usage
+export * from "./state.js";

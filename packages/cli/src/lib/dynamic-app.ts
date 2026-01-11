@@ -1,15 +1,15 @@
-import { buildApplication, buildRouteMap } from "@stricli/core";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { CapabilityExport } from "@omnidev/core";
-
+import { buildApplication, buildRouteMap } from "@stricli/core";
+import { capabilityRoutes } from "../commands/capability";
 // Core commands
 import { doctorCommand } from "../commands/doctor";
 import { initCommand } from "../commands/init";
+import { mcpRoutes } from "../commands/mcp";
+import { profileRoutes } from "../commands/profile";
 import { serveCommand } from "../commands/serve";
 import { syncCommand } from "../commands/sync";
-import { capabilityRoutes } from "../commands/capability";
-import { profileRoutes } from "../commands/profile";
 
 /**
  * Build CLI app with dynamically loaded capability commands
@@ -23,6 +23,7 @@ export async function buildDynamicApp() {
 		sync: syncCommand,
 		capability: capabilityRoutes,
 		profile: profileRoutes,
+		mcp: mcpRoutes,
 	};
 
 	// Only load capability commands if initialized

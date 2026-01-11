@@ -1,4 +1,3 @@
-import { buildCommand, buildRouteMap } from "@stricli/core";
 import { existsSync } from "node:fs";
 import {
 	getActiveProfile,
@@ -7,6 +6,7 @@ import {
 	setActiveProfile,
 	syncAgentConfiguration,
 } from "@omnidev/core";
+import { buildCommand, buildRouteMap } from "@stricli/core";
 
 const listCommand = buildCommand({
 	docs: {

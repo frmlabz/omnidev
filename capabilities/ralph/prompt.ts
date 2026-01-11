@@ -4,8 +4,8 @@
  * Generates agent prompts from PRD context for orchestration.
  */
 
-import type { PRD, Story } from "./types.d.ts";
 import { getProgress, getSpec } from "./state.ts";
+import type { PRD, Story } from "./types.d.ts";
 
 /**
  * Extract codebase patterns from progress content

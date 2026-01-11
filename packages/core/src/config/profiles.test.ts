@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import type { OmniConfig } from "../types/index.js";
-import { getActiveProfile, resolveEnabledCapabilities, setActiveProfile } from "./profiles.js";
 import { parseOmniConfig } from "./parser.js";
+import { getActiveProfile, resolveEnabledCapabilities, setActiveProfile } from "./profiles.js";
 
 describe("getActiveProfile", () => {
 	const TEST_DIR = ".omni-test-profiles";

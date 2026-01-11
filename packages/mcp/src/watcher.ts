@@ -4,8 +4,7 @@
  * Watches config files and capability directories for changes
  */
 
-import { watch } from "node:fs";
-import { existsSync } from "node:fs";
+import { existsSync, watch } from "node:fs";
 
 const WATCH_PATHS = [".omni/config.toml", ".omni/config.local.toml", ".omni/capabilities/"];
 

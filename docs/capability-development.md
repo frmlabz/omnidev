@@ -164,9 +164,187 @@ export default {
 - The key (`mycap`) becomes the CLI command name
 - You can export multiple commands from one capability
 
-### MCP Tools
+### MCP Server Wrapping
 
-Add tools that are exposed via the MCP server:
+Capabilities can wrap external MCP servers, exposing their tools to the OmniDev sandbox. This is the recommended way to integrate third-party MCP servers.
+
+#### Basic MCP Wrapper
+
+Add an `[mcp]` section to your `capability.toml`:
+
+```toml
+[capability]
+id = "context7"
+name = "Context7 Documentation"
+version = "1.0.0"
+description = "Query up-to-date library documentation via Context7 MCP"
+
+[mcp]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+transport = "stdio"
+```
+
+**MCP Configuration Options:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `command` | string | Yes | Command to run the MCP server |
+| `args` | string[] | No | Arguments to pass to the command |
+| `env` | object | No | Environment variables for the MCP process |
+| `cwd` | string | No | Working directory (defaults to project root) |
+| `transport` | string | No | Transport type: `stdio` (default), `sse`, or `http` |
+
+#### How It Works
+
+1. When OmniDev starts, it spawns child MCP processes for enabled capabilities with `[mcp]` sections
+2. The MCP Controller connects to each child MCP and discovers its tools
+3. TypeScript wrapper functions are auto-generated for each tool
+4. Sandbox code can import and call these tools directly
+
+#### Example: Context7 Capability
+
+**capability.toml:**
+```toml
+[capability]
+id = "context7"
+name = "Context7 Documentation"
+version = "1.0.0"
+description = "Query library documentation"
+
+[mcp]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+transport = "stdio"
+```
+
+**index.ts:**
+```typescript
+import type { CapabilityExport } from "@omnidev/core";
+
+export default {
+  docs: [{
+    title: "Context7 Usage",
+    content: `# Context7 Documentation Lookup
+
+Use to query up-to-date library documentation.
+
+\`\`\`typescript
+import { resolveLibraryId, queryDocs } from "context7";
+
+const libId = await resolveLibraryId({ query: "hooks", libraryName: "react" });
+const docs = await queryDocs({ libraryId: libId, query: "useState" });
+\`\`\`
+`
+  }],
+} satisfies CapabilityExport;
+```
+
+**types.d.ts** (optional, for better IDE support):
+```typescript
+export interface ResolveLibraryIdArgs {
+  query: string;
+  libraryName: string;
+}
+
+export interface QueryDocsArgs {
+  libraryId: string;
+  query: string;
+}
+
+export function resolveLibraryId(args: ResolveLibraryIdArgs): Promise<unknown>;
+export function queryDocs(args: QueryDocsArgs): Promise<unknown>;
+```
+
+#### Using Wrapped MCP Tools in Sandbox
+
+Once a capability with `[mcp]` is enabled, sandbox code can import its tools:
+
+```typescript
+// In omni_execute code
+import { resolveLibraryId, queryDocs } from "context7";
+
+export async function main(): Promise<number> {
+  // Resolve library name to Context7 ID
+  const libId = await resolveLibraryId({
+    query: "react hooks tutorial",
+    libraryName: "react"
+  });
+
+  // Query documentation
+  const docs = await queryDocs({
+    libraryId: libId,
+    query: "useState examples"
+  });
+
+  console.log(docs);
+  return 0;
+}
+```
+
+#### Checking MCP Status
+
+Use the CLI to check the status of running MCP children:
+
+```bash
+omnidev mcp status
+```
+
+Output:
+```
+=== MCP Controller Status ===
+
+Last updated: 2024-01-15T10:30:00.000Z
+Relay port:   9876
+
+Child Processes (1):
+
+  ✓ context7
+      Status:    connected
+      Transport: stdio
+      PID:       12345
+      Tools:     2
+      Last check: 2024-01-15T10:30:00.000Z
+```
+
+#### Transport Support
+
+| Transport | Status | Notes |
+|-----------|--------|-------|
+| `stdio` | Supported | Default, most common |
+| `sse` | Planned | Server-Sent Events |
+| `http` | Planned | Streamable HTTP |
+
+#### Environment Variables
+
+Pass environment variables to the MCP process:
+
+```toml
+[mcp]
+command = "npx"
+args = ["-y", "@some/mcp-server"]
+transport = "stdio"
+
+[mcp.env]
+API_KEY = "${SOME_API_KEY}"
+DEBUG = "true"
+```
+
+#### Troubleshooting
+
+**MCP not connecting:**
+1. Check `omnidev mcp status` for error messages
+2. Verify the command works standalone: `npx -y @some/mcp-server`
+3. Check `.omni/logs/mcp-server.log` for detailed errors
+
+**Tools not available in sandbox:**
+1. Ensure the capability is enabled: `omnidev capability list`
+2. Restart the server: `omnidev serve`
+3. Check that wrappers were generated in `.omni/sandbox/node_modules/<capability-id>/`
+
+### MCP Tools (Programmatic)
+
+For custom MCP tools defined in TypeScript (not wrapping external MCPs):
 
 ```typescript
 export default {
@@ -193,7 +371,7 @@ export default {
 };
 ```
 
-**Note**: MCP tool structure is still being designed. This is a preliminary interface.
+**Note**: Programmatic MCP tool structure is still being designed. For now, prefer wrapping external MCP servers using the `[mcp]` configuration.
 
 ### Documentation
 

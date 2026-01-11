@@ -1,12 +1,12 @@
-import { buildCommand, buildRouteMap } from "@stricli/core";
 import {
-	discoverCapabilities,
-	loadCapabilityConfig,
-	getEnabledCapabilities,
-	enableCapability,
 	disableCapability,
+	discoverCapabilities,
+	enableCapability,
+	getEnabledCapabilities,
+	loadCapabilityConfig,
 	syncAgentConfiguration,
 } from "@omnidev/core";
+import { buildCommand, buildRouteMap } from "@stricli/core";
 
 /**
  * Run the capability list command.

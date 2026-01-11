@@ -37,12 +37,21 @@ export interface CapabilityConfig {
 	cli?: CliConfig;
 }
 
+export type McpTransport = "stdio" | "sse" | "http";
+
+export interface McpToolSchema {
+	name: string;
+	description: string;
+	inputSchema: Record<string, unknown>;
+}
+
 export interface McpConfig {
 	command: string;
 	args?: string[];
 	env?: Record<string, string>;
 	cwd?: string;
-	transport?: "stdio" | "sse";
+	transport?: McpTransport;
+	tools?: McpToolSchema[];
 }
 
 // Content Types

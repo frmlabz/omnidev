@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { loadSkills, loadRules } from "@omnidev/core";
+import { describe, expect, test } from "bun:test";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadRules, loadSkills } from "@omnidev/core";
 
 describe("Ralph Capability - Skills and Rules Discovery", () => {
 	// Get the path to the ralph capability directory from this test file's location

@@ -183,83 +183,141 @@ OmniDev is built entirely in **TypeScript**, running on **Bun** for maximum perf
 
 ---
 
-## The Two MCP Tools
+## The Three MCP Tools
 
-OmniDev exposes exactly **two** tools to the LLM. Everything else (MCP tools, workflows, docs) becomes code inside the execution environment.
+OmniDev exposes exactly **three** tools to the LLM. Everything else (MCP tools, workflows, docs) becomes code inside the execution environment.
 
 ### Tool 1: `omni_query`
 
-Discovery + search without dumping tons of context.
+Simple search across capabilities, docs, skills, and rules.
 
-**Uses (MVP):**
-*   Search across active capabilities, docs, and skills without dumping full content into context
-*   Return short snippets (optionally tagged as capability/doc/skill)
-*   If `query` is empty, return a compact summary of what's currently enabled
-*   **Return type definitions** (`.d.ts`) so the LLM can "compile" code mentally before writing
+**Uses:**
+*   Search across active capabilities, docs, skills, and rules without dumping full content
+*   Return short snippets tagged by type (capability/doc/skill/rule)
+*   If `query` is empty, return a compact summary of enabled capabilities
 
-**Request shape (MVP):**
+**Request shape:**
 
 ```json
 {
-  "query": "search query",
-  "limit": 10,
-  "include_types": false
+  "query": "search query"
 }
 ```
 
-**Response shape (MVP):**
+**Response shape:**
 
 ```text
-1) [capability:company-lint] "..."
-2) [doc:company-lint] "..."
-3) [skill:company-lint] "..."
+Enabled capabilities (3):
+  - tasks: Task management capability
+  - context7: Query up-to-date library documentation
+  - aws: AWS operations via MCP
+
+Use omni_sandbox_environment to discover available tools.
 ```
 
-**Type definitions response** (when `include_types: true` or `query` is empty):
+Or when searching:
 
-The LLM needs to know function signatures to write correct code. When requested, `omni_query` returns a virtually concatenated `.d.ts` file of all enabled capabilities:
+```text
+[capability:tasks] Task management capability
+[skill:tasks/task-workflow] Workflow for managing tasks
+[doc:tasks/definition] Task management documentation...
+```
 
-```typescript
-// Auto-generated type definitions for enabled capabilities
+### Tool 2: `omni_sandbox_environment`
 
-declare module 'ralph' {
-  export interface Story {
-    id: string;
-    title: string;
-    specFile: string;
-    scope: string;
-    acceptanceCriteria: string[];
-    priority: number;
-    passes: boolean;
-    notes: string;
-  }
+Discover available sandbox tools with progressive detail levels.
 
-  export interface PRD {
-    name: string;
-    branchName: string;
-    description: string;
-    createdAt: string;
-    userStories: Story[];
-  }
+**Uses:**
+*   No params: Overview of all modules and their tools (short descriptions)
+*   With `capability`: Details for that module (input/output schemas for each tool)
+*   With `capability` + `tool`: Full specification (JSDoc, examples, JSON schema)
 
-  export function listPRDs(): Promise<string[]>;
-  export function getPRD(name: string): Promise<PRD>;
-  export function createPRD(name: string, options: Partial<PRD>): Promise<PRD>;
-  export function getNextStory(prdName: string): Promise<Story | null>;
-  export function markStoryPassed(prdName: string, storyId: string): Promise<void>;
-}
+**Request shape:**
 
-declare module 'aws' {
-  export function s3ListBuckets(): Promise<{ name: string; createdAt: Date }[]>;
-  export function s3Create(bucketName: string): Promise<void>;
-  export function s3Exists(bucketName: string): Promise<boolean>;
-  // ...
+```json
+{
+  "capability": "tasks",
+  "tool": "createTask"
 }
 ```
 
-This allows the LLM to write type-safe code without guessing function signatures.
+**Response levels:**
 
-### Tool 2: `omni_execute`
+**Level 1: Overview (no params)**
+```markdown
+# Sandbox Environment
+
+Available modules: 2
+
+## tasks
+Task management capability
+
+Tools:
+  - createTask: Create a new task with title, description, tags, and priority
+  - getTasks: Get all tasks with optional filtering
+  - updateTask: Update a task's fields
+
+## context7 [MCP]
+Query up-to-date library documentation
+
+Tools:
+  - resolveLibraryId: Resolve library ID from name
+  - getLibraryDocs: Get documentation for a library
+```
+
+**Level 2: Capability details**
+```markdown
+# Module: tasks
+
+## Tools
+
+### createTask
+Create a new task with title, description, tags, and priority
+
+**Input:**
+{
+  title: string;  // Task title (required)
+  description?: string;  // Task description in markdown
+  tags?: string[];  // Tags for categorization
+  priority?: number;  // Priority level 1-5 (default: 3)
+}
+
+**Output:**
+Task object with id, title, status, timestamps, etc.
+```
+
+**Level 3: Tool specification**
+```markdown
+# tasks.createTask
+
+/**
+ * Create a new task in the task management system.
+ *
+ * @param input.title - The title of the task (required)
+ * @param input.description - Optional markdown description
+ * @param input.tags - Optional array of tags
+ * @param input.priority - Priority level 1-5 (default: 3)
+ * @returns The created Task object with generated ID
+ *
+ * @example
+ * const task = await createTask({
+ *   title: "Fix login bug",
+ *   priority: 5
+ * });
+ */
+
+## JSON Schema (Input)
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string", "description": "Task title (required)" },
+    "priority": { "type": "number", "minimum": 1, "maximum": 5 }
+  },
+  "required": ["title"]
+}
+```
+
+### Tool 3: `omni_execute`
 
 Runs TypeScript code with the currently active capabilities available as importable modules.
 

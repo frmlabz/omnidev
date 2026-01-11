@@ -1,13 +1,13 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import {
-	readGitignore,
-	writeGitignore,
-	parseCapabilitySections,
-	buildGitignoreContent,
 	addCapabilityPatterns,
-	removeCapabilityPatterns,
+	buildGitignoreContent,
+	parseCapabilitySections,
+	readGitignore,
 	rebuildGitignore,
+	removeCapabilityPatterns,
+	writeGitignore,
 } from "./manager.js";
 
 const TEST_DIR = ".omni-test-gitignore";

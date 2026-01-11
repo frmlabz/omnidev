@@ -11,24 +11,20 @@ export function getVersion(): string {
 	return version;
 }
 
-// Export core types
-export * from "./types";
+// Export capability system
+export * from "./capability";
 
 // Export config functionality
 export * from "./config";
-
-// Export test utilities
-export * from "./test-utils";
-
-// Export capability system
-export * from "./capability";
+// Export gitignore management
+export * from "./gitignore/manager";
+// Export sync functionality
+export * from "./sync";
 
 // Export templates
 export * from "./templates/agents";
 export * from "./templates/claude";
-
-// Export gitignore management
-export * from "./gitignore/manager";
-
-// Export sync functionality
-export * from "./sync";
+// Export test utilities
+export * from "./test-utils";
+// Export core types
+export * from "./types";

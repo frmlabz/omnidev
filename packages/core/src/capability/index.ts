@@ -1,6 +1,6 @@
-export { discoverCapabilities, loadCapabilityConfig, loadCapability } from "./loader";
-export { loadSkills } from "./skills";
-export { loadRules, writeRules } from "./rules";
 export { loadDocs } from "./docs";
-export { buildCapabilityRegistry } from "./registry";
+export { discoverCapabilities, loadCapability, loadCapabilityConfig } from "./loader";
 export type { CapabilityRegistry } from "./registry";
+export { buildCapabilityRegistry } from "./registry";
+export { loadRules, writeRules } from "./rules";
+export { loadSkills } from "./skills";

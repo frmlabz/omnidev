@@ -1,7 +1,7 @@
-import type { LoadedCapability, Skill, Rule, Doc } from "../types";
-import { discoverCapabilities, loadCapability } from "./loader";
-import { loadEnvironment } from "../config/env";
 import { getEnabledCapabilities } from "../config/capabilities";
+import { loadEnvironment } from "../config/env";
+import type { Doc, LoadedCapability, Rule, Skill } from "../types";
+import { discoverCapabilities, loadCapability } from "./loader";
 
 /**
  * Registry of loaded capabilities with helper functions.

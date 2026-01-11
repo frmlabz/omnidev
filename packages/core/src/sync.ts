@@ -1,6 +1,6 @@
+import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { rebuildGitignore } from "./gitignore/manager";
