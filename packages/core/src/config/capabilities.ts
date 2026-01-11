@@ -1,17 +1,17 @@
 import { addCapabilityPatterns, removeCapabilityPatterns } from "../gitignore/manager.js";
 import { discoverCapabilities, loadCapability } from "../capability/loader.js";
 import { loadConfig, writeConfig } from "./loader.js";
-import { getActiveProfile } from "./profiles.js";
+import { getActiveProfile, resolveEnabledCapabilities } from "./profiles.js";
 
 /**
  * Get enabled capabilities for the active profile
+ * Includes both profile-specific and always-enabled capabilities
  * @returns Array of enabled capability IDs
  */
 export async function getEnabledCapabilities(): Promise<string[]> {
 	const config = await loadConfig();
 	const activeProfile = (await getActiveProfile()) ?? config.active_profile ?? "default";
-	const profile = config.profiles?.[activeProfile];
-	return profile?.capabilities ?? [];
+	return resolveEnabledCapabilities(config, activeProfile);
 }
 
 /**

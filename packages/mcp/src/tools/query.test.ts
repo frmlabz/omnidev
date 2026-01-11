@@ -36,6 +36,7 @@ function createMockCapability(
 	id: string,
 	description: string,
 	typeDefinitions?: string,
+	hasTools = false,
 ): LoadedCapability {
 	return {
 		id,
@@ -71,7 +72,16 @@ function createMockCapability(
 			},
 		],
 		typeDefinitions: typeDefinitions || undefined,
-		exports: {},
+		exports: hasTools
+			? {
+					mcpTools: {
+						dummyTool: {
+							name: "dummyTool",
+							description: "A dummy tool",
+						},
+					},
+				}
+			: {},
 	};
 }
 
@@ -93,22 +103,42 @@ describe("handleOmniQuery", () => {
 		expect(text).toContain("- files: File operations capability");
 	});
 
-	test("includes type definitions when query is empty", async () => {
+	test("includes type definitions when include_types is true and capability has tools", async () => {
 		const capabilities = [
 			createMockCapability(
 				"tasks",
 				"Task management capability",
 				"export function createTask(): void;",
+				true, // hasTools = true
 			),
 		];
 		const registry = createMockRegistry(capabilities);
 
-		const result = await handleOmniQuery(registry, {});
+		const result = await handleOmniQuery(registry, { include_types: true });
 
 		const text = result.content[0]?.text || "";
 		expect(text).toContain("--- Type Definitions ---");
 		expect(text).toContain("declare module 'tasks'");
 		expect(text).toContain("export function createTask(): void;");
+	});
+
+	test("excludes type definitions for capabilities without tools", async () => {
+		const capabilities = [
+			createMockCapability(
+				"tasks",
+				"Task management capability",
+				"export function createTask(): void;",
+				false, // hasTools = false (CLI-only capability)
+			),
+		];
+		const registry = createMockRegistry(capabilities);
+
+		const result = await handleOmniQuery(registry, { include_types: true });
+
+		const text = result.content[0]?.text || "";
+		expect(text).toContain("--- Type Definitions ---");
+		expect(text).toContain("No capabilities with tools are currently enabled");
+		expect(text).not.toContain("declare module 'tasks'");
 	});
 
 	test("searches capabilities by id", async () => {
@@ -204,6 +234,7 @@ describe("handleOmniQuery", () => {
 				"tasks",
 				"Task management capability",
 				"export function createTask(): void;",
+				true, // hasTools = true
 			),
 		];
 		const registry = createMockRegistry(capabilities);
@@ -221,6 +252,7 @@ describe("handleOmniQuery", () => {
 				"tasks",
 				"Task management capability",
 				"export function createTask(): void;",
+				true, // hasTools = true
 			),
 		];
 		const registry = createMockRegistry(capabilities);
@@ -236,6 +268,7 @@ describe("handleOmniQuery", () => {
 			"tasks",
 			"Task management capability",
 			"export function createTask(): void;",
+			true, // hasTools = true
 		);
 		cap.config.exports = { module: "custom-tasks" };
 		const registry = createMockRegistry([cap]);
@@ -247,7 +280,9 @@ describe("handleOmniQuery", () => {
 	});
 
 	test("handles capability with no type definitions", async () => {
-		const capabilities = [createMockCapability("tasks", "Task management capability")];
+		const capabilities = [
+			createMockCapability("tasks", "Task management capability", undefined, true),
+		];
 		const registry = createMockRegistry(capabilities);
 
 		const result = await handleOmniQuery(registry, { include_types: true });

@@ -1,5 +1,5 @@
 import { buildCommand } from "@stricli/core";
-import { syncAgentConfiguration } from "@omnidev/core";
+import { syncAgentConfiguration, getActiveProfile, loadConfig } from "@omnidev/core";
 
 export const syncCommand = buildCommand({
 	docs: {
@@ -16,10 +16,16 @@ export async function runSync(): Promise<void> {
 	console.log("");
 
 	try {
-		await syncAgentConfiguration({ silent: false });
+		const config = await loadConfig();
+		const activeProfile = (await getActiveProfile()) ?? config.active_profile ?? "default";
+
+		const result = await syncAgentConfiguration({ silent: false });
 
 		console.log("");
 		console.log("✓ Sync completed successfully!");
+		console.log("");
+		console.log(`Profile: ${activeProfile}`);
+		console.log(`Capabilities: ${result.capabilities.join(", ") || "none"}`);
 		console.log("");
 		console.log("Synced components:");
 		console.log("  • Capability registry");

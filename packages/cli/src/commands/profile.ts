@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import {
 	getActiveProfile,
 	loadConfig,
+	resolveEnabledCapabilities,
 	setActiveProfile,
 	syncAgentConfiguration,
 } from "@omnidev/core";
@@ -91,8 +92,8 @@ export async function runProfileList(): Promise<void> {
 
 			console.log(`${icon} ${name}${isActive ? " (active)" : ""}`);
 
-			// Show capabilities
-			const capabilities = profile.capabilities ?? [];
+			// Show capabilities (including always-enabled)
+			const capabilities = resolveEnabledCapabilities(config, name);
 			if (capabilities.length > 0) {
 				console.log(`  Capabilities: ${capabilities.join(", ")}`);
 			} else {

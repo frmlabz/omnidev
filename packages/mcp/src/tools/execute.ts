@@ -1,6 +1,28 @@
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, appendFileSync } from "node:fs";
 import type { CapabilityRegistry } from "@omnidev/core";
+
+const LOG_FILE = ".omni/logs/mcp-server.log";
+
+function debug(message: string, data?: unknown): void {
+	const timestamp = new Date().toISOString();
+	let logLine: string;
+
+	if (data !== undefined) {
+		logLine = `[${timestamp}] [omnidev:execute] ${message} ${JSON.stringify(data, null, 2)}`;
+	} else {
+		logLine = `[${timestamp}] [omnidev:execute] ${message}`;
+	}
+
+	console.error(logLine);
+
+	try {
+		mkdirSync(".omni/logs", { recursive: true });
+		appendFileSync(LOG_FILE, `${logLine}\n`);
+	} catch (error) {
+		console.error(`Failed to write to log file: ${error}`);
+	}
+}
 
 interface ExecuteArgs {
 	code?: string;
@@ -24,12 +46,19 @@ export async function handleOmniExecute(
 		throw new Error("code is required");
 	}
 
+	debug("Writing user code to sandbox");
 	// Write code to sandbox
 	mkdirSync(".omni/sandbox", { recursive: true });
 	await Bun.write(".omni/sandbox/main.ts", code);
 
+	debug("Executing code...");
 	// Execute with Bun
 	const result = await executeCode();
+	debug("Execution complete", {
+		exitCode: result.exitCode,
+		stdoutLength: result.stdout.length,
+		stderrLength: result.stderr.length,
+	});
 
 	// Get git diff stats
 	const diffStat = await getGitDiffStats();
@@ -46,6 +75,7 @@ export async function handleOmniExecute(
 		},
 	};
 
+	debug("Returning execution result");
 	return {
 		content: [
 			{

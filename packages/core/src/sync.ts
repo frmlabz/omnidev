@@ -4,11 +4,18 @@ import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { rebuildGitignore } from "./gitignore/manager";
 
+export interface SyncResult {
+	capabilities: string[];
+	skillCount: number;
+	ruleCount: number;
+	docCount: number;
+}
+
 /**
  * Central sync function that regenerates all agent configuration files
  * Called automatically after any config change (init, capability enable/disable, profile change)
  */
-export async function syncAgentConfiguration(options?: { silent?: boolean }): Promise<void> {
+export async function syncAgentConfiguration(options?: { silent?: boolean }): Promise<SyncResult> {
 	const silent = options?.silent ?? false;
 
 	if (!silent) {
@@ -91,4 +98,11 @@ ${skill.instructions}`,
 		console.log(`  - .claude/skills/ (${skills.length} skills)`);
 		console.log(`  - .cursor/rules/ (${rules.length} rules)`);
 	}
+
+	return {
+		capabilities: capabilities.map((c) => c.id),
+		skillCount: skills.length,
+		ruleCount: rules.length,
+		docCount: docs.length,
+	};
 }
