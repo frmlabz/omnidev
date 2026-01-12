@@ -3,6 +3,8 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
+import { fetchAllCapabilitySources } from "./capability/sources";
+import { loadConfig } from "./config/loader";
 import { rebuildGitignore } from "./gitignore/manager";
 
 export interface SyncResult {
@@ -78,6 +80,10 @@ export async function syncAgentConfiguration(options?: { silent?: boolean }): Pr
 	if (!silent) {
 		console.log("Syncing agent configuration...");
 	}
+
+	// Fetch capability sources from git repos FIRST (before discovery)
+	const config = await loadConfig();
+	await fetchAllCapabilitySources(config, { silent });
 
 	// Install capability dependencies before building registry
 	await installCapabilityDependencies(silent);

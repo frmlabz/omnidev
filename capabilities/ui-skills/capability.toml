@@ -1,5 +1,0 @@
-[capability]
-id = "ui-skills"
-name = "UI Skills"
-version = "1.0.0"
-description = "AI agent skills and subagents for common development tasks"

@@ -99,6 +99,24 @@ function generateConfigToml(config: OmniConfig): string {
 		lines.push("");
 	}
 
+	// Capability sources (commented examples)
+	lines.push("# =============================================================================");
+	lines.push("# Capability Sources");
+	lines.push("# =============================================================================");
+	lines.push("# Fetch capabilities from Git repositories. On sync, these are cloned/updated");
+	lines.push("# and wrapped into capabilities automatically.");
+	lines.push("#");
+	lines.push("# [capabilities.sources]");
+	lines.push("# # Simple GitHub reference (auto-wrapped if no capability.toml)");
+	lines.push('# obsidian = "github:kepano/obsidian-skills"');
+	lines.push("#");
+	lines.push("# # Full configuration with version pinning");
+	lines.push('# my-cap = { source = "github:user/repo", ref = "v1.0.0" }');
+	lines.push("#");
+	lines.push("# # Force wrap mode (generate capability.toml from discovered content)");
+	lines.push('# external = { source = "github:user/skills-repo", type = "wrap" }');
+	lines.push("");
+
 	// Profiles
 	if (config.profiles && Object.keys(config.profiles).length > 0) {
 		for (const [name, profile] of Object.entries(config.profiles)) {
