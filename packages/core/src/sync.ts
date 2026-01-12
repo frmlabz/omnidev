@@ -6,6 +6,12 @@ import { writeRules } from "./capability/rules";
 import { fetchAllCapabilitySources } from "./capability/sources";
 import { loadConfig } from "./config/loader";
 import { rebuildGitignore } from "./gitignore/manager";
+import {
+	buildManifestFromCapabilities,
+	cleanupStaleResources,
+	loadManifest,
+	saveManifest,
+} from "./state/manifest";
 
 export interface SyncResult {
 	capabilities: string[];
@@ -95,6 +101,29 @@ export async function syncAgentConfiguration(options?: { silent?: boolean }): Pr
 	const rules = registry.getAllRules();
 	const docs = registry.getAllDocs();
 
+	// Load previous manifest and cleanup stale resources from disabled capabilities
+	const previousManifest = await loadManifest();
+	const currentCapabilityIds = new Set(capabilities.map((c) => c.id));
+
+	const cleanupResult = await cleanupStaleResources(previousManifest, currentCapabilityIds);
+
+	if (
+		!silent &&
+		(cleanupResult.deletedSkills.length > 0 || cleanupResult.deletedRules.length > 0)
+	) {
+		console.log("Cleaned up stale resources:");
+		if (cleanupResult.deletedSkills.length > 0) {
+			console.log(
+				`  - Removed ${cleanupResult.deletedSkills.length} skill(s): ${cleanupResult.deletedSkills.join(", ")}`,
+			);
+		}
+		if (cleanupResult.deletedRules.length > 0) {
+			console.log(
+				`  - Removed ${cleanupResult.deletedRules.length} rule(s): ${cleanupResult.deletedRules.join(", ")}`,
+			);
+		}
+	}
+
 	// Rebuild .omni/.gitignore with all enabled capability patterns
 	const gitignorePatterns = new Map<string, string[]>();
 	for (const capability of capabilities) {
@@ -157,6 +186,10 @@ ${skill.instructions}`,
 	for (const rule of rules) {
 		await Bun.write(`.cursor/rules/omnidev-${rule.name}.mdc`, rule.content);
 	}
+
+	// Save updated manifest for future cleanup
+	const newManifest = buildManifestFromCapabilities(capabilities);
+	await saveManifest(newManifest);
 
 	if (!silent) {
 		console.log("✓ Synced:");

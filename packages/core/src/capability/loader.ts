@@ -168,21 +168,10 @@ async function loadTypeDefinitions(capabilityPath: string): Promise<string | und
 
 /**
  * Convert programmatic skill exports to Skill objects
- * Supports both old format (Skill objects) and new format (SkillExport objects)
+ * Expects SkillExport format with skillMd (markdown with YAML frontmatter)
  */
 function convertSkillExports(skillExports: unknown[], capabilityId: string): Skill[] {
 	return skillExports.map((skillExport) => {
-		// Check if it's already a Skill object (old format)
-		if (
-			typeof skillExport === "object" &&
-			skillExport !== null &&
-			"name" in skillExport &&
-			"instructions" in skillExport
-		) {
-			return skillExport as Skill;
-		}
-
-		// Otherwise, treat as SkillExport (new format)
 		const exportObj = skillExport as SkillExport;
 		const lines = exportObj.skillMd.split("\n");
 		let name = "unnamed";
@@ -225,21 +214,10 @@ function convertSkillExports(skillExports: unknown[], capabilityId: string): Ski
 
 /**
  * Convert programmatic rule exports to Rule objects
- * Supports both old format (Rule objects) and new format (string content)
+ * Expects array of string content (markdown)
  */
 function convertRuleExports(ruleExports: unknown[], capabilityId: string): Rule[] {
 	return ruleExports.map((ruleExport, index) => {
-		// Check if it's already a Rule object (old format)
-		if (
-			typeof ruleExport === "object" &&
-			ruleExport !== null &&
-			"name" in ruleExport &&
-			"content" in ruleExport
-		) {
-			return ruleExport as Rule;
-		}
-
-		// Otherwise, treat as string content (new format)
 		return {
 			name: `rule-${index + 1}`,
 			content: String(ruleExport).trim(),
@@ -250,21 +228,10 @@ function convertRuleExports(ruleExports: unknown[], capabilityId: string): Rule[
 
 /**
  * Convert programmatic doc exports to Doc objects
- * Supports both old format (Doc objects) and new format (DocExport objects)
+ * Expects DocExport format with title and content
  */
 function convertDocExports(docExports: unknown[], capabilityId: string): Doc[] {
 	return docExports.map((docExport) => {
-		// Check if it's already a Doc object (old format)
-		if (
-			typeof docExport === "object" &&
-			docExport !== null &&
-			"name" in docExport &&
-			"content" in docExport
-		) {
-			return docExport as Doc;
-		}
-
-		// Otherwise, treat as DocExport (new format with 'title' instead of 'name')
 		const exportObj = docExport as DocExport;
 		return {
 			name: exportObj.title,
@@ -280,17 +247,6 @@ function convertDocExports(docExports: unknown[], capabilityId: string): Doc[] {
  */
 function convertSubagentExports(subagentExports: unknown[], capabilityId: string): Subagent[] {
 	return subagentExports.map((subagentExport) => {
-		// Check if it's already a Subagent object (old format)
-		if (
-			typeof subagentExport === "object" &&
-			subagentExport !== null &&
-			"name" in subagentExport &&
-			"systemPrompt" in subagentExport
-		) {
-			return subagentExport as Subagent;
-		}
-
-		// Otherwise, treat as SubagentExport (markdown with YAML frontmatter)
 		const exportObj = subagentExport as SubagentExport;
 		const lines = exportObj.subagentMd.split("\n");
 		let name = "unnamed";
@@ -372,17 +328,6 @@ function convertSubagentExports(subagentExports: unknown[], capabilityId: string
  */
 function convertCommandExports(commandExports: unknown[], capabilityId: string): Command[] {
 	return commandExports.map((commandExport) => {
-		// Check if it's already a Command object (old format)
-		if (
-			typeof commandExport === "object" &&
-			commandExport !== null &&
-			"name" in commandExport &&
-			"prompt" in commandExport
-		) {
-			return commandExport as Command;
-		}
-
-		// Otherwise, treat as CommandExport (markdown with YAML frontmatter)
 		const exportObj = commandExport as CommandExport;
 		const lines = exportObj.commandMd.split("\n");
 		let name = "unnamed";

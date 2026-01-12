@@ -632,10 +632,11 @@ From filesystem`,
 			join(capPath, "index.ts"),
 			`export const skills = [
   {
-    name: 'programmatic-skill',
-    description: 'Programmatic skill',
-    instructions: 'From code',
-    capabilityId: 'programmatic-skills'
+    skillMd: \`---
+name: programmatic-skill
+description: Programmatic skill
+---
+From code\`
   }
 ];`,
 		);
@@ -665,15 +666,11 @@ description = "Has programmatic rules"`,
 		mkdirSync(rulesPath, { recursive: true });
 		writeFileSync(join(rulesPath, "fs-rule.md"), "From filesystem");
 
-		// Create index.ts with programmatic rules
+		// Create index.ts with programmatic rules (new format)
 		writeFileSync(
 			join(capPath, "index.ts"),
 			`export const rules = [
-  {
-    name: 'programmatic-rule',
-    content: 'From code',
-    capabilityId: 'programmatic-rules'
-  }
+  'From code'
 ];`,
 		);
 
@@ -681,7 +678,7 @@ description = "Has programmatic rules"`,
 
 		// Should have programmatic rules, not filesystem ones
 		expect(capability.rules).toHaveLength(1);
-		expect(capability.rules[0]?.name).toBe("programmatic-rule");
+		expect(capability.rules[0]?.name).toBe("rule-1");
 		expect(capability.rules[0]?.content).toBe("From code");
 	});
 
@@ -700,14 +697,13 @@ description = "Has programmatic docs"`,
 		// Create filesystem doc
 		writeFileSync(join(capPath, "definition.md"), "From filesystem");
 
-		// Create index.ts with programmatic docs
+		// Create index.ts with programmatic docs (new format)
 		writeFileSync(
 			join(capPath, "index.ts"),
 			`export const docs = [
   {
-    name: 'programmatic-doc',
-    content: 'From code',
-    capabilityId: 'programmatic-docs'
+    title: 'programmatic-doc',
+    content: 'From code'
   }
 ];`,
 		);

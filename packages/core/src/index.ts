@@ -18,6 +18,8 @@ export * from "./capability";
 export * from "./config";
 // Export gitignore management
 export * from "./gitignore/manager";
+// Export state management
+export * from "./state";
 // Export sync functionality
 export * from "./sync";
 
