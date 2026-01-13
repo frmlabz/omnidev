@@ -13,7 +13,7 @@ import { McpController } from "./controller/index.js";
 import { createRelayServer } from "./relay/index.js";
 import { setupMcpWrappers, setupSandbox } from "./sandbox.js";
 import { handleOmniExecute } from "./tools/execute.js";
-import { handleOmniQuery } from "./tools/query.js";
+// import { handleOmniQuery } from "./tools/query.js"; // DISABLED
 import { handleSandboxEnvironment } from "./tools/sandbox-environment.js";
 import { startWatcher } from "./watcher.js";
 import { findFreePort } from "./utils/net.js";
@@ -75,35 +75,36 @@ export async function startServer(): Promise<void> {
 		});
 
 		// Register omni_query tool (simple search)
-		debug("Registering omni_query tool...");
-		server.registerTool(
-			"omni_query",
-			{
-				title: "Search OmniDev",
-				description:
-					"Search capabilities, docs, skills, and rules. Use omni_sandbox_environment for tool introspection.",
-				inputSchema: {
-					query: z
-						.string()
-						.optional()
-						.describe("Search query. Empty returns summary of enabled capabilities."),
-				},
-			},
-			async (args) => {
-				debug("omni_query tool called", args);
-				try {
-					const result = await handleOmniQuery(registry, args);
-					debug("omni_query tool completed successfully");
-					return result;
-				} catch (error) {
-					debug("omni_query tool failed", {
-						error: error instanceof Error ? error.message : String(error),
-						stack: error instanceof Error ? error.stack : undefined,
-					});
-					throw error;
-				}
-			},
-		);
+		// DISABLED: Commented out for now
+		// debug("Registering omni_query tool...");
+		// server.registerTool(
+		// 	"omni_query",
+		// 	{
+		// 		title: "Search OmniDev",
+		// 		description:
+		// 			"Search capabilities, docs, skills, and rules. Use omni_sandbox_environment for tool introspection.",
+		// 		inputSchema: {
+		// 			query: z
+		// 				.string()
+		// 				.optional()
+		// 				.describe("Search query. Empty returns summary of enabled capabilities."),
+		// 		},
+		// 	},
+		// 	async (args) => {
+		// 		debug("omni_query tool called", args);
+		// 		try {
+		// 			const result = await handleOmniQuery(registry, args);
+		// 			debug("omni_query tool completed successfully");
+		// 			return result;
+		// 		} catch (error) {
+		// 			debug("omni_query tool failed", {
+		// 				error: error instanceof Error ? error.message : String(error),
+		// 				stack: error instanceof Error ? error.stack : undefined,
+		// 			});
+		// 			throw error;
+		// 		}
+		// 	},
+		// );
 
 		// Register omni_sandbox_environment tool
 		debug("Registering omni_sandbox_environment tool...");

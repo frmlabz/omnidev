@@ -36,7 +36,7 @@ export interface LastRun {
 	/** Story ID that was being worked on */
 	storyId: string;
 	/** Reason for stopping */
-	reason: "user_interrupted" | "completed" | "blocked" | "error";
+	reason: "user_interrupted" | "completed" | "story_completed" | "blocked" | "error";
 	/** Agent's summary of where it stopped */
 	summary: string;
 }

@@ -49,8 +49,16 @@ export async function handleOmniExecute(
 	debug("Writing user code to sandbox");
 	mkdirSync(".omni/sandbox", { recursive: true });
 
-	// Write user code directly to main.ts
-	await Bun.write(".omni/sandbox/main.ts", code);
+	// Check if code exports a main function
+	const hasMainExport = /export\s+(async\s+)?function\s+main\s*\(/.test(code);
+	if (!hasMainExport) {
+		throw new Error(
+			"Code must export a main function: export async function main(): Promise<number>",
+		);
+	}
+
+	const finalCode = `${code}\n\n// Auto-invoke main\nmain();\n`;
+	await Bun.write(".omni/sandbox/main.ts", finalCode);
 
 	debug("Executing code...");
 	// Execute main.ts directly with Bun

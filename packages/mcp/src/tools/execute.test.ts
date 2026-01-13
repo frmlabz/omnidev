@@ -42,15 +42,21 @@ describe("handleOmniExecute", () => {
 		await expect(handleOmniExecute(mockRegistry, { code: "" })).rejects.toThrow("code is required");
 	});
 
+	test("should throw error when code does not export main function", async () => {
+		await expect(handleOmniExecute(mockRegistry, { code: 'console.log("test");' })).rejects.toThrow(
+			"Code must export a main function",
+		);
+	});
+
 	test("should create sandbox directory", async () => {
-		const code = 'console.log("test");';
+		const code = 'export async function main(): Promise<number> { console.log("test"); return 0; }';
 		await handleOmniExecute(mockRegistry, { code });
 
 		expect(existsSync(".omni/sandbox")).toBe(true);
 	});
 
 	test("should write code to main.ts", async () => {
-		const code = 'console.log("test");';
+		const code = 'export async function main(): Promise<number> { console.log("test"); return 0; }';
 		await handleOmniExecute(mockRegistry, { code });
 
 		const writtenCode = await Bun.file(".omni/sandbox/main.ts").text();
@@ -59,7 +65,8 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should execute code and return stdout", async () => {
-		const code = 'console.log("Hello from sandbox");';
+		const code =
+			'export async function main(): Promise<number> { console.log("Hello from sandbox"); return 0; }';
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		expect(result.content).toHaveLength(1);
@@ -75,7 +82,8 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should execute code and capture stderr", async () => {
-		const code = 'console.error("Error message");';
+		const code =
+			'export async function main(): Promise<number> { console.error("Error message"); return 0; }';
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -87,7 +95,7 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should return non-zero exit code on error", async () => {
-		const code = 'throw new Error("Test error");';
+		const code = 'export async function main(): Promise<number> { throw new Error("Test error"); }';
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -99,7 +107,7 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should return empty changed_files when no git changes", async () => {
-		const code = 'console.log("test");';
+		const code = 'export async function main(): Promise<number> { console.log("test"); return 0; }';
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -121,8 +129,10 @@ describe("handleOmniExecute", () => {
 
 		// Code that modifies a file
 		const code = `
-			await Bun.write('test.txt', 'modified');
-		`;
+export async function main(): Promise<number> {
+	await Bun.write('test.txt', 'modified');
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -142,8 +152,10 @@ describe("handleOmniExecute", () => {
 
 		// Code that adds lines
 		const code = `
-			await Bun.write('test.txt', 'line1\\nline2\\nline3');
-		`;
+export async function main(): Promise<number> {
+	await Bun.write('test.txt', 'line1\\nline2\\nline3');
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -162,8 +174,10 @@ describe("handleOmniExecute", () => {
 
 		// Code that removes content
 		const code = `
-			await Bun.write('test.txt', '');
-		`;
+export async function main(): Promise<number> {
+	await Bun.write('test.txt', '');
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -176,9 +190,11 @@ describe("handleOmniExecute", () => {
 
 	test("should handle code with TypeScript syntax", async () => {
 		const code = `
-			const value: string = "TypeScript";
-			console.log(value);
-		`;
+export async function main(): Promise<number> {
+	const value: string = "TypeScript";
+	console.log(value);
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -192,10 +208,12 @@ describe("handleOmniExecute", () => {
 
 	test("should handle multiline code", async () => {
 		const code = `
-			const a = 1;
-			const b = 2;
-			console.log(a + b);
-		`;
+export async function main(): Promise<number> {
+	const a = 1;
+	const b = 2;
+	console.log(a + b);
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -209,9 +227,11 @@ describe("handleOmniExecute", () => {
 
 	test("should handle async code", async () => {
 		const code = `
-			await new Promise(resolve => setTimeout(resolve, 10));
-			console.log("done");
-		`;
+export async function main(): Promise<number> {
+	await new Promise(resolve => setTimeout(resolve, 10));
+	console.log("done");
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		const firstContent = result.content[0];
@@ -224,7 +244,7 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should return response in correct format", async () => {
-		const code = 'console.log("test");';
+		const code = 'export async function main(): Promise<number> { console.log("test"); return 0; }';
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		expect(result).toHaveProperty("content");
@@ -252,8 +272,10 @@ describe("handleOmniExecute", () => {
 		Bun.spawnSync(["git", "commit", "--allow-empty", "-m", "initial"], { cwd: testDir });
 
 		const code = `
-			await Bun.write('newfile.txt', 'content');
-		`;
+export async function main(): Promise<number> {
+	await Bun.write('newfile.txt', 'content');
+	return 0;
+}`;
 		const result = await handleOmniExecute(mockRegistry, { code });
 
 		expect(existsSync("newfile.txt")).toBe(true);
@@ -266,7 +288,7 @@ describe("handleOmniExecute", () => {
 	});
 
 	test("should preserve working directory after execution", async () => {
-		const code = 'console.log("test");';
+		const code = 'export async function main(): Promise<number> { console.log("test"); return 0; }';
 		await handleOmniExecute(mockRegistry, { code });
 
 		expect(process.cwd()).toBe(testDir);

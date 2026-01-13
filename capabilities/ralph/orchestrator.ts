@@ -13,6 +13,7 @@ import {
 	getNextStory,
 	getPRD,
 	hasBlockedStories,
+	isPRDComplete,
 	updateLastRun,
 	updateStoryStatus,
 } from "./state.ts";
@@ -262,17 +263,31 @@ export async function runOrchestration(prdName: string): Promise<void> {
 		if (output.includes("<promise>COMPLETE</promise>")) {
 			console.log("Agent signaled completion!");
 
-			if (config.auto_archive) {
-				console.log("Auto-archiving PRD...");
-				await archivePRD(prdName);
-			}
+			// Check if ALL stories are actually completed before archiving
+			const allComplete = await isPRDComplete(prdName);
 
-			await updateLastRun(prdName, {
-				timestamp: new Date().toISOString(),
-				storyId: "ALL",
-				reason: "completed",
-				summary: "All stories completed successfully",
-			});
+			if (allComplete) {
+				// Update lastRun BEFORE archiving (archiving moves the PRD)
+				await updateLastRun(prdName, {
+					timestamp: new Date().toISOString(),
+					storyId: "ALL",
+					reason: "completed",
+					summary: "All stories completed successfully",
+				});
+
+				if (config.auto_archive) {
+					console.log("Auto-archiving PRD...");
+					await archivePRD(prdName);
+				}
+			} else {
+				// Agent signaled completion but there are still pending stories
+				await updateLastRun(prdName, {
+					timestamp: new Date().toISOString(),
+					storyId: story.id,
+					reason: "story_completed",
+					summary: `Story ${story.id} completed, more stories pending`,
+				});
+			}
 
 			return;
 		}
