@@ -21,20 +21,20 @@ describe("Ralph sync hook", () => {
 		}
 	});
 
-	test("creates .omni/ralph directory structure", async () => {
+	test("creates .omni/state/ralph directory structure", async () => {
 		await sync();
 
-		expect(existsSync(".omni/ralph")).toBe(true);
-		expect(existsSync(".omni/ralph/prds")).toBe(true);
-		expect(existsSync(".omni/ralph/completed-prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph")).toBe(true);
+		expect(existsSync(".omni/state/ralph/prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph/completed-prds")).toBe(true);
 	});
 
 	test("creates default config.toml if not exists", async () => {
 		await sync();
 
-		expect(existsSync(".omni/ralph/config.toml")).toBe(true);
+		expect(existsSync(".omni/state/ralph/config.toml")).toBe(true);
 
-		const content = await Bun.file(".omni/ralph/config.toml").text();
+		const content = await Bun.file(".omni/state/ralph/config.toml").text();
 		expect(content).toContain("[ralph]");
 		expect(content).toContain('default_agent = "claude"');
 		expect(content).toContain("default_iterations = 10");
@@ -45,12 +45,12 @@ describe("Ralph sync hook", () => {
 	});
 
 	test("does not overwrite existing config.toml", async () => {
-		mkdirSync(".omni/ralph", { recursive: true });
-		await Bun.write(".omni/ralph/config.toml", "[ralph]\ncustom = true");
+		mkdirSync(".omni/state/ralph", { recursive: true });
+		await Bun.write(".omni/state/ralph/config.toml", "[ralph]\ncustom = true");
 
 		await sync();
 
-		const content = await Bun.file(".omni/ralph/config.toml").text();
+		const content = await Bun.file(".omni/state/ralph/config.toml").text();
 		expect(content).toBe("[ralph]\ncustom = true");
 		expect(content).not.toContain("default_agent");
 	});
@@ -60,31 +60,31 @@ describe("Ralph sync hook", () => {
 		await sync();
 		await sync();
 
-		expect(existsSync(".omni/ralph")).toBe(true);
-		expect(existsSync(".omni/ralph/prds")).toBe(true);
-		expect(existsSync(".omni/ralph/completed-prds")).toBe(true);
-		expect(existsSync(".omni/ralph/config.toml")).toBe(true);
+		expect(existsSync(".omni/state/ralph")).toBe(true);
+		expect(existsSync(".omni/state/ralph/prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph/completed-prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph/config.toml")).toBe(true);
 	});
 
 	test("handles existing directory structure gracefully", async () => {
-		mkdirSync(".omni/ralph/prds", { recursive: true });
-		mkdirSync(".omni/ralph/completed-prds", { recursive: true });
+		mkdirSync(".omni/state/ralph/prds", { recursive: true });
+		mkdirSync(".omni/state/ralph/completed-prds", { recursive: true });
 
 		await sync();
 
-		expect(existsSync(".omni/ralph")).toBe(true);
-		expect(existsSync(".omni/ralph/prds")).toBe(true);
-		expect(existsSync(".omni/ralph/completed-prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph")).toBe(true);
+		expect(existsSync(".omni/state/ralph/prds")).toBe(true);
+		expect(existsSync(".omni/state/ralph/completed-prds")).toBe(true);
 	});
 
 	test("preserves existing PRDs and files", async () => {
-		mkdirSync(".omni/ralph/prds/my-prd", { recursive: true });
-		await Bun.write(".omni/ralph/prds/my-prd/prd.json", '{"name":"my-prd"}');
+		mkdirSync(".omni/state/ralph/prds/my-prd", { recursive: true });
+		await Bun.write(".omni/state/ralph/prds/my-prd/prd.json", '{"name":"my-prd"}');
 
 		await sync();
 
-		expect(existsSync(".omni/ralph/prds/my-prd/prd.json")).toBe(true);
-		const content = await Bun.file(".omni/ralph/prds/my-prd/prd.json").text();
+		expect(existsSync(".omni/state/ralph/prds/my-prd/prd.json")).toBe(true);
+		const content = await Bun.file(".omni/state/ralph/prds/my-prd/prd.json").text();
 		expect(content).toBe('{"name":"my-prd"}');
 	});
 });

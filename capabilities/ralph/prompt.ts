@@ -81,8 +81,8 @@ ${criteriaLines}
 
 ## Workflow
 
-1. **Read the spec** at \`.omni/ralph/prds/${prdName}/spec.md\` for full requirements
-2. **Read the progress log** at \`.omni/ralph/prds/${prdName}/progress.txt\` (check Codebase Patterns first)
+1. **Read the spec** at \`.omni/state/ralph/prds/${prdName}/spec.md\` for full requirements
+2. **Read the progress log** at \`.omni/state/ralph/prds/${prdName}/progress.txt\` (check Codebase Patterns first)
 3. **Verify branch**: Check you're on \`${prd.branchName}\`, if not create/checkout it
 4. **Implement this story** following the spec and acceptance criteria
 5. **Run quality checks**: \`bun run check\` (typecheck + lint + format:check)

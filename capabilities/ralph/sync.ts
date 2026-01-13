@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-const RALPH_DIR = ".omni/ralph";
+const RALPH_DIR = ".omni/state/ralph";
 const PRDS_DIR = join(RALPH_DIR, "prds");
 const COMPLETED_PRDS_DIR = join(RALPH_DIR, "completed-prds");
 const CONFIG_PATH = join(RALPH_DIR, "config.toml");

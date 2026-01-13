@@ -9,7 +9,7 @@ import { generatePrompt } from "./prompt";
 import type { PRD, Story } from "./types.d.ts";
 
 const TEST_DIR = join(process.cwd(), ".test-ralph-prompt");
-const RALPH_DIR = join(TEST_DIR, ".omni/ralph");
+const RALPH_DIR = join(TEST_DIR, ".omni/state/ralph");
 const PRDS_DIR = join(RALPH_DIR, "prds");
 
 // Helper to create a PRD directly

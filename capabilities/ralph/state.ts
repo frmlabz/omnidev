@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { LastRun, PRD, Story, StoryStatus } from "./types.js";
 
-const RALPH_DIR = ".omni/ralph";
+const RALPH_DIR = ".omni/state/ralph";
 const PRDS_DIR = join(RALPH_DIR, "prds");
 const COMPLETED_PRDS_DIR = join(RALPH_DIR, "completed-prds");
 

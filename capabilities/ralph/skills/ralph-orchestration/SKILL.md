@@ -17,13 +17,13 @@ You are an autonomous coding agent working on a Ralph-managed PRD. Follow this w
 
 ```bash
 # Read the PRD to understand the feature
-cat .omni/ralph/prds/<prd-name>/prd.json
+cat .omni/state/ralph/prds/<prd-name>/prd.json
 
 # Read the spec for detailed requirements
-cat .omni/ralph/prds/<prd-name>/spec.md
+cat .omni/state/ralph/prds/<prd-name>/spec.md
 
 # Read progress log to understand patterns and recent work
-cat .omni/ralph/prds/<prd-name>/progress.txt
+cat .omni/state/ralph/prds/<prd-name>/progress.txt
 ```
 
 **Important:**

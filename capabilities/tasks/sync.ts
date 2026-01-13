@@ -7,7 +7,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-const TASKS_DIR = ".omni/tasks";
+const TASKS_DIR = ".omni/state/tasks";
 
 /**
  * Sync hook called by omnidev sync.

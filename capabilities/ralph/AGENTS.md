@@ -52,7 +52,7 @@ capabilities/ralph/
 - Agent prompts include: spec content (truncated to 3k chars), recent progress (20 lines), patterns
 
 **State Management:**
-- PRD folders: `.omni/ralph/prds/<name>/` with prd.json, spec.md, progress.txt
+- PRD folders: `.omni/state/ralph/prds/<name>/` with prd.json, spec.md, progress.txt
 - Archive: timestamp-prefixed folders moved to `completed-prds/`
 - Story status: pending → in_progress → completed/blocked
 

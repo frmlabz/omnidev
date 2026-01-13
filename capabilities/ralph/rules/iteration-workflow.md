@@ -9,7 +9,7 @@ During Ralph orchestration iterations, follow these workflow rules to ensure con
 **Before doing anything else, read the progress log:**
 
 ```bash
-cat .omni/ralph/prds/<prd-name>/progress.txt
+cat .omni/state/ralph/prds/<prd-name>/progress.txt
 ```
 
 **Check for:**
@@ -54,7 +54,7 @@ git branch --show-current
 **The story in prd.json is just an overview. Always read the full spec:**
 
 ```bash
-cat .omni/ralph/prds/<prd-name>/specs/<taskFile>
+cat .omni/state/ralph/prds/<prd-name>/specs/<taskFile>
 ```
 
 **The spec contains:**
@@ -139,7 +139,7 @@ bun test           # run all tests
 
 **After committing, update the PRD:**
 
-1. Open `.omni/ralph/prds/<prd-name>/prd.json`
+1. Open `.omni/state/ralph/prds/<prd-name>/prd.json`
 2. Find the completed story
 3. Change `"passes": false` to `"passes": true`
 4. Save the file

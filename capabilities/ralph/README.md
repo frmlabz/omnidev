@@ -12,7 +12,7 @@ Ralph is a built-in OmniDev capability that enables PRD-driven development throu
 ## State Structure
 
 ```
-.omni/ralph/
+.omni/state/ralph/
 ├── config.toml          # Agent configs, iteration settings
 ├── active-prd           # Currently active PRD name
 ├── prds/
@@ -98,7 +98,7 @@ omnidev ralph cleanup [--older-than <days>]
 
 ## Configuration
 
-### `.omni/ralph/config.toml`
+### `.omni/state/ralph/config.toml`
 
 ```toml
 [ralph]

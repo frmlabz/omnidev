@@ -8,15 +8,15 @@ Task management capability with sandbox tools for CRUD operations and CLI comman
 |------|----------|-------|
 | Capability export | index.ts | Sandbox tools (7 functions) with full JSON schemas |
 | Task operations | operations.ts | CRUD: createTask, getTask, getTasks, updateTask, deleteTask, addComment, updateTaskStatus |
-| Task persistence | storage.ts | File I/O: saveTask, loadTask, loadAllTasks in .omni/tasks/ |
+| Task persistence | storage.ts | File I/O: saveTask, loadTask, loadAllTasks in .omni/state/tasks/ |
 | CLI commands | cli.ts | Stricli routes: create, list, show, status, update, comment, delete |
 | Type definitions | types.ts | Task, TaskStatus, Comment, CreateTaskInput, UpdateTaskInput, TaskFilter |
-| Sync hook | sync.ts | Creates .omni/tasks/ directory during sync |
+| Sync hook | sync.ts | Creates .omni/state/tasks/ directory during sync |
 
 ## CONVENTIONS
 
 **Task Storage:**
-- Each task stored as separate JSON: `.omni/tasks/{task-id}.json`
+- Each task stored as separate JSON: `.omni/state/tasks/{task-id}.json`
 - Task ID format: `{timestamp}-{random}` (e.g., "1704067200000-abc123")
 - Never create task IDs manually - always use generated ones
 
@@ -41,7 +41,7 @@ Task management capability with sandbox tools for CRUD operations and CLI comman
 ## ANTI-PATTERNS
 
 - **NEVER** create custom task IDs - use generateTaskId() from storage.ts
-- **NEVER** modify .omni/tasks/*.json files directly - use CRUD operations
+- **NEVER** modify .omni/state/tasks/*.json files directly - use CRUD operations
 - **NEVER** use priority values outside 1-5 range - validation throws Error
 - **NEVER** store non-JSON data in task files - must be valid JSON structure
 - **NEVER** mix array and single status values - getTasks handles both, but operations expect specific types

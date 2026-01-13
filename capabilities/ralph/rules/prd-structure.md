@@ -4,12 +4,12 @@ When creating or modifying Product Requirements Documents (PRDs), follow these s
 
 ## Directory Structure
 
-1. **PRD Location**: Each PRD lives in `.omni/ralph/prds/<prd-name>/`
+1. **PRD Location**: Each PRD lives in `.omni/state/ralph/prds/<prd-name>/`
 2. **Required Files**:
    - `prd.json` - The PRD definition with user stories
    - `progress.txt` - Progress log with patterns and learnings
    - `specs/` - Directory containing detailed spec files
-3. **Archived PRDs**: Completed PRDs move to `.omni/ralph/completed-prds/YYYY-MM-DD-<prd-name>/`
+3. **Archived PRDs**: Completed PRDs move to `.omni/state/ralph/completed-prds/YYYY-MM-DD-<prd-name>/`
 
 ## PRD JSON Schema
 

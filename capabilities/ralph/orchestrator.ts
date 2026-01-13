@@ -19,7 +19,7 @@ import {
 } from "./state.ts";
 import type { AgentConfig, RalphConfig, Story } from "./types.d.ts";
 
-const RALPH_DIR = ".omni/ralph";
+const RALPH_DIR = ".omni/state/ralph";
 const CONFIG_PATH = join(RALPH_DIR, "config.toml");
 
 // Track current state for Ctrl+C handler

@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { buildCommand, buildRouteMap } from "@omnidev/core";
 import type { PRD, Story } from "./types";
 
-const RALPH_DIR = ".omni/ralph";
+const RALPH_DIR = ".omni/state/ralph";
 const PRDS_DIR = join(RALPH_DIR, "prds");
 
 /**

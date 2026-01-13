@@ -13,7 +13,7 @@ Instead of being a standalone script, Ralph integrates as a first-class OmniDev 
 1. **CLI Integration** - Access Ralph via `omnidev ralph <subcommand>`
 2. **Capability Architecture** - Follow OmniDev capability patterns (sync hooks, skills, rules, types)
 3. **Multi-Agent Support** - Orchestrate Claude, Codex, or other CLI agents
-4. **Organized State** - Keep PRDs, specs, and progress in `.omni/ralph/`
+4. **Organized State** - Keep PRDs, specs, and progress in `.omni/state/ralph/`
 5. **Lifecycle Management** - Track active vs completed work, auto-cleanup
 
 ---
@@ -48,7 +48,7 @@ Instead of being a standalone script, Ralph integrates as a first-class OmniDev 
 
 ### Key Files
 
-#### `.omni/ralph/config.toml`
+#### `.omni/state/ralph/config.toml`
 ```toml
 [ralph]
 default_agent = "claude"      # claude, codex, amp
@@ -68,12 +68,12 @@ command = "amp"
 args = ["--dangerously-allow-all"]
 ```
 
-#### `.omni/ralph/active-prd`
+#### `.omni/state/ralph/active-prd`
 ```
 user-auth
 ```
 
-#### PRD Structure: `.omni/ralph/prds/<name>/prd.json`
+#### PRD Structure: `.omni/state/ralph/prds/<name>/prd.json`
 ```json
 {
   "name": "user-auth",
@@ -120,7 +120,7 @@ user-auth
 ### Core Commands
 
 ```bash
-# Initialize Ralph in project (creates .omni/ralph/ structure)
+# Initialize Ralph in project (creates .omni/state/ralph/ structure)
 omnidev ralph init
 
 # Start orchestration for active PRD
@@ -250,14 +250,14 @@ When `omnidev agents sync` runs, Ralph's sync hook:
 
 1. **Creates directory structure** if not exists:
    ```
-   .omni/ralph/
-   .omni/ralph/prds/
-   .omni/ralph/completed-prds/
+   .omni/state/ralph/
+   .omni/state/ralph/prds/
+   .omni/state/ralph/completed-prds/
    ```
 
 2. **Creates default config** if not exists:
    ```toml
-   # .omni/ralph/config.toml
+   # .omni/state/ralph/config.toml
    [ralph]
    default_agent = "claude"
    default_iterations = 10
@@ -265,7 +265,7 @@ When `omnidev agents sync` runs, Ralph's sync hook:
 
 3. **Validates existing PRDs** - checks for orphaned stories, missing specs
 
-4. **Updates .gitignore** - adds `.omni/ralph/` if not present
+4. **Updates .gitignore** - adds `.omni/state/ralph/` if not present
 
 ---
 
@@ -284,15 +284,15 @@ Description: {description}
 
 ## Your Task
 
-1. Read the progress log at `.omni/ralph/prds/{prd_name}/progress.txt`
+1. Read the progress log at `.omni/state/ralph/prds/{prd_name}/progress.txt`
 2. Check you're on branch `{branch_name}`. If not, check it out or create from main.
 3. Pick the **highest priority** user story where `passes: false`
 4. **Read the spec file** for full context
 5. Implement the story's `scope`
 6. Run quality checks: `bun run check`
 7. If checks pass, commit with message: `feat: [{story_id}] - {story_title}`
-8. Update `.omni/ralph/prds/{prd_name}/prd.json` - set story's `passes: true`
-9. Append progress to `.omni/ralph/prds/{prd_name}/progress.txt`
+8. Update `.omni/state/ralph/prds/{prd_name}/prd.json` - set story's `passes: true`
+9. Append progress to `.omni/state/ralph/prds/{prd_name}/progress.txt`
 
 ## Current Story
 
@@ -344,9 +344,9 @@ omnidev ralph init
 ```
 
 Creates:
-- `.omni/ralph/config.toml` with defaults
-- `.omni/ralph/prds/` directory
-- `.omni/ralph/completed-prds/` directory
+- `.omni/state/ralph/config.toml` with defaults
+- `.omni/state/ralph/prds/` directory
+- `.omni/state/ralph/completed-prds/` directory
 
 ### 2. Create a PRD
 
@@ -366,7 +366,7 @@ omnidev ralph prd create user-auth --from docs/user-auth-spec.md
 
 ```bash
 omnidev ralph spec create database-schema --prd user-auth
-# Creates .omni/ralph/prds/user-auth/specs/001-database-schema.md
+# Creates .omni/state/ralph/prds/user-auth/specs/001-database-schema.md
 ```
 
 ### 4. Add Stories
@@ -405,7 +405,7 @@ omnidev ralph patterns
 
 ```bash
 omnidev ralph prd archive user-auth
-# Moves to .omni/ralph/completed-prds/2026-01-09-user-auth/
+# Moves to .omni/state/ralph/completed-prds/2026-01-09-user-auth/
 ```
 
 ---
@@ -564,7 +564,7 @@ Replace US-038 through US-043 with Ralph capability stories:
     "listPRDs, getPRD, createPRD, updatePRD functions work",
     "markStoryPassed, markStoryFailed functions work",
     "appendProgress, getProgress, getPatterns functions work",
-    "State persisted to .omni/ralph/",
+    "State persisted to .omni/state/ralph/",
     "Tests cover state operations",
     "Typecheck passes"
   ],
@@ -577,7 +577,7 @@ Replace US-038 through US-043 with Ralph capability stories:
   "taskFile": "scripts/ralph/tasks/prd-009-ralph-capability.md",
   "scope": "Sync hook only",
   "acceptanceCriteria": [
-    "Sync creates .omni/ralph/ directory structure",
+    "Sync creates .omni/state/ralph/ directory structure",
     "Sync creates default config.toml if not exists",
     "Sync validates existing PRDs",
     "Sync updates .gitignore",

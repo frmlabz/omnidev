@@ -9,7 +9,7 @@ import { loadRalphConfig, runAgent } from "./orchestrator";
 import type { PRD } from "./types";
 
 const TEST_DIR = join(process.cwd(), ".test-ralph-orchestrator");
-const RALPH_DIR = join(TEST_DIR, ".omni/ralph");
+const RALPH_DIR = join(TEST_DIR, ".omni/state/ralph");
 const CONFIG_PATH = join(RALPH_DIR, "config.toml");
 const PRDS_DIR = join(RALPH_DIR, "prds");
 

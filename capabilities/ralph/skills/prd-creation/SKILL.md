@@ -27,7 +27,7 @@ Ask 3-5 focused questions. Don't proceed until you have clear answers.
 ### 2. Create the PRD Folder Structure
 
 ```
-.omni/ralph/prds/<prd-name>/
+.omni/state/ralph/prds/<prd-name>/
   ├── prd.json       # Orchestration file with stories
   ├── spec.md        # Detailed feature specification
   └── progress.txt   # Progress log (empty initially)
@@ -178,7 +178,7 @@ Before finalizing:
 Tell the user:
 
 ```
-PRD created at .omni/ralph/prds/<name>/
+PRD created at .omni/state/ralph/prds/<name>/
 
 To start Ralph orchestration:
   omnidev ralph start <name>

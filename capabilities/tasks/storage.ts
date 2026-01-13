@@ -2,14 +2,14 @@
  * Task Storage
  *
  * File I/O operations for individual task files.
- * Each task is stored as .omni/tasks/{task-id}.json
+ * Each task is stored as .omni/state/tasks/{task-id}.json
  */
 
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Task } from "./types.js";
 
-const TASKS_DIR = ".omni/tasks";
+const TASKS_DIR = ".omni/state/tasks";
 
 /**
  * Generate a unique task ID

@@ -27,7 +27,7 @@ describe("Ralph State Management", () => {
 
 	// Helper to create a PRD directly (since createPRD was removed)
 	async function createTestPRD(name: string, options: Partial<PRD> = {}): Promise<PRD> {
-		const prdDir = `.omni/ralph/prds/${name}`;
+		const prdDir = `.omni/state/ralph/prds/${name}`;
 		mkdirSync(prdDir, { recursive: true });
 
 		const prd: PRD = {
@@ -58,8 +58,8 @@ describe("Ralph State Management", () => {
 		mkdirSync(testDir, { recursive: true });
 		originalCwd = process.cwd();
 		process.chdir(testDir);
-		mkdirSync(".omni/ralph/prds", { recursive: true });
-		mkdirSync(".omni/ralph/completed-prds", { recursive: true });
+		mkdirSync(".omni/state/ralph/prds", { recursive: true });
+		mkdirSync(".omni/state/ralph/completed-prds", { recursive: true });
 	});
 
 	afterEach(() => {
@@ -88,7 +88,7 @@ describe("Ralph State Management", () => {
 		test("includes completed PRDs when requested", async () => {
 			await createTestPRD("active-prd");
 
-			const completedPath = ".omni/ralph/completed-prds/completed-prd";
+			const completedPath = ".omni/state/ralph/completed-prds/completed-prd";
 			mkdirSync(completedPath, { recursive: true });
 			writeFileSync(
 				join(completedPath, "prd.json"),
@@ -125,7 +125,7 @@ describe("Ralph State Management", () => {
 		});
 
 		test("throws error for invalid PRD structure", async () => {
-			const prdPath = ".omni/ralph/prds/invalid-prd";
+			const prdPath = ".omni/state/ralph/prds/invalid-prd";
 			mkdirSync(prdPath, { recursive: true });
 			writeFileSync(join(prdPath, "prd.json"), JSON.stringify({ foo: "bar" }));
 
@@ -436,7 +436,7 @@ describe("Ralph State Management", () => {
 		});
 
 		test("throws error when spec missing", async () => {
-			const prdDir = ".omni/ralph/prds/no-spec";
+			const prdDir = ".omni/state/ralph/prds/no-spec";
 			mkdirSync(prdDir, { recursive: true });
 			await Bun.write(
 				join(prdDir, "prd.json"),
@@ -472,11 +472,11 @@ describe("Ralph State Management", () => {
 
 			await archivePRD("test-prd");
 
-			const activePath = ".omni/ralph/prds/test-prd";
+			const activePath = ".omni/state/ralph/prds/test-prd";
 			expect(existsSync(activePath)).toBe(false);
 
 			const timestamp = new Date().toISOString().split("T")[0];
-			const completedPath = `.omni/ralph/completed-prds/${timestamp}-test-prd`;
+			const completedPath = `.omni/state/ralph/completed-prds/${timestamp}-test-prd`;
 			expect(existsSync(completedPath)).toBe(true);
 		});
 

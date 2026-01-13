@@ -47,10 +47,10 @@ omnidev ralph patterns
 
 ## Directory Structure
 
-Ralph stores all state in `.omni/ralph/`:
+Ralph stores all state in `.omni/state/ralph/`:
 
 ```
-.omni/ralph/
+.omni/state/ralph/
 ├── config.toml          # Ralph configuration
 ├── active-prd           # Currently active PRD name
 ├── prds/

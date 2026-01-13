@@ -1355,7 +1355,7 @@ project-root/
 | `omni/capabilities/` | Committed | Capability code, docs, skills, rules |
 | `.omni/config.local.toml` | Ignored | Personal overrides, extra capabilities |
 | `.omni/.env` | Ignored | API keys, tokens, secrets |
-| `.omni/ralph/` | Ignored | Ralph PRDs, progress, state |
+| `.omni/state/ralph/` | Ignored | Ralph PRDs, progress, state |
 | `.omni/state/` | Ignored | Cache, session state |
 | `.omni/sandbox/` | Ignored | Temporary code execution |
 | `.omni/types/` | Ignored | Generated TypeScript definitions |
@@ -1463,7 +1463,7 @@ Ralph provides:
 ### Ralph State Structure
 
 ```
-.omni/ralph/
+.omni/state/ralph/
 ├── config.toml          # Ralph configuration
 ├── active-prd           # Currently active PRD name
 ├── prds/
@@ -1504,7 +1504,7 @@ omnidev ralph patterns                # View codebase patterns
 Ralph supports multiple AI agents:
 
 ```toml
-# .omni/ralph/config.toml
+# .omni/state/ralph/config.toml
 [ralph]
 default_agent = "claude"
 default_iterations = 10
