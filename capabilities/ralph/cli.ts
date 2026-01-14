@@ -11,13 +11,14 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildCommand, buildRouteMap, debug } from "@omnidev/core";
+import { buildDependencyGraph, canStartPRD } from "./state.js";
 import type { PRD, Story } from "./types";
 
 const RALPH_DIR = ".omni/state/ralph";
 const PRDS_DIR = join(RALPH_DIR, "prds");
 
 /**
- * List all PRDs with status summary
+ * List all PRDs with status summary and dependency information
  */
 export async function runList(): Promise<void> {
 	debug("runList called", { cwd: process.cwd(), PRDS_DIR });
@@ -41,14 +42,28 @@ export async function runList(): Promise<void> {
 		return;
 	}
 
+	// Build dependency graph for all PRDs
+	const depGraph = await buildDependencyGraph();
+
 	console.log("\n=== Ralph PRDs ===\n");
 
-	for (const prdName of prdDirs) {
+	// Sort: runnable PRDs first, then by name
+	const sortedPrds = [...prdDirs].sort((a, b) => {
+		const aInfo = depGraph.find((d) => d.name === a);
+		const bInfo = depGraph.find((d) => d.name === b);
+		// Runnable PRDs come first
+		if (aInfo?.canStart && !bInfo?.canStart) return -1;
+		if (!aInfo?.canStart && bInfo?.canStart) return 1;
+		return a.localeCompare(b);
+	});
+
+	for (const prdName of sortedPrds) {
 		const prdPath = join(PRDS_DIR, prdName, "prd.json");
 		if (!existsSync(prdPath)) continue;
 
 		try {
 			const prd: PRD = await Bun.file(prdPath).json();
+			const depInfo = depGraph.find((d) => d.name === prdName);
 			const total = prd.stories.length;
 			const completed = prd.stories.filter((s) => s.status === "completed").length;
 			const inProgress = prd.stories.filter((s) => s.status === "in_progress").length;
@@ -62,14 +77,29 @@ export async function runList(): Promise<void> {
 			const statusStr = statusParts.length > 0 ? statusParts.join(", ") : "not started";
 			const progressBar = total > 0 ? `[${completed}/${total}]` : "[0/0]";
 
-			console.log(`${prd.name} ${progressBar} - ${statusStr}`);
-			console.log(`  Branch: ${prd.branchName}`);
+			// Show runnable status
+			const runnableStatus = depInfo?.isComplete ? "✅" : depInfo?.canStart ? "🟢" : "🔒";
+
+			console.log(`${runnableStatus} ${prd.name} ${progressBar} - ${statusStr}`);
 			console.log(`  ${prd.description}`);
+
+			// Show dependencies if any
+			const deps = prd.dependencies ?? [];
+			if (deps.length > 0) {
+				const unmet = depInfo?.unmetDependencies ?? [];
+				const depDisplay = deps
+					.map((d) => (unmet.includes(d) ? `${d} (pending)` : `${d} ✓`))
+					.join(", ");
+				console.log(`  Dependencies: ${depDisplay}`);
+			}
 			console.log();
 		} catch {
 			console.log(`${prdName} - (invalid prd.json)`);
 		}
 	}
+
+	// Show legend
+	console.log("Legend: 🟢 Ready to start | 🔒 Waiting on dependencies | ✅ Complete");
 }
 
 /**
@@ -91,11 +121,28 @@ export async function runStatus(_flags: Record<string, never>, prdName?: string)
 	}
 
 	const prd: PRD = await Bun.file(prdPath).json();
+	const { canStart, unmetDependencies } = await canStartPRD(prdName);
 
 	console.log(`\n=== ${prd.name} ===`);
-	console.log(`Branch: ${prd.branchName}`);
 	console.log(`Description: ${prd.description}`);
 	console.log(`Created: ${prd.createdAt}`);
+
+	// Show dependencies if any
+	const deps = prd.dependencies ?? [];
+	if (deps.length > 0) {
+		console.log(`\nDependencies:`);
+		for (const dep of deps) {
+			const status = unmetDependencies.includes(dep) ? "⏳ pending" : "✅ complete";
+			console.log(`  - ${dep}: ${status}`);
+		}
+	}
+
+	// Show runnable status
+	if (!canStart) {
+		console.log(`\n🔒 Cannot start - waiting on: ${unmetDependencies.join(", ")}`);
+	} else {
+		console.log(`\n🟢 Ready to start`);
+	}
 
 	// Show last run info if available
 	if (prd.lastRun) {
@@ -174,6 +221,17 @@ export async function runStart(_flags: Record<string, never>, prdName: string): 
 	const prdPath = join(PRDS_DIR, prdName, "prd.json");
 	if (!existsSync(prdPath)) {
 		console.error(`PRD not found: ${prdName}`);
+		process.exit(1);
+	}
+
+	// Check dependencies before starting
+	const { canStart, unmetDependencies } = await canStartPRD(prdName);
+	if (!canStart) {
+		console.error(`\n🔒 Cannot start "${prdName}" - has unmet dependencies:\n`);
+		for (const dep of unmetDependencies) {
+			console.error(`  - ${dep} (pending)`);
+		}
+		console.error(`\nComplete these PRDs first, then try again.`);
 		process.exit(1);
 	}
 

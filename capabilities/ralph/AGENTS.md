@@ -32,9 +32,10 @@ capabilities/ralph/
 | Agent spawning | orchestrator.ts:122-142 | Bun.spawn() with stdin/stdout pipes |
 | Iteration logic | orchestrator.ts:171-317 | Ctrl+C handler, completion signal, blocked story check |
 | PRD CRUD | state.ts:80-124 | getPRD, updatePRD, validation |
+| Dependency checking | state.ts:256-330 | canStartPRD, getUnmetDependencies, buildDependencyGraph |
 | Progress tracking | state.ts:199-224 | appendProgress, getProgress for learning patterns |
-| CLI commands | cli.ts:208-294 | Stricli buildCommand for ralph routes |
-| Prompt template | prompt.ts:37-186 | Generates context-aware agent prompts |
+| CLI commands | cli.ts:208-320 | Stricli buildCommand for ralph routes |
+| Prompt template | prompt.ts:37-185 | Generates context-aware agent prompts |
 
 ## CONVENTIONS
 
@@ -63,8 +64,9 @@ capabilities/ralph/
 - **NEVER** mark story as completed without running quality checks
 - **NEVER** use `any` types or type assertions in agent code
 - **NEVER** commit with failing tests or type errors
-- **NEVER** work on wrong git branch (always verify branchName from PRD)
+- **NEVER** create or switch git branches (work on current branch only)
 - **NEVER** implement features outside story's acceptance criteria scope
 - **NEVER** forget to update prd.json status after completing work
 - **NEVER** replace progress.txt content — always append
 - **NEVER** block story without adding questions to explain why
+- **NEVER** start a PRD with unmet dependencies (CLI enforces this)

@@ -93,12 +93,7 @@ export async function getPRD(name: string): Promise<PRD> {
 	const prd = JSON.parse(content) as PRD;
 
 	// Validate PRD structure
-	if (
-		prd.name === undefined ||
-		prd.branchName === undefined ||
-		prd.description === undefined ||
-		prd.stories === undefined
-	) {
+	if (prd.name === undefined || prd.description === undefined || prd.stories === undefined) {
 		throw new Error(`Invalid PRD structure: ${name}`);
 	}
 
@@ -250,4 +245,109 @@ export async function isPRDComplete(prdName: string): Promise<boolean> {
 export async function hasBlockedStories(prdName: string): Promise<Story[]> {
 	const prd = await getPRD(prdName);
 	return prd.stories.filter((story) => story.status === "blocked");
+}
+
+/**
+ * Check if a PRD is complete (either archived or all stories completed)
+ */
+export async function isPRDCompleteOrArchived(prdName: string): Promise<boolean> {
+	// Check if it's in the completed-prds folder
+	const completedPath = getPRDFilePath(prdName, true);
+	if (existsSync(completedPath)) {
+		return true;
+	}
+
+	// Also check for date-prefixed archives (e.g., "2026-01-10-feature")
+	const completedDir = join(process.cwd(), COMPLETED_PRDS_DIR);
+	if (existsSync(completedDir)) {
+		const entries = readdirSync(completedDir, { withFileTypes: true });
+		for (const entry of entries) {
+			if (entry.isDirectory() && entry.name.endsWith(`-${prdName}`)) {
+				return true;
+			}
+		}
+	}
+
+	// Check if it's in active PRDs and all stories are complete
+	const activePath = getPRDFilePath(prdName, false);
+	if (existsSync(activePath)) {
+		return await isPRDComplete(prdName);
+	}
+
+	return false;
+}
+
+/**
+ * Get unmet dependencies for a PRD
+ * Returns array of dependency names that are not yet complete
+ */
+export async function getUnmetDependencies(prdName: string): Promise<string[]> {
+	const prd = await getPRD(prdName);
+	const dependencies = prd.dependencies ?? [];
+
+	if (dependencies.length === 0) {
+		return [];
+	}
+
+	const unmet: string[] = [];
+	for (const dep of dependencies) {
+		const isComplete = await isPRDCompleteOrArchived(dep);
+		if (!isComplete) {
+			unmet.push(dep);
+		}
+	}
+
+	return unmet;
+}
+
+/**
+ * Check if a PRD can be started (all dependencies complete)
+ */
+export async function canStartPRD(
+	prdName: string,
+): Promise<{ canStart: boolean; unmetDependencies: string[] }> {
+	const unmetDependencies = await getUnmetDependencies(prdName);
+	return {
+		canStart: unmetDependencies.length === 0,
+		unmetDependencies,
+	};
+}
+
+/**
+ * Dependency information for a single PRD
+ */
+export interface DependencyInfo {
+	name: string;
+	dependencies: string[];
+	isComplete: boolean;
+	canStart: boolean;
+	unmetDependencies: string[];
+}
+
+/**
+ * Build dependency graph for all active PRDs
+ */
+export async function buildDependencyGraph(): Promise<DependencyInfo[]> {
+	const prdNames = await listPRDs(false);
+	const graph: DependencyInfo[] = [];
+
+	for (const name of prdNames) {
+		try {
+			const prd = await getPRD(name);
+			const isComplete = await isPRDComplete(name);
+			const { canStart, unmetDependencies } = await canStartPRD(name);
+
+			graph.push({
+				name,
+				dependencies: prd.dependencies ?? [],
+				isComplete,
+				canStart,
+				unmetDependencies,
+			});
+		} catch {
+			// Skip invalid PRDs
+		}
+	}
+
+	return graph;
 }

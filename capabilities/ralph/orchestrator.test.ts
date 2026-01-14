@@ -34,10 +34,10 @@ async function createTestPRD(name: string, options: Partial<PRD> = {}): Promise<
 
 	const prd: PRD = {
 		name,
-		branchName: options.branchName ?? `feature/${name}`,
 		description: options.description ?? "Test PRD",
 		createdAt: options.createdAt ?? new Date().toISOString(),
 		stories: options.stories ?? [],
+		...(options.dependencies && { dependencies: options.dependencies }),
 	};
 
 	await Bun.write(join(prdDir, "prd.json"), JSON.stringify(prd, null, 2));
@@ -131,7 +131,6 @@ describe("runOrchestration", () => {
 
 	test("stops when blocked stories exist", async () => {
 		await createTestPRD("blocked-prd", {
-			branchName: "main",
 			description: "Blocked PRD",
 			stories: [
 				{
@@ -155,7 +154,6 @@ describe("runOrchestration", () => {
 
 	test("completes when no stories remain", async () => {
 		await createTestPRD("completed-prd", {
-			branchName: "main",
 			description: "Completed PRD",
 			stories: [
 				{

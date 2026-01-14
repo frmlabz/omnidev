@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: "Create prd.json orchestration file that links to detailed task files. Use when you have tasks in .work/tasks/ and need to create a Ralph execution plan. Triggers on: create ralph prd, orchestrate tasks, link tasks to prd, ralph json."
+description: "Execute PRD-driven development workflow. Use when working on a Ralph-managed PRD in .omni/state/ralph/prds/. Triggers on: continue ralph, work on prd, implement story, ralph iteration."
 ---
 
 # Ralph Orchestration Workflow
@@ -31,22 +31,7 @@ cat .omni/state/ralph/prds/<prd-name>/progress.txt
 - The **progress.txt** contains patterns discovered in previous iterations
 - The **lastRun** field in prd.json shows where the previous run stopped
 
-### 2. Verify Branch
-
-Check you're on the correct branch specified in the PRD:
-
-```bash
-git branch --show-current
-```
-
-If not on the right branch:
-```bash
-git checkout <branch-name>
-# OR create it
-git checkout -b <branch-name> main
-```
-
-### 3. Pick Next Story
+### 2. Pick Next Story
 
 Look at `prd.json` and find the next story to work on:
 
@@ -54,7 +39,7 @@ Look at `prd.json` and find the next story to work on:
 2. Otherwise, find the lowest `priority` story with `status: "pending"`
 3. Skip stories with `status: "blocked"` (waiting for user input)
 
-### 4. Implement the Story
+### 3. Implement the Story
 
 Follow the spec requirements and the story's acceptance criteria:
 
@@ -62,7 +47,7 @@ Follow the spec requirements and the story's acceptance criteria:
 - Follow patterns from progress.txt
 - Keep changes focused and minimal
 
-### 5. Run Quality Checks
+### 4. Run Quality Checks
 
 Before committing, ensure all checks pass:
 
@@ -73,7 +58,7 @@ bun test           # Run tests
 
 Fix any issues before proceeding.
 
-### 6. Commit Changes
+### 5. Commit Changes
 
 When all checks pass:
 
@@ -84,7 +69,7 @@ git commit -m "feat: [<story-id>] - <story-title>"
 
 Example: `feat: [US-001] - Set up database schema`
 
-### 7. Update PRD
+### 6. Update PRD
 
 Mark the story as completed in prd.json:
 
@@ -97,7 +82,7 @@ Mark the story as completed in prd.json:
 
 Save the updated PRD.
 
-### 8. Append Progress
+### 7. Append Progress
 
 Add an entry to progress.txt:
 
@@ -117,7 +102,7 @@ Add an entry to progress.txt:
 ---
 ```
 
-### 9. Check for Completion
+### 8. Check for Completion
 
 After updating the PRD, check if ALL stories have `status: "completed"`.
 
@@ -169,10 +154,12 @@ Agent:
 3. Reads progress.txt - sees patterns from US-001
 4. Implements US-002 following the spec
 5. Runs checks - all pass
-6. Commits: "feat: [US-002] - Add login endpoint"
+6. Commits on current branch: "feat: [US-002] - Add login endpoint"
 7. Updates prd.json - sets US-002 to completed
 8. Appends progress.txt with what was done
 9. Checks - US-003 still pending, so ends normally
 
 Ralph spawns next iteration...
 ```
+
+**Note:** PRDs work on the current branch. The user manages branches/worktrees externally.

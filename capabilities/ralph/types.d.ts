@@ -47,14 +47,14 @@ export interface LastRun {
 export interface PRD {
 	/** PRD name (unique identifier, matches folder name) */
 	name: string;
-	/** Git branch name for this work */
-	branchName: string;
 	/** Description of the feature */
 	description: string;
 	/** ISO timestamp of creation */
 	createdAt: string;
 	/** List of stories (work chunks) */
 	stories: Story[];
+	/** PRD names that must be completed before this one can start */
+	dependencies?: string[];
 	/** Last run information (set on Ctrl+C or completion) */
 	lastRun?: LastRun;
 }

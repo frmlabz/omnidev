@@ -32,10 +32,10 @@ describe("Ralph State Management", () => {
 
 		const prd: PRD = {
 			name,
-			branchName: options.branchName ?? `feature/${name}`,
 			description: options.description ?? "Test PRD",
 			createdAt: options.createdAt ?? new Date().toISOString(),
 			stories: options.stories ?? [],
+			...(options.dependencies && { dependencies: options.dependencies }),
 			...(options.lastRun && { lastRun: options.lastRun }),
 		};
 
@@ -94,7 +94,6 @@ describe("Ralph State Management", () => {
 				join(completedPath, "prd.json"),
 				JSON.stringify({
 					name: "completed-prd",
-					branchName: "main",
 					description: "Completed",
 					createdAt: new Date().toISOString(),
 					stories: [],
@@ -111,13 +110,11 @@ describe("Ralph State Management", () => {
 		test("retrieves an existing PRD", async () => {
 			await createTestPRD("test-prd", {
 				description: "Test PRD",
-				branchName: "feature/test",
 			});
 
 			const retrieved = await getPRD("test-prd");
 			expect(retrieved.name).toBe("test-prd");
 			expect(retrieved.description).toBe("Test PRD");
-			expect(retrieved.branchName).toBe("feature/test");
 		});
 
 		test("throws error for non-existent PRD", async () => {
@@ -139,11 +136,9 @@ describe("Ralph State Management", () => {
 
 			const updated = await updatePRD("test-prd", {
 				description: "Updated",
-				branchName: "feature/updated",
 			});
 
 			expect(updated.description).toBe("Updated");
-			expect(updated.branchName).toBe("feature/updated");
 
 			const retrieved = await getPRD("test-prd");
 			expect(retrieved.description).toBe("Updated");
@@ -442,7 +437,6 @@ describe("Ralph State Management", () => {
 				join(prdDir, "prd.json"),
 				JSON.stringify({
 					name: "no-spec",
-					branchName: "feature/test",
 					description: "Test",
 					createdAt: new Date().toISOString(),
 					stories: [],

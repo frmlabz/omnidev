@@ -20,20 +20,21 @@ cat .omni/state/ralph/prds/<prd-name>/progress.txt
 
 **Why**: Previous iterations have already solved common problems. Don't reinvent the wheel.
 
-### Rule 2: Verify Branch Before Starting
+### Rule 2: Work on Current Branch
 
-**Check you're on the correct branch:**
+PRDs work on the current branch - they don't create or switch branches.
 
-```bash
-git branch --show-current
-```
+**The user is responsible for:**
+- Setting up the correct branch before starting
+- Managing work trees for parallel PRD execution
+- Merging completed work
 
-**If on wrong branch:**
-- Check out the PRD's `branchName` if it exists
-- Create it from main if it doesn't exist
-- Never work on `main` or unrelated branches
+**The agent should:**
+- Just commit changes on the current branch
+- Not run `git checkout` or `git switch`
+- Not create new branches
 
-**Why**: Working on the wrong branch creates merge conflicts and lost work.
+**Why**: Agents shouldn't manage git branches - the user handles this via work trees for parallel execution.
 
 ## During Iteration: Implementation
 
@@ -201,15 +202,14 @@ bun test           # run all tests
 
 ```
 1. Read progress.txt for patterns ✓
-2. Verify correct git branch ✓
-3. Pick highest priority incomplete story ✓
-4. Read spec file for details ✓
-5. Implement the story's scope ✓
-6. Run quality checks (must pass) ✓
-7. Commit with standard format ✓
-8. Update prd.json (set passes: true) ✓
-9. Append progress to progress.txt ✓
-10. Check for completion signal ✓
+2. Pick highest priority incomplete story ✓
+3. Read spec file for details ✓
+4. Implement the story's scope ✓
+5. Run quality checks (must pass) ✓
+6. Commit with standard format ✓
+7. Update prd.json (set status: "completed") ✓
+8. Append progress to progress.txt ✓
+9. Check for completion signal ✓
 ```
 
 ## Anti-Patterns
@@ -223,5 +223,5 @@ bun test           # run all tests
 - ❌ Implementing features outside the scope
 - ❌ Forgetting to update PRD or progress
 - ❌ Not reading progress.txt first
-- ❌ Working on wrong branch
-- ❌ Marking stories passed before verification
+- ❌ Creating or switching git branches
+- ❌ Marking stories completed before verification

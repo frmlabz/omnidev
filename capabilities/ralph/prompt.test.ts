@@ -19,10 +19,10 @@ async function createTestPRD(name: string, prd: Partial<PRD> = {}): Promise<void
 
 	const fullPRD: PRD = {
 		name,
-		branchName: prd.branchName ?? `feature/${name}`,
 		description: prd.description ?? "Test PRD",
 		createdAt: prd.createdAt ?? new Date().toISOString(),
 		stories: prd.stories ?? [],
+		...(prd.dependencies && { dependencies: prd.dependencies }),
 	};
 
 	await Bun.write(join(prdDir, "prd.json"), JSON.stringify(fullPRD, null, 2));
@@ -51,7 +51,6 @@ describe("generatePrompt", () => {
 	test("generates prompt with PRD context", async () => {
 		const prd: PRD = {
 			name: "test-project",
-			branchName: "feature/test",
 			description: "Test project description",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -81,7 +80,6 @@ describe("generatePrompt", () => {
 	test("includes spec content", async () => {
 		const prd: PRD = {
 			name: "spec-test",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -107,7 +105,6 @@ describe("generatePrompt", () => {
 	test("includes recent progress", async () => {
 		const prd: PRD = {
 			name: "progress-test",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -137,7 +134,6 @@ describe("generatePrompt", () => {
 	test("includes codebase patterns", async () => {
 		const prd: PRD = {
 			name: "patterns-test",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -169,7 +165,6 @@ describe("generatePrompt", () => {
 	test("handles empty patterns gracefully", async () => {
 		const prd: PRD = {
 			name: "no-patterns",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -194,7 +189,6 @@ describe("generatePrompt", () => {
 	test("formats acceptance criteria as bullet list", async () => {
 		const prd: PRD = {
 			name: "criteria-test",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [],
@@ -220,7 +214,6 @@ describe("generatePrompt", () => {
 	test("includes other stories for context", async () => {
 		const prd: PRD = {
 			name: "multi-story",
-			branchName: "main",
 			description: "Test",
 			createdAt: "2026-01-09T00:00:00Z",
 			stories: [

@@ -70,8 +70,6 @@ You are an autonomous coding agent working on the ${prd.name} feature.
 
 ${prd.description}
 
-Branch: \`${prd.branchName}\`
-
 ## Your Current Task
 
 **${story.id}: ${story.title}**
@@ -83,13 +81,14 @@ ${criteriaLines}
 
 1. **Read the spec** at \`.omni/state/ralph/prds/${prdName}/spec.md\` for full requirements
 2. **Read the progress log** at \`.omni/state/ralph/prds/${prdName}/progress.txt\` (check Codebase Patterns first)
-3. **Verify branch**: Check you're on \`${prd.branchName}\`, if not create/checkout it
-4. **Implement this story** following the spec and acceptance criteria
-5. **Run quality checks**: \`bun run check\` (typecheck + lint + format:check)
-6. **Run tests**: \`bun test\`
-7. **Commit changes**: \`git commit -m "feat: [${story.id}] - ${story.title}"\`
-8. **Update prd.json**: Set this story's status to "completed"
-9. **Append to progress.txt**: Document what you did
+3. **Implement this story** following the spec and acceptance criteria
+4. **Run quality checks**: \`bun run check\` (typecheck + lint + format:check)
+5. **Run tests**: \`bun test\`
+6. **Commit changes**: \`git commit -m "feat: [${story.id}] - ${story.title}"\`
+7. **Update prd.json**: Set this story's status to "completed"
+8. **Append to progress.txt**: Document what you did
+
+**Note:** Work on the current branch. Do not create or switch branches.
 
 ## Spec File
 

@@ -78,9 +78,9 @@ Break down the work into stories (manageable chunks):
 ```json
 {
   "name": "feature-name",
-  "branchName": "feature/feature-name",
   "description": "Brief description of the feature",
-  "createdAt": "2025-01-10T12:00:00Z",
+  "createdAt": "2026-01-10T12:00:00Z",
+  "dependencies": [],
   "stories": [
     {
       "id": "US-001",
@@ -97,6 +97,12 @@ Break down the work into stories (manageable chunks):
 }
 ```
 
+**PRD fields:**
+- `name`: Unique identifier (matches folder name)
+- `description`: Brief description of the feature
+- `createdAt`: ISO timestamp of creation
+- `dependencies`: Array of PRD names that must be completed first (can be empty)
+
 **Story fields:**
 - `id`: Unique identifier (US-001, US-002, etc.)
 - `title`: Short descriptive title
@@ -104,6 +110,25 @@ Break down the work into stories (manageable chunks):
 - `status`: "pending" | "in_progress" | "completed" | "blocked"
 - `priority`: 1-10 (lower = higher priority, do first)
 - `questions`: Array of questions when blocked (empty initially)
+
+### Dependencies
+
+If this PRD depends on other PRDs being completed first, add them to the `dependencies` array:
+
+```json
+{
+  "name": "user-dashboard",
+  "dependencies": ["auth-system", "user-profile"],
+  ...
+}
+```
+
+**When to use dependencies:**
+- The feature requires code from another PRD
+- There's a logical order (e.g., database schema before API)
+- Multiple PRDs are planned and should run in sequence
+
+**Note:** `omnidev ralph start` will refuse to run a PRD with incomplete dependencies.
 
 ### 5. Create Empty Progress File
 

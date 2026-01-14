@@ -126,27 +126,33 @@ args = ["--dangerously-allow-all"]
 ```json
 {
   "name": "user-auth",
-  "branchName": "ralph/user-auth",
   "description": "User authentication system",
   "createdAt": "2026-01-09T10:00:00Z",
-  "userStories": [
+  "dependencies": ["database-setup"],
+  "stories": [
     {
       "id": "US-001",
       "title": "Database schema for users",
-      "specFile": "specs/001-database-schema.md",
-      "scope": "Full spec",
       "acceptanceCriteria": [
         "Users table created",
         "Migration runs successfully",
         "Typecheck passes"
       ],
+      "status": "pending",
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "questions": []
     }
   ]
 }
 ```
+
+### Dependencies
+
+PRDs can depend on other PRDs. The `dependencies` array lists PRD names that must be completed before this one can start:
+
+- `omnidev ralph list` shows dependency status for each PRD
+- `omnidev ralph start` refuses to run if dependencies are not complete
+- Completed dependencies are checked in both active and archived PRDs
 
 ## Example Workflow
 

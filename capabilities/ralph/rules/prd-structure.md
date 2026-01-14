@@ -17,26 +17,35 @@ The `prd.json` file must contain:
 
 ```json
 {
-  "project": "ProjectName",
-  "branchName": "feature/branch-name",
+  "name": "feature-name",
   "description": "Brief description of what this PRD accomplishes",
-  "userStories": [
+  "createdAt": "2026-01-10T12:00:00Z",
+  "dependencies": ["other-prd-name"],
+  "stories": [
     {
       "id": "US-001",
       "title": "Story title",
-      "taskFile": "specs/001-feature.md",
-      "scope": "Specific part of task to implement",
       "acceptanceCriteria": [
         "Criteria 1",
         "Criteria 2"
       ],
+      "status": "pending",
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "questions": []
     }
   ]
 }
 ```
+
+### Dependencies Field
+
+The `dependencies` array contains names of other PRDs that must be completed before this PRD can start:
+
+- **Optional**: If omitted or empty, the PRD has no dependencies
+- **Names only**: Use PRD names, not paths (e.g., `"auth-system"` not `"prds/auth-system"`)
+- **Must exist**: Referenced PRDs should exist (active or archived)
+- **Validation**: `omnidev ralph start` will refuse to run if dependencies are incomplete
+- **Display**: `omnidev ralph list` shows dependency status for each PRD
 
 ## User Story Rules
 
@@ -130,7 +139,7 @@ Before starting Ralph orchestration:
 3. **IDs Unique**: All story IDs are unique
 4. **Priorities Unique**: All priorities are unique integers
 5. **Specs Exist**: All `taskFile` paths point to existing files
-6. **Branch Valid**: Branch name follows git conventions
+6. **Dependencies Met**: All PRDs in `dependencies` array must be completed or archived
 7. **Progress File**: `progress.txt` exists with correct structure
 
 ## Modification Rules
