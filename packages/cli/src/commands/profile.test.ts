@@ -70,7 +70,7 @@ describe("profile commands", () => {
 			// Create minimal config without profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "default"
 `,
@@ -87,7 +87,7 @@ active_profile = "default"
 			// Create config with profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "default"
 
@@ -116,7 +116,7 @@ capabilities = []
 			// Create config with profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "planning"
 
@@ -140,7 +140,7 @@ capabilities = ["planner"]
 			// Create config with profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "default"
 
@@ -163,7 +163,7 @@ capabilities = ["planner", "tasks"]
 			// Create config with active_profile
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "planning"
 
@@ -182,7 +182,7 @@ capabilities = ["planner"]
 		test("should handle invalid config gracefully", async () => {
 			// Create invalid config
 			mkdirSync(".omni", { recursive: true });
-			await Bun.write(".omni/config.toml", "invalid toml [[[");
+			await Bun.write("omni.toml", "invalid toml [[[");
 
 			try {
 				await runProfileList();
@@ -212,7 +212,7 @@ capabilities = ["planner"]
 			// Create config without the requested profile
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -237,7 +237,7 @@ capabilities = []
 			// Create config with profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -262,7 +262,7 @@ capabilities = ["planner"]
 			// Create config with profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 active_profile = "default"
 
@@ -285,7 +285,7 @@ capabilities = []
 			// Create config with multiple profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 
 [profiles.default]
@@ -317,7 +317,7 @@ capabilities = []
 			// Create config without any profiles
 			mkdirSync(".omni", { recursive: true });
 			await Bun.write(
-				".omni/config.toml",
+				"omni.toml",
 				`project = "test-project"
 `,
 			);
@@ -337,7 +337,7 @@ capabilities = []
 		test("should handle invalid config gracefully", async () => {
 			// Create invalid config
 			mkdirSync(".omni", { recursive: true });
-			await Bun.write(".omni/config.toml", "invalid toml [[[");
+			await Bun.write("omni.toml", "invalid toml [[[");
 
 			try {
 				await runProfileSet("planning");

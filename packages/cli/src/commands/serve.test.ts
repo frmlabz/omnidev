@@ -63,7 +63,7 @@ describe("serve command", () => {
 
 		// Create a config without the requested profile
 		writeFileSync(
-			".omni/config.toml",
+			"omni.toml",
 			`
 [capability]
 project = "test"
@@ -93,7 +93,7 @@ project = "test"
 
 		// Create config with profiles
 		writeFileSync(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 active_profile = "default"
 
@@ -150,7 +150,7 @@ capabilities = []
 
 		// Create config
 		writeFileSync(
-			".omni/config.toml",
+			"omni.toml",
 			`
 [capability]
 project = "test"

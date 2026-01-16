@@ -3,8 +3,8 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { loadConfig } from "./loader";
 
 const TEST_DIR = "/tmp/omnidev-test-loader";
-const CONFIG_PATH = ".omni/config.toml";
-const LOCAL_CONFIG = ".omni/config.local.toml";
+const CONFIG_PATH = "omni.toml";
+const LOCAL_CONFIG = "omni.local.toml";
 
 // Save and restore the current working directory
 let originalCwd: string;

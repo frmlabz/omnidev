@@ -8,13 +8,16 @@
  * - Version tracking and update detection
  */
 
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { cp, mkdir, readFile, writeFile, readdir, stat, rm } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import type {
 	OmniConfig,
 	GitCapabilitySourceConfig,
+	FileCapabilitySourceConfig,
+	CapabilitySourceConfig,
 	CapabilitiesLockFile,
 	CapabilityLockEntry,
 } from "../types/index.js";
@@ -38,7 +41,10 @@ export interface FetchResult {
 	id: string;
 	path: string;
 	version: string;
-	commit: string;
+	/** Git commit hash (for git sources) */
+	commit?: string;
+	/** Content hash (for file sources) */
+	contentHash?: string;
 	updated: boolean;
 	wrapped: boolean;
 }
@@ -52,13 +58,117 @@ export interface SourceUpdateInfo {
 }
 
 /**
+ * Check if a source string is a file source
+ */
+export function isFileSource(source: string): boolean {
+	return source.startsWith("file://");
+}
+
+/**
+ * Check if a source string is a git source
+ */
+export function isGitSource(source: string): boolean {
+	return (
+		source.startsWith("github:") ||
+		source.startsWith("git@") ||
+		source.startsWith("https://") ||
+		source.startsWith("http://")
+	);
+}
+
+/**
+ * Type guard to check if a parsed source config is a file source
+ */
+export function isFileSourceConfig(
+	config: GitCapabilitySourceConfig | FileCapabilitySourceConfig,
+): config is FileCapabilitySourceConfig {
+	return isFileSource(config.source);
+}
+
+/**
+ * Type guard to check if a parsed source config is a git source
+ */
+export function isGitSourceConfig(
+	config: GitCapabilitySourceConfig | FileCapabilitySourceConfig,
+): config is GitCapabilitySourceConfig {
+	return !isFileSource(config.source);
+}
+
+/**
+ * Parse a file:// URL into a filesystem path
+ * Supports both relative (file://./path) and absolute (file:///path) URLs
+ */
+export function parseFilePath(fileUrl: string): string {
+	if (!fileUrl.startsWith("file://")) {
+		throw new Error(`Invalid file URL: ${fileUrl}`);
+	}
+
+	const path = fileUrl.slice(7); // Remove "file://"
+
+	// Handle absolute paths (file:///absolute/path)
+	if (path.startsWith("/")) {
+		return path;
+	}
+
+	// Handle relative paths (file://./relative/path or file://relative/path)
+	if (path.startsWith("./") || path.startsWith("../")) {
+		return resolve(process.cwd(), path);
+	}
+
+	// Treat as relative path
+	return resolve(process.cwd(), path);
+}
+
+/**
+ * Calculate SHA256 hash of directory contents for change detection
+ * Hashes all files recursively, ignoring .git directory
+ */
+async function calculateDirectoryHash(dirPath: string): Promise<string> {
+	const hash = createHash("sha256");
+	await hashDirectory(dirPath, hash);
+	return hash.digest("hex");
+}
+
+async function hashDirectory(dirPath: string, hash: ReturnType<typeof createHash>): Promise<void> {
+	const entries = await readdir(dirPath, { withFileTypes: true });
+
+	// Sort entries for consistent hashing
+	entries.sort((a, b) => a.name.localeCompare(b.name));
+
+	for (const entry of entries) {
+		const entryPath = join(dirPath, entry.name);
+
+		// Skip .git directory
+		if (entry.name === ".git") {
+			continue;
+		}
+
+		// Add entry name to hash
+		hash.update(entry.name);
+
+		if (entry.isDirectory()) {
+			await hashDirectory(entryPath, hash);
+		} else if (entry.isFile()) {
+			const content = await readFile(entryPath);
+			hash.update(content);
+		}
+	}
+}
+
+/**
  * Parse a capability source string or config into normalized form
+ * Returns either a GitCapabilitySourceConfig or FileCapabilitySourceConfig
  */
 export function parseSourceConfig(
-	source: string | GitCapabilitySourceConfig,
-): GitCapabilitySourceConfig {
+	source: CapabilitySourceConfig,
+): GitCapabilitySourceConfig | FileCapabilitySourceConfig {
 	if (typeof source === "string") {
-		// Parse shorthand formats:
+		// File source shorthand: "file://./path"
+		if (isFileSource(source)) {
+			return { source };
+		}
+
+		// Git source shorthand formats:
 		// - "github:user/repo"
 		// - "github:user/repo#ref"
 		// - "git@github.com:user/repo.git"
@@ -106,7 +216,7 @@ export function getSourceCapabilityPath(id: string): string {
  * Get the lock file path
  */
 export function getLockFilePath(): string {
-	return join(OMNI_LOCAL, "capabilities.lock.toml");
+	return "omni.lock.toml";
 }
 
 /**
@@ -142,6 +252,9 @@ function stringifyLockFile(lockFile: CapabilitiesLockFile): string {
 		lines.push(`version = "${entry.version}"`);
 		if (entry.commit) {
 			lines.push(`commit = "${entry.commit}"`);
+		}
+		if (entry.content_hash) {
+			lines.push(`content_hash = "${entry.content_hash}"`);
 		}
 		if (entry.ref) {
 			lines.push(`ref = "${entry.ref}"`);
@@ -425,14 +538,154 @@ commit = "${commit}"
 }
 
 /**
- * Fetch a single capability source
+ * Generate capability.toml for a file-sourced capability
  */
-export async function fetchCapabilitySource(
+async function generateFileCapabilityToml(
 	id: string,
-	sourceConfig: string | GitCapabilitySourceConfig,
+	targetPath: string,
+	sourcePath: string,
+	contentHash: string,
+	content: DiscoveredContent,
+): Promise<void> {
+	const shortHash = contentHash.substring(0, 12);
+
+	// Build description based on discovered content
+	const parts: string[] = [];
+	if (content.skills.length > 0) {
+		parts.push(`${content.skills.length} skill${content.skills.length > 1 ? "s" : ""}`);
+	}
+	if (content.agents.length > 0) {
+		parts.push(`${content.agents.length} agent${content.agents.length > 1 ? "s" : ""}`);
+	}
+	if (content.commands.length > 0) {
+		parts.push(`${content.commands.length} command${content.commands.length > 1 ? "s" : ""}`);
+	}
+
+	const description =
+		parts.length > 0
+			? `Copied from ${sourcePath} (${parts.join(", ")})`
+			: `Copied from ${sourcePath}`;
+
+	const tomlContent = `# Auto-generated by OmniDev - DO NOT EDIT
+# This capability was copied from a local file source
+
+[capability]
+id = "${id}"
+name = "${id} (file source)"
+version = "${shortHash}"
+description = "${description}"
+
+[capability.metadata]
+source_path = "${sourcePath}"
+wrapped = true
+content_hash = "${contentHash}"
+`;
+
+	await writeFile(join(targetPath, "capability.toml"), tomlContent, "utf-8");
+}
+
+/**
+ * Fetch a file-sourced capability (copy from local path)
+ */
+async function fetchFileCapabilitySource(
+	id: string,
+	config: FileCapabilitySourceConfig,
 	options?: { silent?: boolean },
 ): Promise<FetchResult> {
-	const config = parseSourceConfig(sourceConfig);
+	const sourcePath = parseFilePath(config.source);
+	const targetPath = getSourceCapabilityPath(id);
+
+	// Verify source exists
+	if (!existsSync(sourcePath)) {
+		throw new Error(`File source not found: ${sourcePath}`);
+	}
+
+	// Calculate content hash of source
+	const sourceHash = await calculateDirectoryHash(sourcePath);
+
+	// Check if we need to update
+	let updated = false;
+	let existingHash: string | undefined;
+
+	if (existsSync(targetPath)) {
+		// Calculate existing hash to compare
+		existingHash = await calculateDirectoryHash(targetPath);
+		updated = existingHash !== sourceHash;
+	} else {
+		updated = true;
+	}
+
+	if (updated) {
+		if (!options?.silent) {
+			console.log(`  Copying ${id} from ${config.source}...`);
+		}
+
+		// Remove existing target if it exists
+		if (existsSync(targetPath)) {
+			await rm(targetPath, { recursive: true });
+		}
+
+		// Copy source to target
+		await mkdir(join(targetPath, ".."), { recursive: true });
+		await cp(sourcePath, targetPath, { recursive: true });
+
+		// Check if we need to wrap (no capability.toml)
+		const needsWrap = !hasCapabilityToml(targetPath);
+
+		if (needsWrap) {
+			// Discover content and generate capability.toml
+			const content = await discoverContent(targetPath);
+			await generateFileCapabilityToml(id, targetPath, config.source, sourceHash, content);
+
+			if (!options?.silent) {
+				const parts: string[] = [];
+				if (content.skills.length > 0) parts.push(`${content.skills.length} skills`);
+				if (content.agents.length > 0) parts.push(`${content.agents.length} agents`);
+				if (content.commands.length > 0) parts.push(`${content.commands.length} commands`);
+				if (parts.length > 0) {
+					console.log(`    Wrapped: ${parts.join(", ")}`);
+				}
+			}
+		}
+	} else {
+		if (!options?.silent) {
+			console.log(`  Checking ${id}...`);
+		}
+	}
+
+	// Get version from capability.toml or package.json
+	const shortHash = sourceHash.substring(0, 12);
+	let version = shortHash;
+	const pkgJsonPath = join(targetPath, "package.json");
+	if (existsSync(pkgJsonPath)) {
+		try {
+			const pkgJson = JSON.parse(await readFile(pkgJsonPath, "utf-8"));
+			if (pkgJson.version) {
+				version = pkgJson.version;
+			}
+		} catch {
+			// Ignore parse errors
+		}
+	}
+
+	return {
+		id,
+		path: targetPath,
+		version,
+		contentHash: sourceHash,
+		updated,
+		wrapped: !hasCapabilityToml(sourcePath),
+	};
+}
+
+/**
+ * Fetch a git-sourced capability
+ */
+async function fetchGitCapabilitySource(
+	id: string,
+	config: GitCapabilitySourceConfig,
+	options?: { silent?: boolean },
+): Promise<FetchResult> {
 	const gitUrl = sourceToGitUrl(config.source);
 	const targetPath = getSourceCapabilityPath(id);
 	const isWrap = config.type === "wrap";
@@ -502,6 +755,24 @@ export async function fetchCapabilitySource(
 }
 
 /**
+ * Fetch a single capability source (git or file)
+ */
+export async function fetchCapabilitySource(
+	id: string,
+	sourceConfig: CapabilitySourceConfig,
+	options?: { silent?: boolean },
+): Promise<FetchResult> {
+	const config = parseSourceConfig(sourceConfig);
+
+	// Dispatch based on source type
+	if (isFileSourceConfig(config)) {
+		return fetchFileCapabilitySource(id, config, options);
+	}
+
+	return fetchGitCapabilitySource(id, config, options);
+}
+
+/**
  * Fetch all capability sources from config
  */
 export async function fetchAllCapabilitySources(
@@ -526,22 +797,38 @@ export async function fetchAllCapabilitySources(
 			const result = await fetchCapabilitySource(id, source, options);
 			results.push(result);
 
-			// Update lock file
+			const sourceConfig = parseSourceConfig(source);
+
+			// Build lock entry based on source type
 			const lockEntry: CapabilityLockEntry = {
 				source: typeof source === "string" ? source : source.source,
 				version: result.version,
-				commit: result.commit,
 				updated_at: new Date().toISOString(),
 			};
 
-			const sourceConfig = parseSourceConfig(source);
-			if (sourceConfig.ref) {
-				lockEntry.ref = sourceConfig.ref;
+			if (isFileSourceConfig(sourceConfig)) {
+				// File source: use content hash
+				if (result.contentHash) {
+					lockEntry.content_hash = result.contentHash;
+				}
+			} else {
+				// Git source: use commit and ref
+				const gitConfig = sourceConfig as GitCapabilitySourceConfig;
+				if (result.commit) {
+					lockEntry.commit = result.commit;
+				}
+				if (gitConfig.ref) {
+					lockEntry.ref = gitConfig.ref;
+				}
 			}
 
 			// Check if lock entry changed
 			const existing = lockFile.capabilities[id];
-			if (!existing || existing.commit !== result.commit) {
+			const hasChanged = isFileSourceConfig(sourceConfig)
+				? !existing || existing.content_hash !== result.contentHash
+				: !existing || existing.commit !== result.commit;
+
+			if (hasChanged) {
 				lockFile.capabilities[id] = lockEntry;
 				lockUpdated = true;
 
@@ -589,11 +876,55 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 		const targetPath = getSourceCapabilityPath(id);
 		const existing = lockFile.capabilities[id];
 
+		// Handle file sources
+		if (isFileSourceConfig(sourceConfig)) {
+			const sourcePath = parseFilePath(sourceConfig.source);
+
+			if (!existsSync(sourcePath)) {
+				updates.push({
+					id,
+					source: sourceConfig.source,
+					currentVersion: existing?.version || "unknown",
+					latestVersion: "source missing",
+					hasUpdate: false,
+				});
+				continue;
+			}
+
+			if (!existsSync(targetPath)) {
+				updates.push({
+					id,
+					source: sourceConfig.source,
+					currentVersion: "not installed",
+					latestVersion: "available",
+					hasUpdate: true,
+				});
+				continue;
+			}
+
+			// Calculate current hash of source
+			const sourceHash = await calculateDirectoryHash(sourcePath);
+			const currentHash = existing?.content_hash || "";
+
+			updates.push({
+				id,
+				source: sourceConfig.source,
+				currentVersion:
+					existing?.version || (currentHash ? currentHash.substring(0, 12) : "unknown"),
+				latestVersion: sourceHash.substring(0, 12),
+				hasUpdate: currentHash !== sourceHash,
+			});
+			continue;
+		}
+
+		// Handle git sources
+		const gitConfig = sourceConfig as GitCapabilitySourceConfig;
+
 		if (!existsSync(join(targetPath, ".git"))) {
 			// Not yet cloned
 			updates.push({
 				id,
-				source: sourceConfig.source,
+				source: gitConfig.source,
 				currentVersion: "not installed",
 				latestVersion: "unknown",
 				hasUpdate: true,
@@ -610,7 +941,7 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 		await fetchProc.exited;
 
 		// Get remote commit
-		const targetRef = sourceConfig.ref || "HEAD";
+		const targetRef = gitConfig.ref || "HEAD";
 		const lsProc = Bun.spawn(["git", "ls-remote", "origin", targetRef], {
 			cwd: targetPath,
 			stdout: "pipe",
@@ -624,7 +955,7 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 
 		updates.push({
 			id,
-			source: sourceConfig.source,
+			source: gitConfig.source,
 			currentVersion: existing?.version || (currentCommit ? shortCommit(currentCommit) : "unknown"),
 			latestVersion: remoteCommit ? shortCommit(remoteCommit) : "unknown",
 			hasUpdate: currentCommit !== remoteCommit,

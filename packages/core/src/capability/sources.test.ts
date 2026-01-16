@@ -10,46 +10,48 @@ import {
 	loadLockFile,
 	saveLockFile,
 } from "./sources";
-import type { CapabilitiesLockFile } from "../types/index.js";
+import type { CapabilitiesLockFile, GitCapabilitySourceConfig } from "../types/index.js";
 
 describe("parseSourceConfig", () => {
 	test("parses simple github shorthand", () => {
-		const config = parseSourceConfig("github:user/repo");
+		const config = parseSourceConfig("github:user/repo") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
 		expect(config.ref).toBeUndefined();
 	});
 
 	test("parses github shorthand with ref", () => {
-		const config = parseSourceConfig("github:user/repo#v1.0.0");
+		const config = parseSourceConfig("github:user/repo#v1.0.0") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
 		expect(config.ref).toBe("v1.0.0");
 	});
 
 	test("parses github shorthand with branch ref", () => {
-		const config = parseSourceConfig("github:user/repo#main");
+		const config = parseSourceConfig("github:user/repo#main") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
 		expect(config.ref).toBe("main");
 	});
 
 	test("parses github shorthand with commit ref", () => {
-		const config = parseSourceConfig("github:user/repo#abc123def");
+		const config = parseSourceConfig("github:user/repo#abc123def") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
 		expect(config.ref).toBe("abc123def");
 	});
 
 	test("parses git ssh URL", () => {
-		const config = parseSourceConfig("git@github.com:user/repo.git");
+		const config = parseSourceConfig("git@github.com:user/repo.git") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("git@github.com:user/repo.git");
 		expect(config.ref).toBeUndefined();
 	});
 
 	test("parses https git URL", () => {
-		const config = parseSourceConfig("https://github.com/user/repo.git");
+		const config = parseSourceConfig(
+			"https://github.com/user/repo.git",
+		) as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("https://github.com/user/repo.git");
 		expect(config.ref).toBeUndefined();
@@ -60,7 +62,7 @@ describe("parseSourceConfig", () => {
 			source: "github:user/repo",
 			ref: "v2.0.0",
 			type: "wrap",
-		});
+		}) as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
 		expect(config.ref).toBe("v2.0.0");
@@ -71,7 +73,7 @@ describe("parseSourceConfig", () => {
 		const config = parseSourceConfig({
 			source: "github:user/monorepo",
 			path: "packages/my-cap",
-		});
+		}) as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/monorepo");
 		expect(config.path).toBe("packages/my-cap");
@@ -128,7 +130,7 @@ describe("getLockFilePath", () => {
 	test("returns correct lock file path", () => {
 		const path = getLockFilePath();
 
-		expect(path).toBe(".omni/capabilities.lock.toml");
+		expect(path).toBe("omni.lock.toml");
 	});
 });
 
@@ -158,7 +160,7 @@ describe("loadLockFile", () => {
 
 	test("loads lock file with single capability", async () => {
 		writeFileSync(
-			".omni/capabilities.lock.toml",
+			"omni.lock.toml",
 			`[capabilities.my-cap]
 source = "github:user/repo"
 version = "1.0.0"
@@ -177,7 +179,7 @@ updated_at = "2026-01-01T00:00:00Z"
 
 	test("loads lock file with multiple capabilities", async () => {
 		writeFileSync(
-			".omni/capabilities.lock.toml",
+			"omni.lock.toml",
 			`[capabilities.cap1]
 source = "github:user/repo1"
 version = "1.0.0"
@@ -202,7 +204,7 @@ updated_at = "2026-01-02T00:00:00Z"
 	});
 
 	test("returns empty capabilities for invalid TOML", async () => {
-		writeFileSync(".omni/capabilities.lock.toml", "invalid [[[toml");
+		writeFileSync("omni.lock.toml", "invalid [[[toml");
 
 		const lockFile = await loadLockFile();
 
@@ -242,9 +244,9 @@ describe("saveLockFile", () => {
 
 		await saveLockFile(lockFile);
 
-		expect(existsSync(".omni/capabilities.lock.toml")).toBe(true);
+		expect(existsSync("omni.lock.toml")).toBe(true);
 
-		const content = await Bun.file(".omni/capabilities.lock.toml").text();
+		const content = await Bun.file("omni.lock.toml").text();
 		expect(content).toContain("[capabilities.my-cap]");
 		expect(content).toContain('source = "github:user/repo"');
 		expect(content).toContain('version = "1.0.0"');
@@ -266,7 +268,7 @@ describe("saveLockFile", () => {
 
 		await saveLockFile(lockFile);
 
-		const content = await Bun.file(".omni/capabilities.lock.toml").text();
+		const content = await Bun.file("omni.lock.toml").text();
 		expect(content).toContain('ref = "v2.0.0"');
 	});
 
@@ -286,7 +288,7 @@ describe("saveLockFile", () => {
 		await saveLockFile(lockFile);
 
 		expect(existsSync(".omni/capabilities")).toBe(true);
-		expect(existsSync(".omni/capabilities.lock.toml")).toBe(true);
+		expect(existsSync("omni.lock.toml")).toBe(true);
 	});
 
 	test("includes header comment in lock file", async () => {
@@ -296,7 +298,7 @@ describe("saveLockFile", () => {
 
 		await saveLockFile(lockFile);
 
-		const content = await Bun.file(".omni/capabilities.lock.toml").text();
+		const content = await Bun.file("omni.lock.toml").text();
 		expect(content).toContain("# Auto-generated by OmniDev");
 		expect(content).toContain("DO NOT EDIT");
 	});

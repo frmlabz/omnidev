@@ -1,129 +1,103 @@
 # OmniDev
 
-> A meta-MCP that eliminates context bloat by exposing only **2 tools** to LLMs while providing unlimited power through a sandboxed coding environment.
+A capability system for AI coding agents. Load skills, rules, and tools on-demand through profiles.
 
-## Why OmniDev?
+[![xkcd: Standards](https://imgs.xkcd.com/comics/standards.png)](https://xkcd.com/927/)
 
-LLMs are much better at writing code than calling tools. [Cloudflare's research](https://blog.cloudflare.com/code-mode/) explains why:
+Yes, we know. Another standard. But hear us out.
 
-> The special tokens used in tool calls are things LLMs have never seen in the wild. They must be specially trained to use tools, based on synthetic training data. They aren't always that good at it... Meanwhile, LLMs are getting really good at writing code. In fact, LLMs asked to write code against the full, complex APIs normally exposed to developers don't seem to have too much trouble with it.
->
-> LLMs have seen a lot of code. They have not seen a lot of "tool calls". Making an LLM perform tasks with tool calling is like putting Shakespeare through a month-long class in Mandarin and then asking him to write a play in it.
+## The Problem
 
-OmniDev embraces this by:
+AI coding assistants are fragmenting into incompatible ecosystems:
+- `.cursor/` for Cursor
+- `.claude/` for Claude Code
+- `.agent/` for other agents
+- Various MCP servers that don't talk to each other
 
-1. **Moving logic to a sandbox** — Instead of exposing dozens of MCP tools, LLMs write TypeScript code that runs in a Bun sandbox with full API access
-2. **Context-aware capability loading** — Load only what you need. Frontend work? Skip backend/DB capabilities. Planning? Different skills than coding.
+This makes it hard to:
+- **Share setups with your team** — Everyone uses different tools
+- **Switch between agents** — Reconfigure everything each time
+- **Customize without forking** — Override team defaults for your workflow
 
-## The Two MCP Tools
+## The Solution
 
-### `omni_sandbox_environment`
+OmniDev adds `omni.toml` and `omni.lock.toml` to your project. Yes, more config files. But the tradeoff is worth it:
 
-Discover available sandbox tools with three levels of detail:
+**1. Reduced context = better AI decisions**
 
-```json
-// Level 1: Overview of all modules
-{}
+AI agents work better with focused context. Instead of loading every possible tool, load only what you need:
+```toml
+[profiles.frontend]
+capabilities = ["ui-design", "accessibility"]
 
-// Level 2: Module details with schemas
-{ "capability": "tasks" }
-
-// Level 3: Full tool specification
-{ "capability": "tasks", "tool": "createTask" }
+[profiles.backend]
+capabilities = ["database", "api-design"]
 ```
 
-### `omni_execute`
+**2. Shareable and extensible**
 
-Run TypeScript code with access to capability modules:
-
-```json
-{
-  "code": "full contents of main.ts"
-}
+Commit `omni.toml` to share your setup. Team members can override with `omni.local.toml`:
+```toml
+# omni.local.toml (gitignored)
+[profiles.default]
+capabilities = ["my-custom-workflow"]
 ```
 
-The LLM writes complete TypeScript files:
+**3. One system, multiple outputs**
 
-```typescript
-import * as tasks from "tasks";
-
-export async function main(): Promise<number> {
-  await tasks.createTask({
-    title: "Review PR #123",
-    priority: "high"
-  });
-  return 0;
-}
-```
-
-Response includes `stdout`, `stderr`, `exit_code`, `changed_files`, and `diff_stat`.
+OmniDev generates configuration for whatever agent you use. Your capabilities work everywhere.
 
 ## Quick Start
 
 ```bash
-# Clone and install
-git clone https://github.com/your-org/omnidev.git
-cd omnidev && bun install
+# Install
+npm install -g @omnidev/cli
 
-# Initialize OmniDev in your project
+# Initialize in your project
 omnidev init
 
-# Check your setup
+# Check setup
 omnidev doctor
-
-# Start the MCP server
-omnidev serve
 ```
 
-Run `omnidev --help` for all available commands.
-
-## Project Structure
-
+This creates:
 ```
-omnidev/
-├── packages/
-│   ├── core/           # Shared types, capability loader, config
-│   ├── cli/            # Stricli CLI + commands
-│   └── mcp/            # MCP server (omni_sandbox_environment, omni_execute)
-├── capabilities/       # Built-in capabilities
-│   ├── ralph/          # AI agent orchestrator for PRD-driven development
-│   ├── tasks/          # Task management
-│   └── context7/       # Documentation fetching
-└── docs/               # Documentation
+your-project/
+├── omni.toml           # Configuration (commit this)
+├── omni.lock.toml      # Version lock (commit this)
+└── .omni/              # Runtime files (gitignored)
 ```
 
-### User Project Structure (after `omnidev init`)
+## Configuration
 
+### Adding Capabilities
+
+Install capabilities from Git or local directories:
+
+```toml
+# omni.toml
+[capabilities.sources]
+# From GitHub
+obsidian = "github:kepano/obsidian-skills"
+
+# Pinned version
+tools = { source = "github:user/repo", ref = "v1.0.0" }
+
+# Local directory (for development)
+my-cap = "file://./capabilities/custom"
 ```
-project-root/
-└── .omni/
-    ├── config.toml         # Project configuration and profiles
-    ├── instructions.md     # Generated agent instructions
-    ├── capabilities/       # Custom capabilities
-    ├── state/              # Runtime state (gitignored)
-    └── sandbox/            # Sandbox execution (gitignored)
-```
 
-## Capabilities
-
-A capability is a directory containing:
-
-```
-capabilities/my-capability/
-├── capability.toml     # Metadata & config (required)
-├── definition.md       # Description (required)
-├── index.ts            # Sandbox tool exports
-├── types.d.ts          # Type definitions for LLM
-├── skills/             # Agent behaviors (SKILL.md files)
-└── rules/              # Guidelines (*.md files)
+Then sync:
+```bash
+omnidev sync
 ```
 
 ### Profiles
 
-Switch capability sets for different workflows:
+Switch between capability sets:
 
 ```toml
-# .omni/config.toml
+# omni.toml
 [profiles.default]
 capabilities = ["tasks"]
 
@@ -134,44 +108,77 @@ capabilities = ["ralph", "tasks"]
 capabilities = ["tasks", "ui-design"]
 ```
 
-## Development
-
 ```bash
-bun run check        # typecheck + lint + format + test
-bun test             # run tests
-bun test --coverage  # with coverage report
+omnidev profile set planning
 ```
 
-## Roadmap
+### Local Overrides
 
-### ✅ Completed
-- Bun monorepo setup
-- Code quality infrastructure (Biome, Lefthook)
-- Testing infrastructure
-- Core types and configuration
-- Capability system (loader, skills, rules, docs)
-- CLI package (Stricli)
-- MCP server package
-- Ralph capability (AI orchestrator)
-- MCP server wrapping
+Customize without affecting the team:
 
-### 📋 Future
-- TUI views (OpenTUI)
-- Capability hub / remote installation
-- Git safety layer (checkpoints, rollback)
-- Doc indexing and search
-- Create abstraction over `strictli` in omnidev core so that we don't directly depend on their types
+```toml
+# omni.local.toml (gitignored)
+[profiles.default]
+capabilities = ["my-experimental-tool"]
+```
 
-## Tech Stack
+## CLI Commands
 
-| Component | Technology |
-|-----------|------------|
-| Runtime | [Bun](https://bun.sh) |
-| CLI Framework | [Stricli](https://bloomberg.github.io/stricli/) |
-| MCP Server | [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) |
-| Configuration | TOML ([smol-toml](https://github.com/nicolo-ribaudo/smol-toml)) |
-| Linting | [Biome](https://biomejs.dev/) |
-| Git Hooks | [Lefthook](https://github.com/evilmartians/lefthook) |
+| Command | Description |
+|---------|-------------|
+| `omnidev init` | Initialize OmniDev |
+| `omnidev sync` | Fetch sources and regenerate config |
+| `omnidev doctor` | Check setup |
+| `omnidev profile list` | Show profiles |
+| `omnidev profile set <name>` | Switch profile |
+| `omnidev capability list` | List capabilities |
+| `omnidev serve` | Start MCP server |
+
+## MCP Server
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "omnidev": {
+      "command": "npx",
+      "args": ["-y", "@omnidev/cli", "serve"]
+    }
+  }
+}
+```
+
+The server exposes:
+- **`omni_sandbox_environment`** — Discover available capabilities
+- **`omni_execute`** — Run TypeScript in a sandboxed environment
+
+## Creating Capabilities
+
+A capability is a directory with skills, rules, and tools:
+
+```
+my-capability/
+├── capability.toml     # Metadata
+├── skills/             # Agent behaviors
+├── rules/              # Guidelines
+└── index.ts            # Sandbox exports
+```
+
+See [docs/capability-development.md](docs/capability-development.md) for the full guide.
+
+## File Structure
+
+| File | Purpose | Git |
+|------|---------|-----|
+| `omni.toml` | Main configuration | Commit |
+| `omni.local.toml` | Local overrides | Ignore |
+| `omni.lock.toml` | Version lock | Commit |
+| `.omni/` | Runtime directory | Ignore |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and architecture.
 
 ## License
 

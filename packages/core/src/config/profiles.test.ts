@@ -39,7 +39,7 @@ describe("getActiveProfile", () => {
 	});
 
 	test("falls back to config.toml for backwards compatibility", async () => {
-		writeFileSync(".omni/config.toml", 'active_profile = "legacy"', "utf-8");
+		writeFileSync("omni.toml", 'active_profile = "legacy"', "utf-8");
 		const profile = await getActiveProfile();
 		expect(profile).toBe("legacy");
 	});
@@ -47,13 +47,13 @@ describe("getActiveProfile", () => {
 	test("state file takes precedence over config.toml", async () => {
 		mkdirSync(".omni/state", { recursive: true });
 		await Bun.write(".omni/state/active-profile", "from-state");
-		writeFileSync(".omni/config.toml", 'active_profile = "from-config"', "utf-8");
+		writeFileSync("omni.toml", 'active_profile = "from-config"', "utf-8");
 		const profile = await getActiveProfile();
 		expect(profile).toBe("from-state");
 	});
 
 	test("returns null when config has no active_profile", async () => {
-		writeFileSync(".omni/config.toml", 'project = "test"', "utf-8");
+		writeFileSync("omni.toml", 'project = "test"', "utf-8");
 		const profile = await getActiveProfile();
 		expect(profile).toBe(null);
 	});
@@ -96,9 +96,9 @@ describe("setActiveProfile", () => {
 	});
 
 	test("does not modify config.toml", async () => {
-		writeFileSync(".omni/config.toml", 'project = "test"', "utf-8");
+		writeFileSync("omni.toml", 'project = "test"', "utf-8");
 		await setActiveProfile("staging");
-		const content = await Bun.file(".omni/config.toml").text();
+		const content = await Bun.file("omni.toml").text();
 		expect(content).not.toContain("active_profile");
 	});
 });

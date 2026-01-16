@@ -37,7 +37,7 @@ describe("capability list command", () => {
 		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni/capabilities", { recursive: true });
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -86,7 +86,7 @@ description = "Note management"
 		);
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -132,7 +132,7 @@ description = "Test"
 		);
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -172,7 +172,7 @@ description = "Valid capability"
 		await Bun.write(".omni/capabilities/invalid/capability.toml", "invalid toml [[[");
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -216,7 +216,7 @@ description = "Task tracking"
 		);
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 active_profile = "coding"
 
@@ -245,7 +245,7 @@ capabilities = ["tasks"]
 		// Create an omni directory but with invalid config to trigger error
 		mkdirSync(".omni", { recursive: true });
 		mkdirSync(".omni/capabilities", { recursive: true });
-		await Bun.write(".omni/config.toml", "invalid toml [[[");
+		await Bun.write("omni.toml", "invalid toml [[[");
 		mkdirSync(".omni", { recursive: true });
 
 		const originalError = console.error;
@@ -279,7 +279,7 @@ description = "${cap} capability"
 		}
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -348,7 +348,7 @@ description = "Task tracking"
 		);
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -358,7 +358,7 @@ capabilities = []
 
 		await runCapabilityEnable({}, "tasks");
 
-		const content = await Bun.file(".omni/config.toml").text();
+		const content = await Bun.file("omni.toml").text();
 		expect(content).toContain('capabilities = ["tasks"]');
 	});
 
@@ -375,7 +375,7 @@ description = "Task tracking"
 		);
 
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -385,14 +385,14 @@ capabilities = []
 
 		await runCapabilityEnable({}, "tasks");
 
-		const content = await Bun.file(".omni/config.toml").text();
+		const content = await Bun.file("omni.toml").text();
 		expect(content).toContain('capabilities = ["tasks"]');
 	});
 
 	test("exits with error if capability doesn't exist", async () => {
 		mkdirSync(".omni", { recursive: true });
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -450,7 +450,7 @@ describe("capability disable command", () => {
 	test("disables a capability", async () => {
 		mkdirSync(".omni", { recursive: true });
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -460,14 +460,14 @@ capabilities = ["tasks"]
 
 		await runCapabilityDisable({}, "tasks");
 
-		const content = await Bun.file(".omni/config.toml").text();
+		const content = await Bun.file("omni.toml").text();
 		expect(content).toContain("capabilities = []");
 	});
 
 	test("removes capability from profile", async () => {
 		mkdirSync(".omni", { recursive: true });
 		await Bun.write(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 
 [profiles.default]
@@ -477,7 +477,7 @@ capabilities = ["tasks", "notes"]
 
 		await runCapabilityDisable({}, "tasks");
 
-		const content = await Bun.file(".omni/config.toml").text();
+		const content = await Bun.file("omni.toml").text();
 		expect(content).toContain('capabilities = ["notes"]');
 	});
 });

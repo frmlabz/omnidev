@@ -14,7 +14,7 @@ describe("doctor command", () => {
 	function createCompleteStructure() {
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 active_profile = "default"
 
@@ -105,7 +105,7 @@ sandbox/
 
 	test("should fail when config.toml is invalid", async () => {
 		mkdirSync(".omni", { recursive: true });
-		writeFileSync(".omni/config.toml", "invalid toml [[[");
+		writeFileSync("omni.toml", "invalid toml [[[");
 
 		await runDoctor();
 
@@ -147,7 +147,7 @@ sandbox/
 		mkdirSync(".omni", { recursive: true });
 
 		// Create a config with invalid TOML syntax
-		writeFileSync(".omni/config.toml", "invalid = [[[]]");
+		writeFileSync("omni.toml", "invalid = [[[]]");
 
 		await runDoctor();
 
@@ -166,7 +166,7 @@ sandbox/
 	test("should validate internal .gitignore exists", async () => {
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
-			".omni/config.toml",
+			"omni.toml",
 			`project = "test"
 active_profile = "default"
 

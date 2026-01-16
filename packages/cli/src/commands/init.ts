@@ -34,8 +34,8 @@ export async function runInit(_flags: Record<string, never>, provider?: string) 
 		providers = await promptForProvider();
 	}
 
-	// Create unified config.toml
-	if (!existsSync(".omni/config.toml")) {
+	// Create omni.toml at project root
+	if (!existsSync("omni.toml")) {
 		await writeConfig({
 			project: "my-project",
 			providers: {
@@ -53,7 +53,7 @@ export async function runInit(_flags: Record<string, never>, provider?: string) 
 				},
 			},
 		});
-		// Set active profile in state file (not config.toml)
+		// Set active profile in state file (not omni.toml)
 		await setActiveProfile("default");
 	}
 
@@ -112,9 +112,11 @@ export async function runInit(_flags: Record<string, never>, provider?: string) 
 	console.log("     }");
 	console.log("   }");
 	console.log("");
-	console.log("📁 Sharing options:");
-	console.log("   • To share config with team: commit the .omni/ folder");
-	console.log("   • To keep personal: add '.omni' to your project's .gitignore");
+	console.log("📁 File structure:");
+	console.log("   • omni.toml - Main config (commit to share with team)");
+	console.log("   • omni.lock.toml - Lock file (commit for reproducibility)");
+	console.log("   • omni.local.toml - Local overrides (add to .gitignore)");
+	console.log("   • .omni/ - Runtime directory (add to .gitignore)");
 }
 
 export const initCommand = buildCommand({

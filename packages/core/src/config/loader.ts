@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import type { OmniConfig } from "../types";
 import { parseOmniConfig } from "./parser";
 
-const CONFIG_PATH = ".omni/config.toml";
-const LOCAL_CONFIG = ".omni/config.local.toml";
+const CONFIG_PATH = "omni.toml";
+const LOCAL_CONFIG = "omni.local.toml";
 
 /**
  * Deep merge two config objects, with override taking precedence
@@ -33,7 +33,7 @@ function mergeConfigs(base: OmniConfig, override: OmniConfig): OmniConfig {
  * Load and merge config and local configuration files
  * @returns Merged OmniConfig object
  *
- * Reads .omni/config.toml (main config) and .omni/config.local.toml (local overrides).
+ * Reads omni.toml (main config) and omni.local.toml (local overrides).
  * Local config takes precedence over main config. Missing files are treated as empty configs.
  */
 export async function loadConfig(): Promise<OmniConfig> {
@@ -54,7 +54,7 @@ export async function loadConfig(): Promise<OmniConfig> {
 }
 
 /**
- * Write config to .omni/config.toml
+ * Write config to omni.toml at project root
  * @param config - The config object to write
  */
 export async function writeConfig(config: OmniConfig): Promise<void> {

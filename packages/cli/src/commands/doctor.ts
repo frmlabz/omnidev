@@ -100,12 +100,12 @@ async function checkOmniLocalDir(): Promise<Check> {
 }
 
 async function checkConfig(): Promise<Check> {
-	const configPath = ".omni/config.toml";
+	const configPath = "omni.toml";
 	if (!existsSync(configPath)) {
 		return {
 			name: "Configuration",
 			passed: false,
-			message: "config.toml not found",
+			message: "omni.toml not found",
 			fix: "Run: omnidev init",
 		};
 	}
@@ -123,7 +123,7 @@ async function checkConfig(): Promise<Check> {
 			name: "Configuration",
 			passed: false,
 			message: `Invalid: ${error instanceof Error ? error.message : String(error)}`,
-			fix: "Check .omni/config.toml syntax",
+			fix: "Check omni.toml syntax",
 		};
 	}
 }

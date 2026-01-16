@@ -28,12 +28,12 @@ describe("init command", () => {
 		expect(existsSync(".omni/capabilities")).toBe(true);
 	});
 
-	test("creates .omni/config.toml with default config", async () => {
+	test("creates omni.toml with default config", async () => {
 		await runInit({}, "claude");
 
-		expect(existsSync(".omni/config.toml")).toBe(true);
+		expect(existsSync("omni.toml")).toBe(true);
 
-		const content = readFileSync(".omni/config.toml", "utf-8");
+		const content = readFileSync("omni.toml", "utf-8");
 		expect(content).toContain('project = "my-project"');
 		// active_profile is stored in state file, not config.toml
 		expect(content).not.toContain("active_profile");
@@ -85,7 +85,7 @@ describe("init command", () => {
 		expect(existsSync(".omni/provider.toml")).toBe(false);
 
 		// Verify provider is in config.toml instead
-		const content = readFileSync(".omni/config.toml", "utf-8");
+		const content = readFileSync("omni.toml", "utf-8");
 		expect(content).toContain('enabled = ["claude"]');
 	});
 
@@ -205,7 +205,7 @@ describe("init command", () => {
 		await runInit({}, "claude");
 		await runInit({}, "claude");
 
-		expect(existsSync(".omni/config.toml")).toBe(true);
+		expect(existsSync("omni.toml")).toBe(true);
 		expect(existsSync(".omni")).toBe(true);
 		expect(existsSync("CLAUDE.md")).toBe(true);
 
@@ -216,11 +216,11 @@ describe("init command", () => {
 	test("does not overwrite existing config.toml", async () => {
 		const customConfig = 'project = "custom"\n';
 		mkdirSync(".omni", { recursive: true });
-		await Bun.write(".omni/config.toml", customConfig);
+		await Bun.write("omni.toml", customConfig);
 
 		await runInit({}, "claude");
 
-		const content = readFileSync(".omni/config.toml", "utf-8");
+		const content = readFileSync("omni.toml", "utf-8");
 		expect(content).toBe(customConfig);
 	});
 
@@ -250,7 +250,7 @@ describe("init command", () => {
 
 		expect(existsSync(".omni/provider.toml")).toBe(false);
 
-		const content = readFileSync(".omni/config.toml", "utf-8");
+		const content = readFileSync("omni.toml", "utf-8");
 		expect(content).toContain('enabled = ["codex"]');
 	});
 
@@ -259,7 +259,7 @@ describe("init command", () => {
 
 		expect(existsSync(".omni/provider.toml")).toBe(false);
 
-		const content = readFileSync(".omni/config.toml", "utf-8");
+		const content = readFileSync("omni.toml", "utf-8");
 		expect(content).toContain('enabled = ["claude", "codex"]');
 	});
 });

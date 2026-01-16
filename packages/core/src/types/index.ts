@@ -143,8 +143,8 @@ export interface Command {
 }
 
 // Capability Source Types
-// Sources: local (manual), git (version via package.json), hub (future)
-export type CapabilitySourceType = "built-in" | "local" | "git" | "hub";
+// Sources: local (manual), git (version via package.json), file (local path), hub (future)
+export type CapabilitySourceType = "built-in" | "local" | "git" | "file" | "hub";
 
 /** Configuration for a Git-sourced capability */
 export interface GitCapabilitySourceConfig {
@@ -162,6 +162,18 @@ export interface GitCapabilitySourceConfig {
 	type?: "full" | "wrap";
 }
 
+/** Configuration for a file-sourced capability (local path) */
+export interface FileCapabilitySourceConfig {
+	/** Source path as file:// URL (e.g., "file://./local-cap", "file:///absolute/path") */
+	source: string;
+}
+
+/** Combined type for all capability source configurations */
+export type CapabilitySourceConfig =
+	| string // shorthand: "github:user/repo" or "file://./path"
+	| GitCapabilitySourceConfig
+	| FileCapabilitySourceConfig;
+
 /** Lock file entry for a capability (version tracking) */
 export interface CapabilityLockEntry {
 	/** Original source reference */
@@ -170,25 +182,27 @@ export interface CapabilityLockEntry {
 	version: string;
 	/** For git sources: exact commit hash */
 	commit?: string;
+	/** For file sources: content hash (sha256) for change detection */
+	content_hash?: string;
 	/** Pinned ref if specified */
 	ref?: string;
 	/** Last update timestamp (ISO 8601) */
 	updated_at: string;
 }
 
-/** Lock file structure (.omni/capabilities.lock.toml) */
+/** Lock file structure (omni.lock.toml at project root) */
 export interface CapabilitiesLockFile {
 	capabilities: Record<string, CapabilityLockEntry>;
 }
 
-/** Capabilities configuration section in omni/config.toml */
+/** Capabilities configuration section in omni.toml */
 export interface CapabilitiesConfig {
 	/** List of enabled capability IDs */
 	enable?: string[];
 	/** List of disabled capability IDs */
 	disable?: string[];
-	/** Git-sourced capabilities: id -> source string or full config */
-	sources?: Record<string, string | GitCapabilitySourceConfig>;
+	/** Capability sources: id -> source string or full config (git or file) */
+	sources?: Record<string, CapabilitySourceConfig>;
 }
 
 // Config Types

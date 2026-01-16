@@ -53,8 +53,8 @@ export const profileRoutes = buildRouteMap({
 
 export async function runProfileList(): Promise<void> {
 	try {
-		// Check if .omni/config.toml exists
-		if (!existsSync(".omni/config.toml")) {
+		// Check if omni.toml exists
+		if (!existsSync("omni.toml")) {
 			console.log("✗ No config file found");
 			console.log("  Run: omnidev init");
 			process.exit(1);
@@ -71,9 +71,9 @@ export async function runProfileList(): Promise<void> {
 		const profileNames = Object.keys(profiles);
 
 		if (profileNames.length === 0) {
-			console.log("No profiles defined in config.toml");
+			console.log("No profiles defined in omni.toml");
 			console.log("");
-			console.log("Using default capabilities from config.toml");
+			console.log("Using default capabilities from omni.toml");
 			return;
 		}
 
@@ -109,8 +109,8 @@ export async function runProfileList(): Promise<void> {
 
 export async function runProfileSet(profileName: string): Promise<void> {
 	try {
-		// Check if .omni/config.toml exists
-		if (!existsSync(".omni/config.toml")) {
+		// Check if omni.toml exists
+		if (!existsSync("omni.toml")) {
 			console.log("✗ No config file found");
 			console.log("  Run: omnidev init");
 			process.exit(1);
@@ -122,7 +122,7 @@ export async function runProfileSet(profileName: string): Promise<void> {
 		// Validate profile exists
 		const profiles = config.profiles ?? {};
 		if (!(profileName in profiles)) {
-			console.log(`✗ Profile "${profileName}" not found in config.toml`);
+			console.log(`✗ Profile "${profileName}" not found in omni.toml`);
 			console.log("");
 			console.log("Available profiles:");
 			const profileNames = Object.keys(profiles);
