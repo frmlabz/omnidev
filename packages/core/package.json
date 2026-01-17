@@ -9,11 +9,17 @@
 		"directory": "packages/core"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./test-utils": "./src/test-utils/index.ts"
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./test-utils": {
+			"types": "./dist/test-utils/index.d.ts",
+			"default": "./dist/test-utils/index.js"
+		}
 	},
 	"files": [
-		"src",
+		"dist",
 		"README.md"
 	],
 	"publishConfig": {
@@ -22,11 +28,13 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"build": "echo 'Build not needed for Bun runtime'"
+		"build": "tsdown"
 	},
 	"dependencies": {
 		"@stricli/core": "^1.2.5",
 		"smol-toml": "^1.6.0"
 	},
-	"devDependencies": {}
+	"devDependencies": {
+		"tsdown": "^0.12.5"
+	}
 }

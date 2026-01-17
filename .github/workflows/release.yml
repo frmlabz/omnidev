@@ -27,7 +27,7 @@ jobs:
         with:
           bun-version: latest
 
-      # Node.js 24+ required for npm 11.5.1+ (trusted publishing)
+      # npm 11.5.1+ (trusted publishing)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -36,9 +36,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Build
-        run: bun run build
 
       - name: Create Release PR or Publish
         id: changesets
@@ -51,3 +48,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # No NPM_TOKEN needed - using OIDC trusted publishing
+          # TODO: Consider switching to `bun publish`, not sure if it supports OIDC trusted publishing
+          # This would allow removing the Node.js setup step entirely

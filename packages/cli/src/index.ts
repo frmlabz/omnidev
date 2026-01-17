@@ -1,4 +1,3 @@
-#!/usr/bin/env bun
 /**
  * @omnidev-ai/cli - Command-line interface for OmniDev
  *

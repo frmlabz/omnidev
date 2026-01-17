@@ -1,27 +1,13 @@
 {
 	"name": "@omnidev-ai/adapters",
-	"version": "0.3.0",
+	"version": "0.0.0",
 	"type": "module",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Nikola-Milovic/omnidev.git",
-		"directory": "packages/adapters"
-	},
-	"publishConfig": {
-		"access": "public",
-		"registry": "https://registry.npmjs.org"
-	},
+	"private": true,
 	"exports": {
 		".": "./src/index.ts"
 	},
-	"files": [
-		"src",
-		"README.md"
-	],
 	"scripts": {
-		"typecheck": "tsc --noEmit",
-		"build": "echo 'Build not needed for Bun runtime'"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@omnidev-ai/core": "workspace:*"

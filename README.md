@@ -212,6 +212,7 @@ See [docs/capability-development.md](docs/capability-development.md) for the ful
 - [ ] Support `.env` files for MCP environment variables (qualify of life feature)
 - [ ] Different MCP protocols
 - [ ] Command to easily add capabilities/ mcps to config (capability install/ add) (enable/ disable currently breaks omni.toml)
+- [ ] Remove bun dependency (compile to JS and expose that instead of TS files)
 
 ## Contributing
 

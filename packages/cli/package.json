@@ -9,15 +9,13 @@
 		"directory": "packages/cli"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./commands/init": "./src/commands/init.ts",
-		"./commands/sync": "./src/commands/sync.ts"
+		".": "./dist/index.js"
 	},
 	"bin": {
-		"omnidev": "./src/index.ts"
+		"omnidev": "./dist/index.js"
 	},
 	"files": [
-		"src",
+		"dist",
 		"README.md"
 	],
 	"publishConfig": {
@@ -26,13 +24,15 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"build": "echo 'Build not needed for Bun runtime'"
+		"build": "tsdown"
 	},
 	"dependencies": {
 		"@inquirer/prompts": "^8.1.0",
-		"@omnidev-ai/adapters": "workspace:*",
 		"@omnidev-ai/core": "workspace:*",
+		"@omnidev-ai/adapters": "workspace:*",
 		"@stricli/core": "^1.2.5"
 	},
-	"devDependencies": {}
+	"devDependencies": {
+		"tsdown": "^0.12.5"
+	}
 }
