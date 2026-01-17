@@ -156,9 +156,26 @@ bun test --watch
 
 ### Test Patterns
 
-- Tests create temporary directories and clean up after
+- Use `setupTestDir()` from `@omnidev-ai/core/test-utils` for temp dirs + cleanup
+- Prefer `testDir.path` for filesystem work and `testDir.reset()` when you need a fresh dir mid-test
 - Mock `process.exit` for CLI tests
-- Use `beforeEach`/`afterEach` for setup/teardown
+- Use `beforeEach`/`afterEach` only for test-specific setup (mocks, fixtures), not temp dir cleanup
+
+Example:
+
+```ts
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
+
+describe("example", () => {
+	const testDir = setupTestDir("example-test-", { chdir: true, createOmniDir: true });
+
+	test("writes files", async () => {
+		await Bun.write("omni.toml", "project = \"test\"");
+		expect(await Bun.file("omni.toml").text()).toContain("project");
+		expect(testDir.path).toContain("example-test-");
+	});
+});
+```
 
 ## Code Quality
 

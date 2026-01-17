@@ -1,6 +1,6 @@
 # OmniDev
 
-A capability system for AI coding agents. Load skills, rules, and tools on-demand through profiles.
+NPM for AI agentic coding capabilities. A universal way to discover, install, and manage command subagents, skills, and custom functionality for AI coding agents across all providers.
 
 [![xkcd: Standards](https://imgs.xkcd.com/comics/standards.png)](https://xkcd.com/927/)
 
@@ -21,7 +21,11 @@ This makes it hard to:
 
 ## The Solution
 
-OmniDev adds `omni.toml` and `omni.lock.toml` to your project. Yes, more config files. But the tradeoff is worth it:
+OmniDev is to agentic capabilities what npm is to JavaScript packages: a package manager that lets you discover, install, version, and share AI agent functionality.
+
+Capabilities are already hosted on Git, but OmniDev provides the missing piece: download them, lock their versions, and adapt them to work with any AI provider you use.
+
+It adds `omni.toml` and `omni.lock.toml` to your project. Yes, more config files. But the tradeoff is worth it:
 
 **1. Reduced context = better AI decisions**
 
@@ -43,9 +47,13 @@ Commit `omni.toml` to share your setup. Team members can override with `omni.loc
 capabilities = ["my-custom-workflow"]
 ```
 
-**3. One system, multiple outputs**
+**3. Works across all AI providers**
 
-OmniDev generates configuration for whatever agent you use. Your capabilities work everywhere.
+Define your capabilities once, use them anywhere—Cursor, Claude, GitHub Copilot, custom agents, and more. OmniDev provides the runtime layer that makes your agentic code provider-agnostic.
+
+**4. Extensible CLI and runtime**
+
+Capabilities can extend the OmniDev CLI itself—add custom commands, views, and tooling directly into `omnidev`. For example, a planning capability might add an `omnidev ralph status` command to visualize agent workflows.
 
 ## Quick Start
 
@@ -92,6 +100,20 @@ Then sync:
 omnidev sync
 ```
 
+**What can capabilities do?**
+
+Capabilities can:
+- Add subagents and custom commands to the CLI
+- Define skills for agent behaviors and workflows
+- Add rules and guidelines for AI agents
+- Export sandboxed TypeScript functions
+- Manage custom documentation
+- Add and manage MCP servers
+
+**See examples:**
+- [examples/](examples/) — Configuration examples for different setups (basic, profiles, MCP wrapping, monorepos, etc.)
+- [omnidev-capabilities](https://github.com/Nikola-Milovic/omnidev-capabilities) — Capability examples (playthings to showcase capabilities—community library will grow over time)
+
 ### Profiles
 
 Switch between capability sets:
@@ -124,6 +146,8 @@ capabilities = ["my-experimental-tool"]
 
 ## CLI Commands
 
+Core commands (always available):
+
 | Command | Description |
 |---------|-------------|
 | `omnidev init` | Initialize OmniDev |
@@ -134,7 +158,13 @@ capabilities = ["my-experimental-tool"]
 | `omnidev capability list` | List capabilities |
 | `omnidev serve` | Start MCP server |
 
-## MCP Server
+Capabilities can extend the CLI with custom commands—for example, `omnidev ralph status` for workflow visualization.
+
+## MCP Server (Optional)
+
+The MCP server is optional—it provides a sandboxed execution environment for capabilities that need to run code safely. This can help reduce token usage when working with multiple MCP servers, though with OmniDev this is rarely an issue.
+
+**Note:** The MCP server is added automatically by `omnidev sync` unless you disable the sandbox.
 
 Add to Claude Desktop config:
 
@@ -153,15 +183,18 @@ The server exposes:
 - **`omni_sandbox_environment`** — Discover available capabilities
 - **`omni_execute`** — Run TypeScript in a sandboxed environment
 
+Most capabilities work through the CLI directly—MCP is only needed for sandboxed code execution.
+
 ## Creating Capabilities
 
-A capability is a directory with skills, rules, and tools:
+A capability is a directory with skills, rules, tools, and optional CLI commands:
 
 ```
 my-capability/
 ├── capability.toml     # Metadata
 ├── skills/             # Agent behaviors
 ├── rules/              # Guidelines
+├── cli.ts              # CLI command exports (optional)
 └── index.ts            # Sandbox exports
 ```
 
