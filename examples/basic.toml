@@ -1,0 +1,6 @@
+# Basic OmniDev Configuration
+# Minimal setup with a single capability for general AI agent work
+
+[profiles.default]
+# Load the tasks capability for task management
+capabilities = ["tasks"]

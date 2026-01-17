@@ -1,0 +1,16 @@
+# Local Development Configuration
+# Loading capabilities from local directories for development and testing
+
+[capabilities.sources]
+# Load capability from local directory (absolute path)
+my-tool = "file:///home/user/projects/my-capability"
+
+# Load capability from relative path (relative to project root)
+local-exp = "file://./capabilities/experimental"
+
+# Use local override for a GitHub capability while developing
+# When ready, switch back to github:source
+my-fork = "file://./forks/ralph-orchestrator"
+
+[profiles.default]
+capabilities = ["my-tool", "local-exp", "my-fork"]

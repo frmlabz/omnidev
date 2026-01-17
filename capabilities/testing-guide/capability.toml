@@ -1,0 +1,5 @@
+[capability]
+id = "testing-guide"
+name = "Testing Guide"
+version = "1.0.0"
+description = "Guidelines and patterns for testing in OmniDev."

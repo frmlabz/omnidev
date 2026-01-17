@@ -1,0 +1,102 @@
+# MCP Server Wrapping Examples
+# Demonstrates how to wrap MCP servers from Git repositories
+
+[capabilities.sources]
+
+# Official MCP Servers (from modelcontextprotocol/servers monorepo)
+# Each server is in a subdirectory under src/
+filesystem-mcp = { source = "github:modelcontextprotocol/servers", path = "src/filesystem" }
+github-mcp = { source = "github:modelcontextprotocol/servers", path = "src/github" }
+postgres-mcp = { source = "github:modelcontextprotocol/servers", path = "src/postgres" }
+sqlite-mcp = { source = "github:modelcontextprotocol/servers", path = "src/sqlite" }
+memory-mcp = { source = "github:modelcontextprotocol/servers", path = "src/memory" }
+fetch-mcp = { source = "github:modelcontextprotocol/servers", path = "src/fetch" }
+
+# Community MCP Servers (standalone repositories)
+playwright-mcp = "github:executeautomation/mcp-playwright"
+browser-use-mcp = "github:browser-use/mcp"
+puppeteer-mcp = "github:browser-automation/mcp-puppeteer"
+
+# Development Tools MCP Servers
+git-mcp = "github:modelcontextprotocol/git-mcp"
+docker-mcp = "github:docker-tools/mcp-server"
+kubernetes-mcp = "github:k8s-tools/mcp-kubernetes"
+
+# Database MCP Servers
+mongodb-mcp = "github:db-tools/mcp-mongodb"
+redis-mcp = "github:db-tools/mcp-redis"
+elasticsearch-mcp = "github:db-tools/mcp-elasticsearch"
+
+# API Integration MCP Servers
+slack-mcp = "github:integrations/mcp-slack"
+linear-mcp = "github:integrations/mcp-linear"
+notion-mcp = "github:integrations/mcp-notion"
+
+# Custom/Internal MCP Servers
+# Pin to specific versions for production use
+internal-api-mcp = { source = "github:your-org/internal-api-mcp", ref = "v2.1.0" }
+company-db-mcp = { source = "github:your-org/company-database-mcp", ref = "v1.5.2" }
+
+# Profiles for different workflows
+
+[profiles.default]
+# Minimal set for general development
+capabilities = ["filesystem-mcp", "git-mcp"]
+
+[profiles.web-dev]
+# Web development with browser automation
+capabilities = [
+	"filesystem-mcp",
+	"git-mcp",
+	"playwright-mcp",
+	"browser-use-mcp"
+]
+
+[profiles.backend-dev]
+# Backend development with database access
+capabilities = [
+	"filesystem-mcp",
+	"git-mcp",
+	"postgres-mcp",
+	"redis-mcp",
+	"docker-mcp"
+]
+
+[profiles.fullstack]
+# Full stack development
+capabilities = [
+	"filesystem-mcp",
+	"git-mcp",
+	"postgres-mcp",
+	"redis-mcp",
+	"playwright-mcp",
+	"docker-mcp",
+	"kubernetes-mcp"
+]
+
+[profiles.data-engineering]
+# Data engineering workflow
+capabilities = [
+	"postgres-mcp",
+	"mongodb-mcp",
+	"elasticsearch-mcp",
+	"redis-mcp"
+]
+
+[profiles.devops]
+# DevOps and infrastructure
+capabilities = [
+	"git-mcp",
+	"docker-mcp",
+	"kubernetes-mcp",
+	"filesystem-mcp"
+]
+
+[profiles.integration]
+# API integrations and external services
+capabilities = [
+	"slack-mcp",
+	"linear-mcp",
+	"notion-mcp",
+	"github-mcp"
+]

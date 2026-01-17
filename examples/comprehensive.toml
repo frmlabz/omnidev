@@ -1,0 +1,34 @@
+# Comprehensive Configuration
+# Mixed sources with multiple profiles and advanced setup
+
+[capabilities.sources]
+# GitHub sources with version pinning
+tasks = { source = "github:example-org/tasks-capability", ref = "v2.1.0" }
+ralph = { source = "github:example-org/ralph-orchestrator", ref = "v1.0.0" }
+
+# Local development sources
+ui-components = "file://./capabilities/ui-components"
+my-tool = "file:///home/user/dev/my-capability"
+
+# Community capabilities (latest)
+obsidian = "github:kepano/obsidian-skills"
+
+# Profiles for different workflows
+[profiles.default]
+capabilities = ["tasks", "ui-components"]
+
+[profiles.planning]
+# Profile for architecture and design work
+capabilities = ["tasks", "ralph", "obsidian"]
+
+[profiles.full-stack]
+# Full-stack development profile
+capabilities = ["tasks", "ralph", "ui-components", "my-tool"]
+
+[profiles.minimal]
+# Lightweight profile for quick tasks
+capabilities = ["tasks"]
+
+# Profile for experimenting with new capabilities
+[profiles.experimental]
+capabilities = ["tasks", "ui-components", "obsidian"]

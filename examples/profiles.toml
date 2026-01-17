@@ -1,0 +1,19 @@
+# Profile-Based Configuration
+# Different capability sets for different workflows
+
+[profiles.default]
+# Standard profile for everyday development
+capabilities = ["tasks"]
+
+[profiles.planning]
+# Profile for project planning and architecture work
+# Includes Ralph orchestrator for PRD-driven development
+capabilities = ["ralph", "tasks"]
+
+[profiles.frontend]
+# Frontend-focused profile with UI/UX capabilities
+capabilities = ["tasks", "ui-design", "accessibility"]
+
+[profiles.backend]
+# Backend-focused profile with API and database tools
+capabilities = ["tasks", "api-design", "database"]
