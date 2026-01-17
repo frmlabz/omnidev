@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.4.0
+
+### Minor Changes
+
+- ddc5ba8: Remove dependency on bun after publishing, transpile with `tsdown` beforehand. Make `adapters` package private
+
 ## 0.3.0
 
 ### Minor Changes
