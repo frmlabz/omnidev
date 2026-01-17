@@ -161,34 +161,46 @@ describe("init command", () => {
 		expect(content).toBe(existingContent);
 	});
 
-	test("creates .omni/.gitignore with internal patterns", async () => {
+	test("does not create .omni/.gitignore", async () => {
 		await runInit({}, "claude-code");
 
-		expect(existsSync(".omni/.gitignore")).toBe(true);
-
-		const content = readFileSync(".omni/.gitignore", "utf-8");
-		expect(content).toContain("# OmniDev working files - always ignored");
-		expect(content).toContain(".env");
-		expect(content).toContain("state/");
-		expect(content).toContain("*.log");
+		// The whole .omni/ directory is gitignored, no need for internal .gitignore
+		expect(existsSync(".omni/.gitignore")).toBe(false);
 	});
 
-	test("does not modify project's root .gitignore", async () => {
+	test("updates root .gitignore with omnidev entries", async () => {
 		// Create a root .gitignore with custom content
 		await Bun.write(".gitignore", "node_modules/\n*.log\n");
 
 		await runInit({}, "claude-code");
 
-		// Verify .gitignore was not modified
 		const content = readFileSync(".gitignore", "utf-8");
-		expect(content).toBe("node_modules/\n*.log\n");
-		expect(content).not.toContain(".omni/");
+		expect(content).toContain("node_modules/");
+		expect(content).toContain("*.log");
+		expect(content).toContain("# OmniDev");
+		expect(content).toContain(".omni/");
+		expect(content).toContain("omni.local.toml");
 	});
 
-	test("does not create root .gitignore if it doesn't exist", async () => {
+	test("creates root .gitignore if it doesn't exist", async () => {
 		await runInit({}, "claude-code");
 
-		expect(existsSync(".gitignore")).toBe(false);
+		expect(existsSync(".gitignore")).toBe(true);
+
+		const content = readFileSync(".gitignore", "utf-8");
+		expect(content).toContain("# OmniDev");
+		expect(content).toContain(".omni/");
+		expect(content).toContain("omni.local.toml");
+	});
+
+	test("does not duplicate gitignore entries on multiple runs", async () => {
+		await runInit({}, "claude-code");
+		await runInit({}, "claude-code");
+
+		const content = readFileSync(".gitignore", "utf-8");
+		// Should only have one occurrence of each entry
+		expect(content.match(/\.omni\//g)?.length).toBe(1);
+		expect(content.match(/omni\.local\.toml/g)?.length).toBe(1);
 	});
 
 	test("is idempotent - safe to run multiple times", async () => {

@@ -20,7 +20,7 @@ export async function runDoctor(): Promise<void> {
 		checkBunVersion(),
 		checkOmniLocalDir(),
 		checkConfig(),
-		checkInternalGitignore(),
+		checkRootGitignore(),
 		checkCapabilitiesDir(),
 	];
 
@@ -128,21 +128,38 @@ async function checkConfig(): Promise<Check> {
 	}
 }
 
-async function checkInternalGitignore(): Promise<Check> {
-	const gitignorePath = ".omni/.gitignore";
+async function checkRootGitignore(): Promise<Check> {
+	const gitignorePath = ".gitignore";
 	if (!existsSync(gitignorePath)) {
 		return {
-			name: "Internal .gitignore",
+			name: "Root .gitignore",
 			passed: false,
-			message: ".omni/.gitignore not found",
+			message: ".gitignore not found",
+			fix: "Run: omnidev init",
+		};
+	}
+
+	const content = await Bun.file(gitignorePath).text();
+	const lines = content.split("\n").map((line) => line.trim());
+	const hasOmniDir = lines.includes(".omni/");
+	const hasLocalToml = lines.includes("omni.local.toml");
+
+	if (!hasOmniDir || !hasLocalToml) {
+		const missing: string[] = [];
+		if (!hasOmniDir) missing.push(".omni/");
+		if (!hasLocalToml) missing.push("omni.local.toml");
+		return {
+			name: "Root .gitignore",
+			passed: false,
+			message: `Missing entries: ${missing.join(", ")}`,
 			fix: "Run: omnidev init",
 		};
 	}
 
 	return {
-		name: "Internal .gitignore",
+		name: "Root .gitignore",
 		passed: true,
-		message: "Found",
+		message: "Found with OmniDev entries",
 	};
 }
 

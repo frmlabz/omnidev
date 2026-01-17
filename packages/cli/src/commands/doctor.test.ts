@@ -28,12 +28,10 @@ capabilities = []
 `,
 		);
 		writeFileSync(
-			".omni/.gitignore",
-			`# OmniDev Core
-.env
-generated/
-state/
-*.log
+			".gitignore",
+			`# OmniDev
+.omni/
+omni.local.toml
 `,
 		);
 	}
@@ -141,7 +139,7 @@ state/
 		expect(exitCalled).toBe(false);
 	});
 
-	test("should validate internal .gitignore exists", async () => {
+	test("should validate root .gitignore has OmniDev entries", async () => {
 		mkdirSync(".omni", { recursive: true });
 		writeFileSync(
 			"omni.toml",
@@ -155,7 +153,30 @@ enabled = ["claude"]
 capabilities = []
 `,
 		);
-		// Missing .omni/.gitignore
+		// Missing root .gitignore
+
+		await runDoctor();
+
+		expect(exitCalled).toBe(true);
+		expect(exitCode).toBe(1);
+	});
+
+	test("should fail when root .gitignore is missing OmniDev entries", async () => {
+		mkdirSync(".omni", { recursive: true });
+		writeFileSync(
+			"omni.toml",
+			`project = "test"
+active_profile = "default"
+
+[providers]
+enabled = ["claude"]
+
+[profiles.default]
+capabilities = []
+`,
+		);
+		// .gitignore exists but missing OmniDev entries
+		writeFileSync(".gitignore", "node_modules/\n");
 
 		await runDoctor();
 

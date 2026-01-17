@@ -4,7 +4,6 @@ import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { fetchAllCapabilitySources } from "./capability/sources";
 import { loadConfig } from "./config/loader";
-import { rebuildGitignore } from "./gitignore/manager";
 import { syncMcpJson } from "./mcp-json/manager";
 import {
 	buildManifestFromCapabilities,
@@ -165,15 +164,6 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 		}
 	}
 
-	// Rebuild .omni/.gitignore with all enabled capability patterns
-	const gitignorePatterns = new Map<string, string[]>();
-	for (const capability of capabilities) {
-		if (capability.gitignore && capability.gitignore.length > 0) {
-			gitignorePatterns.set(capability.id, capability.gitignore);
-		}
-	}
-	await rebuildGitignore(gitignorePatterns);
-
 	// Call sync hooks for capabilities that have them
 	for (const capability of capabilities) {
 		// Check for structured export sync function first (new approach)
@@ -236,7 +226,6 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 
 	if (!silent) {
 		console.log("✓ Synced:");
-		console.log("  - .omni/.gitignore (capability patterns)");
 		console.log(
 			`  - .omni/instructions.md (${bundle.docs.length} docs, ${bundle.rules.length} rules)`,
 		);

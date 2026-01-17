@@ -20,10 +20,8 @@ export async function runInit(_flags: Record<string, never>, providerArg?: strin
 	mkdirSync(".omni/capabilities", { recursive: true });
 	mkdirSync(".omni/state", { recursive: true });
 
-	// Create .omni/.gitignore for internal working files
-	if (!existsSync(".omni/.gitignore")) {
-		await Bun.write(".omni/.gitignore", internalGitignore());
-	}
+	// Update root .gitignore to ignore .omni/ and omni.local.toml
+	await updateRootGitignore();
 
 	// Get provider selection
 	let providerIds: ProviderId[];
@@ -83,9 +81,9 @@ export async function runInit(_flags: Record<string, never>, providerArg?: strin
 		}
 	}
 
-	// Run initial sync with enabled adapters
+	// Run initial sync with enabled adapters (silent - no need to show details)
 	const enabledAdapters = await getEnabledAdapters();
-	await syncAgentConfiguration({ silent: false, adapters: enabledAdapters });
+	await syncAgentConfiguration({ silent: true, adapters: enabledAdapters });
 
 	// Output success message
 	console.log("");
@@ -108,11 +106,11 @@ export async function runInit(_flags: Record<string, never>, providerArg?: strin
 	}
 
 	console.log("");
-	console.log("📁 File structure:");
-	console.log("   • omni.toml - Main config (commit to share with team)");
-	console.log("   • omni.lock.toml - Lock file (commit for reproducibility)");
-	console.log("   • omni.local.toml - Local overrides (add to .gitignore)");
-	console.log("   • .omni/ - Runtime directory (add to .gitignore)");
+	console.log("💡 Recommendation:");
+	console.log("   Add provider-specific files to .gitignore:");
+	console.log("   CLAUDE.md, .claude/, AGENTS.md, .cursor/, .mcp.json");
+	console.log("");
+	console.log("   Run 'omnidev capability list' to see available capabilities.");
 }
 
 export const initCommand = buildCommand({
@@ -164,19 +162,27 @@ function parseProviderArg(arg: string): ProviderId[] {
 	return result;
 }
 
-function internalGitignore(): string {
-	return `# OmniDev working files - always ignored
-# These files change frequently and are machine-specific
+async function updateRootGitignore(): Promise<void> {
+	const gitignorePath = ".gitignore";
+	const entriesToAdd = [".omni/", "omni.local.toml"];
 
-# Secrets
-.env
+	let content = "";
+	if (existsSync(gitignorePath)) {
+		content = await Bun.file(gitignorePath).text();
+	}
 
-# Runtime state
-state/
+	const lines = content.split("\n");
+	const missingEntries = entriesToAdd.filter(
+		(entry) => !lines.some((line) => line.trim() === entry),
+	);
 
-# Logs
-*.log
+	if (missingEntries.length === 0) {
+		return;
+	}
 
-# Capability-specific patterns are appended below by each capability
-`;
+	// Add a newline before our section if the file doesn't end with one
+	const needsNewline = content.length > 0 && !content.endsWith("\n");
+	const section = `${needsNewline ? "\n" : ""}# OmniDev\n${missingEntries.join("\n")}\n`;
+
+	await Bun.write(gitignorePath, content + section);
 }
