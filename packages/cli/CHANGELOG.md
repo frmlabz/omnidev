@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.5.1
+
+### Patch Changes
+
+- 1f2bbce: fix noExternal in cli package
+  - @omnidev-ai/core@0.5.1
+
 ## 0.5.0
 
 ### Minor Changes
