@@ -22,7 +22,9 @@
 	},
 	"files": [
 		"dist",
+		"!dist/test-utils/**",
 		"src",
+		"!src/test-utils/**",
 		"!src/**/*.test.ts",
 		"README.md"
 	],

@@ -78,6 +78,12 @@ for (const pkgDir of PACKAGES) {
 			needsFix = true;
 		}
 	}
+	// HACK/TODO: Core exposes test-utils for local dev, but it's bun:test-based.
+	// Strip from published exports until we make test-utils Node-compatible or split packages.
+	if (packedPkg.name === "@omnidev-ai/core" && packedPkg.exports?.["./test-utils"]) {
+		delete packedPkg.exports["./test-utils"];
+		needsFix = true;
+	}
 	for (const depsKey of ["dependencies", "peerDependencies", "optionalDependencies"]) {
 		const deps = packedPkg[depsKey];
 		if (!deps) continue;
