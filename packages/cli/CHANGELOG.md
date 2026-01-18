@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.5.3
+
+### Patch Changes
+
+- 498bc84: Added integration tests with Docker, and fixed Bun dependency
+  - @omnidev-ai/core@0.5.3
+
 ## 0.5.2
 
 ### Patch Changes
