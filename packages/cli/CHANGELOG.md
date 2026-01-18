@@ -1,5 +1,13 @@
 # @omnidev-ai/cli
 
+## 0.6.2
+
+### Patch Changes
+
+- 23fc106: Trying to fix incorrect tarbal versions
+- Updated dependencies [23fc106]
+  - @omnidev-ai/core@0.6.2
+
 ## 0.6.1
 
 ### Patch Changes

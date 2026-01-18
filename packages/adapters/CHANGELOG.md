@@ -1,5 +1,13 @@
 # @omnidev-ai/adapters
 
+## 0.0.9
+
+### Patch Changes
+
+- 23fc106: Trying to fix incorrect tarbal versions
+- Updated dependencies [23fc106]
+  - @omnidev-ai/core@0.6.2
+
 ## 0.0.8
 
 ### Patch Changes

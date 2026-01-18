@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.6.2
+
+### Patch Changes
+
+- 23fc106: Trying to fix incorrect tarbal versions
+
 ## 0.6.1
 
 ## 0.6.0
