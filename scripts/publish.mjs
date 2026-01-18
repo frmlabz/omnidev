@@ -38,6 +38,23 @@ function scanForBunRuntimeApis(rootDir) {
 const PACKAGES = ["packages/core", "packages/cli"];
 const CHECK_ONLY = process.argv.includes("--check") || process.env.OMNIDEV_PUBLISH === "false";
 
+const internalVersions = new Map();
+for (const pkgDir of PACKAGES) {
+	const pkgJsonPath = join(pkgDir, "package.json");
+	const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+	internalVersions.set(pkg.name, pkg.version);
+}
+
+const coreVersion = internalVersions.get("@omnidev-ai/core");
+const cliVersion = internalVersions.get("@omnidev-ai/cli");
+if (coreVersion && cliVersion && coreVersion !== cliVersion) {
+	console.error(
+		`❌ Version mismatch: @omnidev-ai/core@${coreVersion} != @omnidev-ai/cli@${cliVersion}`,
+	);
+	console.error("   Core and CLI must share the same version.");
+	process.exit(1);
+}
+
 function exec(cmd, opts = {}) {
 	console.log(`$ ${cmd}`);
 	return execSync(cmd, { stdio: "inherit", ...opts });
@@ -97,6 +114,16 @@ for (const pkgDir of PACKAGES) {
 				console.warn(`⚠️  Found 0.0.0-auto-managed in ${name}, fixing...`);
 				deps[name] = version.replace("0.0.0-auto-managed", pkg.version);
 				needsFix = true;
+			}
+			if (internalVersions.has(name)) {
+				const expected = internalVersions.get(name);
+				if (expected && version !== expected) {
+					console.warn(
+						`⚠️  Fixing internal dependency version in ${packedPkg.name}: ${name}@${version} -> ${expected}`,
+					);
+					deps[name] = expected;
+					needsFix = true;
+				}
 			}
 		}
 	}
