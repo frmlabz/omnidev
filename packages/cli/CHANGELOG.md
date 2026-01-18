@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.6.1
+
+### Patch Changes
+
+- 6fd6ac4: Testing bun runtime removal
+  - @omnidev-ai/core@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes

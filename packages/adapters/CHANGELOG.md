@@ -1,5 +1,11 @@
 # @omnidev-ai/adapters
 
+## 0.0.8
+
+### Patch Changes
+
+- @omnidev-ai/core@0.6.1
+
 ## 0.0.7
 
 ### Patch Changes
