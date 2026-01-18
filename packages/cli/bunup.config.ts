@@ -6,13 +6,12 @@ export default defineConfig({
 	target: "node",
 	clean: true,
 	external: [
-		"@omnidev-ai/core",
 		"@inquirer/prompts",
 		"@stricli/core",
 		// Node built-ins
 		/^node:/,
 	],
-	noExternal: ["@omnidev-ai/adapters"],
+	noExternal: ["@omnidev-ai/adapters", "@omnidev-ai/core"],
 	// Add node shebang to the CLI entry
 	banner: "#!/usr/bin/env node",
 });
