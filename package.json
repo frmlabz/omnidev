@@ -17,6 +17,7 @@
 		"test:coverage": "bun test --coverage ./packages && bun test --coverage ./examples",
 		"test:watch": "bun test --watch ./packages ./examples",
 		"test:integration": "bash tests/integration/run.sh dev",
+		"test:all": "bun run test:integration && bun run test:coverage",
 		"build": "bun run --filter '*' build",
 		"clean": "rm -rf packages/*/dist",
 		"prepare": "lefthook install",

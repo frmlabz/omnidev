@@ -41,9 +41,16 @@ info "Step 3: Running init with claude-code..."
 run_omnidev init claude-code
 
 # ============================================================================
-# Step 4: Doctor check
+# Step 4: Validate OMNI.md created
 # ============================================================================
-info "Step 4: Running doctor check..."
+info "Step 4: Validating OMNI.md created..."
+assert_omni_md_exists
+assert_file_contains "OMNI.md" "# Project Instructions"
+
+# ============================================================================
+# Step 4b: Doctor check
+# ============================================================================
+info "Step 4b: Running doctor check..."
 run_omnidev doctor
 
 # ============================================================================
@@ -199,6 +206,23 @@ info "Step 27: Setting default profile..."
 run_omnidev profile set default
 
 # ============================================================================
+# Step 27b: Modify OMNI.md and verify regeneration
+# ============================================================================
+info "Step 27b: Testing OMNI.md -> CLAUDE.md regeneration..."
+
+# Add custom content to OMNI.md
+echo "" >> OMNI.md
+echo "## Custom Project Section" >> OMNI.md
+echo "This is a custom section added to test regeneration." >> OMNI.md
+
+# Sync to regenerate CLAUDE.md
+run_omnidev sync
+
+# Verify the custom content appears in CLAUDE.md
+assert_file_contains "CLAUDE.md" "Custom Project Section"
+assert_file_contains "CLAUDE.md" "custom section added to test regeneration"
+
+# ============================================================================
 # Step 28: Final sync
 # ============================================================================
 info "Step 28: Running final sync..."
@@ -229,8 +253,15 @@ info "  - Validating fixture markers..."
 assert_marker_synced "FIXTURE_MARKER:STANDARD_SKILL"
 assert_marker_synced "FIXTURE_MARKER:STANDARD_RULE"
 
-info "  - Validating CLAUDE.md exists..."
+info "  - Validating OMNI.md exists..."
+assert_omni_md_exists
+
+info "  - Validating CLAUDE.md exists and is generated from OMNI.md..."
 assert_claude_md_exists
+assert_claude_md_generated_from_omni
+
+info "  - Validating CLAUDE.md contains OMNI.md content..."
+assert_omni_content_in_claude "# Project Instructions"
 
 info "  - Validating omni.toml contains all capability sources..."
 assert_file_contains "omni.toml" "standard"
@@ -242,4 +273,4 @@ info "  - Validating omni.toml contains MCP configs..."
 assert_file_contains "omni.toml" "local-mcp"
 assert_file_contains "omni.toml" "remote-mcp"
 
-success "07-full-workflow completed successfully - all 30 steps passed!"
+success "07-full-workflow completed successfully - all steps passed!"

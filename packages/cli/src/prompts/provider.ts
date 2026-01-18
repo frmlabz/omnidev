@@ -1,5 +1,17 @@
-import { checkbox } from "@inquirer/prompts";
+import { checkbox, confirm } from "@inquirer/prompts";
 import type { ProviderId } from "@omnidev-ai/core";
+
+const PROVIDER_GITIGNORE_FILES: Record<string, string[]> = {
+	claude: ["CLAUDE.md", ".claude/"], // Legacy alias for claude-code
+	"claude-code": ["CLAUDE.md", ".claude/"],
+	cursor: [".cursor/"],
+	codex: ["AGENTS.md", ".codex/"],
+	opencode: [".opencode/"],
+};
+
+export function getProviderGitignoreFiles(providers: ProviderId[]): string[] {
+	return providers.flatMap((p) => PROVIDER_GITIGNORE_FILES[p] ?? []);
+}
 
 export async function promptForProviders(): Promise<ProviderId[]> {
 	const answers = await checkbox({
@@ -14,4 +26,15 @@ export async function promptForProviders(): Promise<ProviderId[]> {
 	});
 
 	return answers as ProviderId[];
+}
+
+export async function promptForGitignoreProviderFiles(
+	selectedProviders: ProviderId[],
+): Promise<boolean> {
+	const filesToIgnore = getProviderGitignoreFiles(selectedProviders);
+
+	return confirm({
+		message: `Add provider files to .gitignore? (${filesToIgnore.join(", ")})`,
+		default: false,
+	});
 }

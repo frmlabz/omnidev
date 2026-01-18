@@ -20,7 +20,8 @@ describe("init command", () => {
 		expect(existsSync("omni.toml")).toBe(true);
 
 		const content = readFileSync("omni.toml", "utf-8");
-		expect(content).toContain('project = "my-project"');
+		// project field is no longer included
+		expect(content).not.toContain("project =");
 		// active_profile is stored in state file, not config.toml
 		expect(content).not.toContain("active_profile");
 		// profiles should be in config.toml
@@ -90,20 +91,30 @@ describe("init command", () => {
 
 		expect(existsSync("AGENTS.md")).toBe(true);
 
+		// AGENTS.md is generated from OMNI.md during sync with @import directive
 		const content = readFileSync("AGENTS.md", "utf-8");
 		expect(content).toContain("# Project Instructions");
 		expect(content).toContain("@import .omni/instructions.md");
 	});
 
-	test("creates .omni/instructions.md", async () => {
+	test("creates OMNI.md", async () => {
 		await runInit({}, "codex");
 
+		expect(existsSync("OMNI.md")).toBe(true);
+
+		const content = readFileSync("OMNI.md", "utf-8");
+		expect(content).toContain("# Project Instructions");
+		expect(content).toContain("## Project Description");
+		expect(content).toContain("<!-- TODO: Add 2-3 sentences describing your project -->");
+	});
+
+	test("creates .omni/instructions.md from capabilities during sync", async () => {
+		await runInit({}, "codex");
+
+		// .omni/instructions.md is generated during sync with capability content
 		expect(existsSync(".omni/instructions.md")).toBe(true);
 
 		const content = readFileSync(".omni/instructions.md", "utf-8");
-		expect(content).toContain("# OmniDev Instructions");
-		expect(content).toContain("## Project Description");
-		expect(content).toContain("<!-- TODO: Add 2-3 sentences describing your project -->");
 		expect(content).toContain("## Capabilities");
 		expect(content).toContain("No capabilities enabled yet");
 	});
@@ -119,6 +130,7 @@ describe("init command", () => {
 
 		expect(existsSync("CLAUDE.md")).toBe(true);
 
+		// CLAUDE.md is generated from OMNI.md during sync with @import directive
 		const content = readFileSync("CLAUDE.md", "utf-8");
 		expect(content).toContain("# Project Instructions");
 		expect(content).toContain("@import .omni/instructions.md");
@@ -137,29 +149,36 @@ describe("init command", () => {
 		expect(existsSync("CLAUDE.md")).toBe(true);
 		expect(existsSync(".cursor/rules")).toBe(true);
 
+		// CLAUDE.md is generated from OMNI.md during sync with @import directive
 		const claudeContent = readFileSync("CLAUDE.md", "utf-8");
 		expect(claudeContent).toContain("# Project Instructions");
 		expect(claudeContent).toContain("@import .omni/instructions.md");
 	});
 
-	test("does not modify existing CLAUDE.md", async () => {
+	test("regenerates CLAUDE.md from OMNI.md on init", async () => {
+		// Pre-existing CLAUDE.md content should be replaced with content from OMNI.md
 		const existingContent = "# My Existing Config\n\nExisting content here.\n";
 		await writeFile("CLAUDE.md", existingContent, "utf-8");
 
 		await runInit({}, "claude-code");
 
 		const content = readFileSync("CLAUDE.md", "utf-8");
-		expect(content).toBe(existingContent);
+		// Should be regenerated from OMNI.md, not preserve existing content
+		expect(content).toContain("# Project Instructions");
+		expect(content).toContain("@import .omni/instructions.md");
 	});
 
-	test("does not modify existing AGENTS.md", async () => {
+	test("regenerates AGENTS.md from OMNI.md on init", async () => {
+		// Pre-existing AGENTS.md content should be replaced with content from OMNI.md
 		const existingContent = "# My Existing Agents\n\nExisting content here.\n";
 		await writeFile("AGENTS.md", existingContent, "utf-8");
 
 		await runInit({}, "codex");
 
 		const content = readFileSync("AGENTS.md", "utf-8");
-		expect(content).toBe(existingContent);
+		// Should be regenerated from OMNI.md, not preserve existing content
+		expect(content).toContain("# Project Instructions");
+		expect(content).toContain("@import .omni/instructions.md");
 	});
 
 	test("does not create .omni/.gitignore", async () => {
@@ -228,14 +247,20 @@ describe("init command", () => {
 		expect(content).toBe(customConfig);
 	});
 
-	test("does not overwrite existing AGENTS.md", async () => {
-		const customAgents = "# Custom agents\n";
-		await writeFile("AGENTS.md", customAgents, "utf-8");
+	test("does not overwrite existing OMNI.md", async () => {
+		const customOmni = "# My Custom Instructions\n\nCustom content here.\n";
+		await writeFile("OMNI.md", customOmni, "utf-8");
 
 		await runInit({}, "codex");
 
-		const content = readFileSync("AGENTS.md", "utf-8");
-		expect(content).toBe(customAgents);
+		// OMNI.md should be preserved
+		const content = readFileSync("OMNI.md", "utf-8");
+		expect(content).toBe(customOmni);
+
+		// But AGENTS.md should be regenerated from it
+		const agentsContent = readFileSync("AGENTS.md", "utf-8");
+		expect(agentsContent).toContain("# My Custom Instructions");
+		expect(agentsContent).toContain("@import .omni/instructions.md");
 	});
 
 	test("creates all directories even if some already exist", async () => {

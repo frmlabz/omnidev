@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ProviderAdapter,
@@ -10,45 +10,52 @@ import type {
 } from "@omnidev-ai/core";
 
 /**
- * Codex adapter - writes AGENTS.md
+ * Codex adapter - generates AGENTS.md from OMNI.md
  */
 export const codexAdapter: ProviderAdapter = {
 	id: "codex",
 	displayName: "Codex",
 
-	async init(ctx: ProviderContext): Promise<ProviderInitResult> {
-		const agentsMdPath = join(ctx.projectRoot, "AGENTS.md");
-		const filesCreated: string[] = [];
-
-		if (!existsSync(agentsMdPath)) {
-			await writeFile(agentsMdPath, generateAgentsTemplate(), "utf-8");
-			filesCreated.push("AGENTS.md");
-		}
-
+	async init(_ctx: ProviderContext): Promise<ProviderInitResult> {
+		// AGENTS.md is now generated during sync from OMNI.md
 		return {
-			filesCreated,
-			message:
-				filesCreated.length > 0 ? `Created ${filesCreated.join(", ")}` : "AGENTS.md already exists",
+			filesCreated: [],
+			message: "Codex adapter initialized",
 		};
 	},
 
-	async sync(_bundle: SyncBundle, _ctx: ProviderContext): Promise<ProviderSyncResult> {
-		// Codex primarily uses AGENTS.md which imports .omni/instructions.md
-		// No additional file writing needed during sync
+	async sync(_bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
+		const filesWritten: string[] = [];
+		const filesDeleted: string[] = [];
+
+		// Generate AGENTS.md from OMNI.md + .omni/instructions.md
+		const agentsMdPath = join(ctx.projectRoot, "AGENTS.md");
+		const agentsMdContent = await generateAgentsMdContent(ctx.projectRoot);
+		await writeFile(agentsMdPath, agentsMdContent, "utf-8");
+		filesWritten.push("AGENTS.md");
+
 		return {
-			filesWritten: [],
-			filesDeleted: [],
+			filesWritten,
+			filesDeleted,
 		};
 	},
 };
 
-function generateAgentsTemplate(): string {
-	return `# Project Instructions
+/**
+ * Generate AGENTS.md content from OMNI.md with import directive for instructions
+ */
+async function generateAgentsMdContent(projectRoot: string): Promise<string> {
+	const omniMdPath = join(projectRoot, "OMNI.md");
 
-<!-- Add your project-specific instructions here -->
+	let omniMdContent = "";
 
-## OmniDev
+	if (existsSync(omniMdPath)) {
+		omniMdContent = await readFile(omniMdPath, "utf-8");
+	}
 
-@import .omni/instructions.md
-`;
+	// Combine OMNI.md content with @import directive for capability-generated instructions
+	let content = omniMdContent;
+	content += `\n\n## OmniDev\n\n@import .omni/instructions.md\n`;
+
+	return content;
 }

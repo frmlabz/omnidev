@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ProviderAdapter,
@@ -10,50 +10,58 @@ import type {
 } from "@omnidev-ai/core";
 
 /**
- * OpenCode adapter - writes configuration for OpenCode
+ * OpenCode adapter - generates .opencode/instructions.md from OMNI.md
  */
 export const opencodeAdapter: ProviderAdapter = {
 	id: "opencode",
 	displayName: "OpenCode",
 
 	async init(ctx: ProviderContext): Promise<ProviderInitResult> {
+		// Create .opencode directory (instructions.md is generated during sync)
 		const opencodeDir = join(ctx.projectRoot, ".opencode");
 		mkdirSync(opencodeDir, { recursive: true });
 
-		const instructionsPath = join(opencodeDir, "instructions.md");
-		const filesCreated: string[] = [];
-
-		if (!existsSync(instructionsPath)) {
-			await writeFile(instructionsPath, generateOpencodeTemplate(), "utf-8");
-			filesCreated.push(".opencode/instructions.md");
-		}
-
 		return {
-			filesCreated,
-			message:
-				filesCreated.length > 0
-					? `Created ${filesCreated.join(", ")}`
-					: ".opencode/instructions.md already exists",
+			filesCreated: [".opencode/"],
+			message: "OpenCode adapter initialized",
 		};
 	},
 
-	async sync(_bundle: SyncBundle, _ctx: ProviderContext): Promise<ProviderSyncResult> {
-		// OpenCode uses its own instructions.md which imports .omni/instructions.md
-		// No additional file writing needed during sync
+	async sync(_bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
+		const filesWritten: string[] = [];
+		const filesDeleted: string[] = [];
+
+		const opencodeDir = join(ctx.projectRoot, ".opencode");
+		mkdirSync(opencodeDir, { recursive: true });
+
+		// Generate .opencode/instructions.md from OMNI.md + .omni/instructions.md
+		const instructionsPath = join(opencodeDir, "instructions.md");
+		const instructionsContent = await generateOpencodeInstructionsContent(ctx.projectRoot);
+		await writeFile(instructionsPath, instructionsContent, "utf-8");
+		filesWritten.push(".opencode/instructions.md");
+
 		return {
-			filesWritten: [],
-			filesDeleted: [],
+			filesWritten,
+			filesDeleted,
 		};
 	},
 };
 
-function generateOpencodeTemplate(): string {
-	return `# OpenCode Instructions
+/**
+ * Generate .opencode/instructions.md content from OMNI.md with import directive
+ */
+async function generateOpencodeInstructionsContent(projectRoot: string): Promise<string> {
+	const omniMdPath = join(projectRoot, "OMNI.md");
 
-<!-- Add your project-specific instructions here -->
+	let omniMdContent = "";
 
-## OmniDev
+	if (existsSync(omniMdPath)) {
+		omniMdContent = await readFile(omniMdPath, "utf-8");
+	}
 
-@import ../.omni/instructions.md
-`;
+	// Combine OMNI.md content with @import directive for capability-generated instructions
+	let content = omniMdContent;
+	content += `\n\n## OmniDev\n\n@import ../.omni/instructions.md\n`;
+
+	return content;
 }

@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ProviderAdapter,
@@ -10,31 +10,29 @@ import type {
 } from "@omnidev-ai/core";
 
 /**
- * Claude Code adapter - writes skills to .claude/skills/ and manages CLAUDE.md
+ * Claude Code adapter - writes skills to .claude/skills/ and generates CLAUDE.md from OMNI.md
  */
 export const claudeCodeAdapter: ProviderAdapter = {
 	id: "claude-code",
 	displayName: "Claude Code",
 
-	async init(ctx: ProviderContext): Promise<ProviderInitResult> {
-		const claudeMdPath = join(ctx.projectRoot, "CLAUDE.md");
-		const filesCreated: string[] = [];
-
-		if (!existsSync(claudeMdPath)) {
-			await writeFile(claudeMdPath, generateClaudeTemplate(), "utf-8");
-			filesCreated.push("CLAUDE.md");
-		}
-
+	async init(_ctx: ProviderContext): Promise<ProviderInitResult> {
+		// CLAUDE.md is now generated during sync from OMNI.md
 		return {
-			filesCreated,
-			message:
-				filesCreated.length > 0 ? `Created ${filesCreated.join(", ")}` : "CLAUDE.md already exists",
+			filesCreated: [],
+			message: "Claude Code adapter initialized",
 		};
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
 		const filesWritten: string[] = [];
 		const filesDeleted: string[] = [];
+
+		// Generate CLAUDE.md from OMNI.md + .omni/instructions.md
+		const claudeMdPath = join(ctx.projectRoot, "CLAUDE.md");
+		const claudeMdContent = await generateClaudeMdContent(ctx.projectRoot);
+		await writeFile(claudeMdPath, claudeMdContent, "utf-8");
+		filesWritten.push("CLAUDE.md");
 
 		const skillsDir = join(ctx.projectRoot, ".claude", "skills");
 		mkdirSync(skillsDir, { recursive: true });
@@ -63,13 +61,21 @@ ${skill.instructions}`;
 	},
 };
 
-function generateClaudeTemplate(): string {
-	return `# Project Instructions
+/**
+ * Generate CLAUDE.md content from OMNI.md with import directive for instructions
+ */
+async function generateClaudeMdContent(projectRoot: string): Promise<string> {
+	const omniMdPath = join(projectRoot, "OMNI.md");
 
-<!-- Add your project-specific instructions here -->
+	let omniMdContent = "";
 
-## OmniDev
+	if (existsSync(omniMdPath)) {
+		omniMdContent = await readFile(omniMdPath, "utf-8");
+	}
 
-@import .omni/instructions.md
-`;
+	// Combine OMNI.md content with @import directive for capability-generated instructions
+	let content = omniMdContent;
+	content += `\n\n## OmniDev\n\n@import .omni/instructions.md\n`;
+
+	return content;
 }

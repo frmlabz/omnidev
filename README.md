@@ -71,10 +71,40 @@ omnidev doctor
 This creates:
 ```
 your-project/
+├── OMNI.md             # Your project instructions (single source of truth)
 ├── omni.toml           # Configuration (commit this)
 ├── omni.lock.toml      # Version lock (commit this)
+├── CLAUDE.md           # Generated from OMNI.md (for Claude Code)
+├── AGENTS.md           # Generated from OMNI.md (for Codex)
 └── .omni/              # Runtime files (gitignored)
+    └── instructions.md # Auto-generated capability content
 ```
+
+## Project Instructions (OMNI.md)
+
+`OMNI.md` is your single source of truth for project instructions. Instead of maintaining separate `CLAUDE.md`, `AGENTS.md`, etc. for each provider, you write your instructions once in `OMNI.md` and OmniDev generates the provider-specific files during sync.
+
+```markdown
+# My Project
+
+## Project Description
+A web application for managing tasks...
+
+## Conventions
+- Use TypeScript strict mode
+- Follow the existing code style
+...
+```
+
+When you run `omnidev sync`, OmniDev:
+1. Reads your `OMNI.md` content
+2. Generates `CLAUDE.md`, `AGENTS.md`, etc. with your content + `@import .omni/instructions.md`
+3. The `.omni/instructions.md` contains auto-generated content from your enabled capabilities
+
+This means you can:
+- **Write once, use everywhere** — Same instructions across all AI providers
+- **Keep capability content separate** — Your instructions stay clean, capability rules/docs are auto-imported
+- **Optionally gitignore generated files** — During `omnidev init`, you can choose to gitignore provider files since they're regenerated from `OMNI.md`
 
 ## Configuration
 
@@ -151,12 +181,37 @@ Core commands (always available):
 | `omnidev init` | Initialize OmniDev |
 | `omnidev sync` | Fetch sources and regenerate config |
 | `omnidev doctor` | Check setup |
+| `omnidev add cap` | Add a capability from GitHub |
+| `omnidev add mcp` | Add an MCP server |
 | `omnidev profile list` | Show profiles |
 | `omnidev profile set <name>` | Switch profile |
 | `omnidev capability list` | List capabilities |
 | `omnidev provider list` | Show available providers |
 | `omnidev provider enable <id>` | Enable a provider |
 | `omnidev provider disable <id>` | Disable a provider |
+
+### Adding Capabilities and MCP Servers
+
+The `omnidev add` command provides a quick way to add capabilities and MCP servers:
+
+```bash
+# Add a capability from GitHub
+omnidev add cap my-cap --github user/repo
+omnidev add cap my-cap --github user/repo --path plugins/subdir
+
+# Add an MCP server (stdio - local process)
+omnidev add mcp filesystem --command npx --args "-y @modelcontextprotocol/server-filesystem /path"
+omnidev add mcp database --command node --args "./servers/db.js" --env DB_URL=postgres://localhost
+
+# Add an MCP server (http - remote)
+omnidev add mcp notion --transport http --url https://mcp.notion.com/mcp
+omnidev add mcp secure-api --transport http --url https://api.example.com/mcp --header "Authorization: Bearer token"
+```
+
+Both commands automatically:
+- Add the source/server to `omni.toml`
+- Enable it in the active profile
+- Run `omnidev sync` to apply changes
 
 Capabilities can extend the CLI with custom commands—for example, `omnidev ralph status` for workflow visualization.
 
@@ -202,15 +257,19 @@ See [docs/capability-development.md](docs/capability-development.md) for the ful
 
 | File | Purpose | Git |
 |------|---------|-----|
+| `OMNI.md` | Project instructions (source of truth) | Commit |
 | `omni.toml` | Main configuration | Commit |
 | `omni.local.toml` | Local overrides | Ignore |
 | `omni.lock.toml` | Version lock | Commit |
 | `.omni/` | Runtime directory | Ignore |
+| `CLAUDE.md` | Generated for Claude Code | Optional |
+| `AGENTS.md` | Generated for Codex | Optional |
+
+**Note:** Provider-specific files (`CLAUDE.md`, `AGENTS.md`, etc.) are generated from `OMNI.md` during sync. You can choose to commit them or gitignore them during `omnidev init`.
 
 ## Roadmap
 
 - [ ] Support `.env` files for MCP environment variables (qualify of life feature)
-- [ ] Command to easily add capabilities/ mcps to config (capability install/ add) (enable/ disable currently breaks omni.toml)
 
 ## Contributing
 

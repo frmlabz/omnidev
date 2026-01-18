@@ -101,12 +101,6 @@ function generateConfigToml(config: OmniConfig): string {
 	lines.push("#   4. Switch profiles: omnidev profile use <name>");
 	lines.push("");
 
-	// Project name
-	if (config.project) {
-		lines.push(`project = "${config.project}"`);
-		lines.push("");
-	}
-
 	// Note: active_profile is stored in .omni/state/active-profile, not in config.toml
 	// We still read it from config.toml for backwards compatibility, but don't write it here
 

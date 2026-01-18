@@ -30,6 +30,7 @@ export * from "./sync";
 // Export templates
 export * from "./templates/agents";
 export * from "./templates/claude";
+export * from "./templates/omni";
 // Export core types
 export * from "./types";
 

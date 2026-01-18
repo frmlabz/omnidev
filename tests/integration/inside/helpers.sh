@@ -253,6 +253,34 @@ assert_claude_md_exists() {
   assert_file_exists "CLAUDE.md"
 }
 
+# Assert OMNI.md exists
+# Usage: assert_omni_md_exists
+assert_omni_md_exists() {
+  assert_file_exists "OMNI.md"
+}
+
+# Assert CLAUDE.md is generated from OMNI.md (contains @import directive)
+# Usage: assert_claude_md_generated_from_omni
+assert_claude_md_generated_from_omni() {
+  assert_file_exists "CLAUDE.md"
+  assert_file_contains "CLAUDE.md" "@import .omni/instructions.md"
+}
+
+# Assert OMNI.md content is reflected in CLAUDE.md
+# Usage: assert_omni_content_in_claude <content>
+assert_omni_content_in_claude() {
+  local content="$1"
+  assert_file_exists "OMNI.md"
+  assert_file_exists "CLAUDE.md"
+
+  # Check that the content from OMNI.md appears in CLAUDE.md
+  if grep -q "$content" "OMNI.md"; then
+    if ! grep -q "$content" "CLAUDE.md"; then
+      fail "Expected CLAUDE.md to contain content from OMNI.md: $content"
+    fi
+  fi
+}
+
 # Assert omni.toml contains capability source
 # Usage: assert_capability_source_in_config <name>
 assert_capability_source_in_config() {
