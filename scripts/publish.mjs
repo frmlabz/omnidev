@@ -1,9 +1,42 @@
 #!/usr/bin/env node
 import { execSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { extname, join } from "node:path";
+
+const RUNTIME_JS_EXTS = new Set([".js", ".mjs", ".cjs"]);
+const BUN_RUNTIME_PATTERNS = [
+	/\bBun\s*[\.\[]/,
+	/\bfrom\s+["']bun["']/,
+	/\brequire\(\s*["']bun["']\s*\)/,
+	/\bimport\(\s*["']bun["']\s*\)/,
+	/["']bun:/,
+];
+
+function scanForBunRuntimeApis(rootDir) {
+	const hits = [];
+	function walk(dir) {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const fullPath = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				walk(fullPath);
+				continue;
+			}
+			if (!RUNTIME_JS_EXTS.has(extname(entry.name))) continue;
+			const content = readFileSync(fullPath, "utf8");
+			for (const pattern of BUN_RUNTIME_PATTERNS) {
+				if (pattern.test(content)) {
+					hits.push({ file: fullPath, pattern: pattern.toString() });
+					break;
+				}
+			}
+		}
+	}
+	walk(rootDir);
+	return hits;
+}
 
 const PACKAGES = ["packages/core", "packages/cli"];
+const CHECK_ONLY = process.argv.includes("--check") || process.env.OMNIDEV_PUBLISH === "false";
 
 function exec(cmd, opts = {}) {
 	console.log(`$ ${cmd}`);
@@ -23,7 +56,7 @@ for (const pkgDir of PACKAGES) {
 		continue;
 	}
 
-	console.log(`\n📦 Publishing ${pkg.name}...`);
+	console.log(`\n📦 ${CHECK_ONLY ? "Checking" : "Publishing"} ${pkg.name}...`);
 
 	const tarball = execQuiet("bun pm pack --quiet", { cwd: pkgDir });
 	const tarballPath = join(pkgDir, tarball);
@@ -67,11 +100,22 @@ for (const pkgDir of PACKAGES) {
 		exec(`tar -czf ${tarball} -C _pack_inspect package`, { cwd: pkgDir });
 	}
 
+	const bunHits = scanForBunRuntimeApis(join(extractDir, "package"));
+	if (bunHits.length > 0) {
+		console.error("❌ Bun-specific runtime APIs found in packed output:");
+		for (const hit of bunHits) {
+			console.error(`  - ${hit.file} (${hit.pattern})`);
+		}
+		process.exit(1);
+	}
+
 	rmSync(extractDir, { recursive: true, force: true });
 
-	exec(`npm publish ${tarball} --access public`, { cwd: pkgDir });
+	if (!CHECK_ONLY) {
+		exec(`npm publish ${tarball} --access public`, { cwd: pkgDir });
+	}
 
 	rmSync(tarballPath);
 
-	console.log(`✅ Published ${pkg.name}@${pkg.version}`);
+	console.log(`✅ ${CHECK_ONLY ? "Checked" : "Published"} ${pkg.name}@${pkg.version}`);
 }

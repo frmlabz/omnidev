@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import type { CapabilityExport } from "@omnidev-ai/core";
 import { buildApplication, buildRouteMap } from "@stricli/core";
@@ -10,6 +11,20 @@ import { profileRoutes } from "../commands/profile";
 import { providerRoutes } from "../commands/provider";
 import { syncCommand } from "../commands/sync";
 import { debug } from "@omnidev-ai/core";
+
+const require = createRequire(import.meta.url);
+
+function readCliVersion(): string {
+	try {
+		const pkg = require("../../package.json") as { version?: string };
+		if (typeof pkg?.version === "string") {
+			return pkg.version;
+		}
+	} catch {
+		// Ignore and fall back to default below.
+	}
+	return "0.0.0";
+}
 
 /**
  * Build CLI app with dynamically loaded capability commands
@@ -65,7 +80,7 @@ export async function buildDynamicApp() {
 		{
 			name: "omnidev",
 			versionInfo: {
-				currentVersion: "0.1.0",
+				currentVersion: readCliVersion(),
 			},
 		},
 	);

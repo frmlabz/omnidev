@@ -34,6 +34,9 @@ jobs:
       - name: Build
         run: bun run build
 
+      - name: Release package safety checks
+        run: node scripts/publish.mjs --check
+
       - name: Test
         run: bun run test
 
