@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.5.0
+
+### Minor Changes
+
+- cf84ef0: Improve publishing setup
+
 ## 0.4.0
 
 ### Minor Changes
