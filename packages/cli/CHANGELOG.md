@@ -1,5 +1,16 @@
 # @omnidev-ai/cli
 
+## 0.5.0
+
+### Minor Changes
+
+- cf84ef0: Improve publishing setup
+
+### Patch Changes
+
+- Updated dependencies [cf84ef0]
+  - @omnidev-ai/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
