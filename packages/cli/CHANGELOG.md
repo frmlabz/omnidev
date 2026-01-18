@@ -1,5 +1,15 @@
 # @omnidev-ai/cli
 
+## 0.6.0
+
+### Minor Changes
+
+- 492e780: Remove bun dependency in runtime
+
+### Patch Changes
+
+- @omnidev-ai/core@0.6.0
+
 ## 0.5.4
 
 ### Patch Changes
