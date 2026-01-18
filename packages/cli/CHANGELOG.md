@@ -1,5 +1,18 @@
 # @omnidev-ai/cli
 
+## 0.8.0
+
+### Minor Changes
+
+- abcde4f: Added OMNI.md support
+
+### Patch Changes
+
+- 233883a: Better integration tests
+- Updated dependencies [233883a]
+- Updated dependencies [abcde4f]
+  - @omnidev-ai/core@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

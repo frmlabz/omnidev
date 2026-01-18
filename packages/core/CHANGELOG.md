@@ -1,5 +1,15 @@
 # @omnidev-ai/core
 
+## 0.8.0
+
+### Minor Changes
+
+- abcde4f: Added OMNI.md support
+
+### Patch Changes
+
+- 233883a: Better integration tests
+
 ## 0.7.0
 
 ### Minor Changes
