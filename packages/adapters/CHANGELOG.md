@@ -1,5 +1,13 @@
 # @omnidev-ai/adapters
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [233883a]
+- Updated dependencies [abcde4f]
+  - @omnidev-ai/core@0.8.0
+
 ## 0.0.10
 
 ### Patch Changes
