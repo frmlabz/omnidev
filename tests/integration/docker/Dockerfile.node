@@ -7,6 +7,7 @@ RUN apt-get update \
     ca-certificates \
     curl \
     git \
+    unzip \
     xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
@@ -18,4 +19,3 @@ RUN curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-
   && npm --version
 
 WORKDIR /repo
-

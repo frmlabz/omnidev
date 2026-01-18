@@ -11,9 +11,7 @@ IMAGE_NODE="omnidev-it-node:local"
 IMAGE_BUN="omnidev-it-bun:local"
 
 build_images() {
-  if [[ "${MODE}" == "release" ]]; then
-    docker build -f tests/integration/docker/Dockerfile.node -t "${IMAGE_NODE}" "${ROOT_DIR}"
-  fi
+  docker build -f tests/integration/docker/Dockerfile.node -t "${IMAGE_NODE}" "${ROOT_DIR}"
   docker build -f tests/integration/docker/Dockerfile.bun -t "${IMAGE_BUN}" "${ROOT_DIR}"
 }
 
@@ -51,6 +49,7 @@ build_images
 case "${MODE}" in
   dev)
     run_in_container "${IMAGE_BUN}" "local" "dev" ""
+    run_in_container "${IMAGE_NODE}" "local-node" "dev" ""
     ;;
   release)
     if [[ -z "${CLI_VERSION}" ]]; then

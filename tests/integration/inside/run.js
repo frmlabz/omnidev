@@ -44,6 +44,46 @@ function assert(condition, message) {
 	if (!condition) throw new Error(message);
 }
 
+async function installTempBun() {
+	const bunInstallDir = join(
+		tmpdir(),
+		`omnidev-bun-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`,
+	);
+	await mkdir(bunInstallDir, { recursive: true });
+
+	const install = await runCommand("bash", ["-lc", "curl -fsSL https://bun.sh/install | bash"], {
+		env: { ...process.env, BUN_INSTALL: bunInstallDir },
+	});
+	assert(install.exitCode === 0, `bun install failed\n${install.stderr}`);
+
+	const bunPath = join(bunInstallDir, "bin", "bun");
+	const bunEnv = {
+		...process.env,
+		BUN_INSTALL: bunInstallDir,
+		PATH: `${join(bunInstallDir, "bin")}:${process.env.PATH ?? ""}`,
+	};
+	const check = await runCommand(bunPath, ["--version"], { env: bunEnv });
+	assert(check.exitCode === 0, `bun install failed\n${check.stderr}`);
+
+	return { bunInstallDir, bunPath, bunEnv };
+}
+
+async function removeTempBun(bunInstallDir) {
+	await rm(bunInstallDir, { recursive: true, force: true });
+}
+
+async function assertBunUnavailable() {
+	const check = await runCommand("bash", ["-lc", "command -v bun"]);
+	assert(check.exitCode !== 0, "Expected bun to be unavailable after cleanup");
+}
+
+async function getBunInfo() {
+	const check = await runCommand("bash", ["-lc", "command -v bun"]);
+	if (check.exitCode !== 0) return { available: false, version: "" };
+	const version = await runCommand("bun", ["--version"]);
+	return { available: true, version: version.stdout.trim() };
+}
+
 async function walkFiles(rootDir, options) {
 	const files = [];
 	const skipDirNames = new Set(options?.skipDirNames ?? []);
@@ -118,6 +158,11 @@ function getOmnidevInvocation({ runner, repoRoot, cliVersion }) {
 	if (runner === "local") {
 		const cliPath = resolve(repoRoot, "packages/cli/dist/index.js");
 		return { command: "bun", baseArgs: [cliPath] };
+	}
+
+	if (runner === "local-node") {
+		const cliPath = resolve(repoRoot, "packages/cli/dist/index.js");
+		return { command: "node", baseArgs: [cliPath] };
 	}
 
 	if (runner === "npx") {
@@ -250,6 +295,7 @@ const runner = process.env.IT_RUNNER ?? (mode === "dev" ? "local" : "npx");
 const repoRoot = process.cwd();
 const cliVersion = process.env.IT_CLI_VERSION ?? "";
 const casesFile = process.env.IT_CASES_FILE ?? "tests/integration/cases.json";
+let buildInfo = "";
 
 if (runner === "local") {
 	// Ensure repo deps + dist are ready in-container.
@@ -263,6 +309,28 @@ if (runner === "local") {
 
 	const build = await runCommand("bun", ["run", "build"], { cwd: repoRoot });
 	assert(build.exitCode === 0, `bun run build failed\n${build.stderr}`);
+	buildInfo = "built with system bun";
+}
+
+if (runner === "local-node") {
+	// Build with a temporary Bun install, then remove it to validate runtime without Bun.
+	const { bunInstallDir, bunPath, bunEnv } = await installTempBun();
+	try {
+		const install = await runCommand(
+			bunPath,
+			["install", "--frozen-lockfile", "--ignore-scripts"],
+			{ cwd: repoRoot, env: bunEnv },
+		);
+		assert(install.exitCode === 0, `bun install failed\n${install.stderr}`);
+
+		const build = await runCommand(bunPath, ["run", "build"], { cwd: repoRoot, env: bunEnv });
+		assert(build.exitCode === 0, `bun run build failed\n${build.stderr}`);
+	} finally {
+		await removeTempBun(bunInstallDir);
+	}
+
+	await assertBunUnavailable();
+	buildInfo = "built with temp bun (removed before tests)";
 }
 
 if (mode === "release") {
@@ -274,12 +342,17 @@ const cases = casesJson.cases ?? [];
 assert(Array.isArray(cases) && cases.length > 0, "No cases found in cases.json");
 
 const invocation = getOmnidevInvocation({ runner, repoRoot, cliVersion });
+const bunInfo = await getBunInfo();
 
 console.log(`OmniDev Docker Integration`);
 console.log(`- mode: ${mode}`);
 console.log(`- runner: ${runner}`);
 if (cliVersion) console.log(`- cliVersion: ${cliVersion}`);
 console.log(`- cases: ${cases.length}`);
+if (buildInfo) console.log(`- build: ${buildInfo}`);
+console.log(
+	`- bun: ${bunInfo.available ? `available (${bunInfo.version || "unknown"})` : "unavailable"}`,
+);
 
 for (const caseDef of cases) {
 	console.log(`\n==> ${caseDef.id}`);
