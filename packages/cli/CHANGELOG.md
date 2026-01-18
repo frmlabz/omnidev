@@ -1,5 +1,22 @@
 # @omnidev-ai/cli
 
+## 0.7.0
+
+### Minor Changes
+
+- 969afb4: Add `omnidev add cap` and `omnidev add mcp` commands for easily adding capabilities and MCP servers to omni.toml
+
+  - `omnidev add cap <name> --github <user/repo> [--path <path>]` - Add a capability source from GitHub
+  - `omnidev add mcp <name> --transport http --url <url>` - Add an HTTP/SSE MCP server
+  - `omnidev add mcp <name> --command <cmd> --args "<args>"` - Add a stdio MCP server
+
+  Also fixes `capability enable/disable` commands to properly preserve existing omni.toml content (sources, mcps, always_enabled_capabilities) instead of overwriting with commented examples.
+
+### Patch Changes
+
+- Updated dependencies [969afb4]
+  - @omnidev-ai/core@0.7.0
+
 ## 0.6.2
 
 ### Patch Changes
