@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.5.4
+
+### Patch Changes
+
+- b6e8bd0: Remove Bun dependency totally
+  - @omnidev-ai/core@0.5.4
+
 ## 0.5.3
 
 ### Patch Changes
