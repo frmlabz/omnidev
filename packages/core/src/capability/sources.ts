@@ -10,7 +10,7 @@
 
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import type {
@@ -500,6 +500,38 @@ export interface DiscoveredContent {
 	docsDir: string | null;
 }
 
+/**
+ * Rename singular folder names to plural for consistency
+ * skill -> skills, command -> commands, rule -> rules, agent -> agents
+ */
+export async function normalizeFolderNames(repoPath: string): Promise<void> {
+	const renameMappings = [
+		{ from: "skill", to: "skills" },
+		{ from: "command", to: "commands" },
+		{ from: "rule", to: "rules" },
+		{ from: "agent", to: "agents" },
+		{ from: "subagent", to: "subagents" },
+	];
+
+	for (const { from, to } of renameMappings) {
+		const fromPath = join(repoPath, from);
+		const toPath = join(repoPath, to);
+
+		// Only rename if singular exists and plural doesn't
+		if (existsSync(fromPath) && !existsSync(toPath)) {
+			try {
+				const stats = await stat(fromPath);
+				if (stats.isDirectory()) {
+					await rename(fromPath, toPath);
+				}
+			} catch (error) {
+				// Ignore rename errors (might be permissions, etc.)
+				console.warn(`Failed to rename ${from} to ${to}:`, error);
+			}
+		}
+	}
+}
+
 async function discoverContent(repoPath: string): Promise<DiscoveredContent> {
 	const result: DiscoveredContent = {
 		skills: [],
@@ -694,6 +726,9 @@ async function fetchGitCapabilitySource(
 	}
 
 	if (needsWrap) {
+		// Normalize folder names (singular -> plural)
+		await normalizeFolderNames(repoPath);
+
 		// Discover content and generate capability.toml
 		const content = await discoverContent(repoPath);
 		await generateCapabilityToml(id, repoPath, config.source, commit, content);

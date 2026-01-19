@@ -38,7 +38,28 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check if release should run
+        id: should-release
+        run: |
+          # Count changeset files (excluding README.md and config.json)
+          CHANGESET_COUNT=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' 2>/dev/null | wc -l)
+
+          # Check if this is a release commit (from merging the release PR)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          if [ "$CHANGESET_COUNT" -gt 0 ]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Found $CHANGESET_COUNT pending changeset(s)"
+          elif echo "$COMMIT_MSG" | grep -q "^chore: release packages"; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "Detected release commit, will publish"
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "No changesets and not a release commit, skipping release"
+          fi
+
       - name: Create Release PR or Publish
+        if: steps.should-release.outputs.should_release == 'true'
         id: changesets
         uses: changesets/action@v1
         with:

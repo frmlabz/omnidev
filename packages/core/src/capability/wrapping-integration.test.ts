@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { CapabilityConfig, OmniConfig } from "../types/index.js";
-import { generateMcpCapabilities } from "./sources.js";
+import { generateMcpCapabilities, normalizeFolderNames } from "./sources.js";
 
 describe("wrapping integration - expo-like structure", () => {
 	const testDir = setupTestDir("test-expo-", { chdir: true });
@@ -162,6 +162,202 @@ description = "This is a proper capability with its own TOML"
 		// expo-app-design = { source = "github:expo/skills", path = "plugins/expo-app-design" }
 		// expo-deployment = { source = "github:expo/skills", path = "plugins/expo-deployment" }
 		// upgrading-expo = { source = "github:expo/skills", path = "plugins/upgrading-expo" }
+	});
+});
+
+describe("wrapping folder renaming - singular to plural", () => {
+	const testDir = setupTestDir("test-rename-", { chdir: true });
+
+	test("renames singular 'skill' folder to 'skills' during wrapping", async () => {
+		const pluginDir = join(testDir.path, "plugins", "test-plugin");
+		mkdirSync(join(pluginDir, "skill"), { recursive: true });
+
+		// Create a skill in singular folder
+		writeFileSync(
+			join(pluginDir, "skill", "example-skill.md"),
+			`---
+name: example-skill
+description: Example skill
+---
+
+# Example Skill
+
+Test content.`,
+		);
+
+		writeFileSync(
+			join(pluginDir, "README.md"),
+			`# Test Plugin
+
+Plugin with singular skill folder.`,
+		);
+
+		// Verify singular folder exists
+		expect(existsSync(join(pluginDir, "skill"))).toBe(true);
+		expect(existsSync(join(pluginDir, "skills"))).toBe(false);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// After normalization, 'skill' should be renamed to 'skills'
+		expect(existsSync(join(pluginDir, "skill"))).toBe(false);
+		expect(existsSync(join(pluginDir, "skills"))).toBe(true);
+
+		// Verify content was preserved
+		expect(existsSync(join(pluginDir, "skills", "example-skill.md"))).toBe(true);
+	});
+
+	test("renames singular 'command' folder to 'commands' during wrapping", async () => {
+		const pluginDir = join(testDir.path, "plugins", "cmd-plugin");
+		mkdirSync(join(pluginDir, "command"), { recursive: true });
+
+		writeFileSync(
+			join(pluginDir, "command", "test-cmd.md"),
+			`---
+name: test-cmd
+description: Test command
+---
+
+# Test Command`,
+		);
+
+		// Verify singular folder exists
+		expect(existsSync(join(pluginDir, "command"))).toBe(true);
+		expect(existsSync(join(pluginDir, "commands"))).toBe(false);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// After normalization, 'command' should be renamed to 'commands'
+		expect(existsSync(join(pluginDir, "command"))).toBe(false);
+		expect(existsSync(join(pluginDir, "commands"))).toBe(true);
+		expect(existsSync(join(pluginDir, "commands", "test-cmd.md"))).toBe(true);
+	});
+
+	test("renames singular 'rule' folder to 'rules' during wrapping", async () => {
+		const pluginDir = join(testDir.path, "plugins", "rules-plugin");
+		mkdirSync(join(pluginDir, "rule"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "rule", "coding-standard.md"), "# Coding Standard\n");
+
+		// Verify singular folder exists
+		expect(existsSync(join(pluginDir, "rule"))).toBe(true);
+		expect(existsSync(join(pluginDir, "rules"))).toBe(false);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// After normalization, 'rule' should be renamed to 'rules'
+		expect(existsSync(join(pluginDir, "rule"))).toBe(false);
+		expect(existsSync(join(pluginDir, "rules"))).toBe(true);
+		expect(existsSync(join(pluginDir, "rules", "coding-standard.md"))).toBe(true);
+	});
+
+	test("does not rename if plural folder already exists", async () => {
+		const pluginDir = join(testDir.path, "plugins", "both-plugin");
+		mkdirSync(join(pluginDir, "skills"), { recursive: true });
+		mkdirSync(join(pluginDir, "skill"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "skills", "skill1.md"), "# Skill 1\n");
+		writeFileSync(join(pluginDir, "skill", "skill2.md"), "# Skill 2\n");
+
+		// Both folders exist - should prefer plural, leave singular alone
+		expect(existsSync(join(pluginDir, "skills"))).toBe(true);
+		expect(existsSync(join(pluginDir, "skill"))).toBe(true);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// Both should still exist - singular not renamed because plural exists
+		expect(existsSync(join(pluginDir, "skills"))).toBe(true);
+		expect(existsSync(join(pluginDir, "skill"))).toBe(true);
+	});
+
+	test("renames multiple singular folders in one plugin", async () => {
+		const pluginDir = join(testDir.path, "plugins", "multi-plugin");
+		mkdirSync(join(pluginDir, "skill"), { recursive: true });
+		mkdirSync(join(pluginDir, "command"), { recursive: true });
+		mkdirSync(join(pluginDir, "rule"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "skill", "example.md"), "# Skill\n");
+		writeFileSync(join(pluginDir, "command", "example.md"), "# Command\n");
+		writeFileSync(join(pluginDir, "rule", "example.md"), "# Rule\n");
+
+		// Verify all singular folders exist
+		expect(existsSync(join(pluginDir, "skill"))).toBe(true);
+		expect(existsSync(join(pluginDir, "command"))).toBe(true);
+		expect(existsSync(join(pluginDir, "rule"))).toBe(true);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// After normalization, all should be renamed to plural
+		expect(existsSync(join(pluginDir, "skill"))).toBe(false);
+		expect(existsSync(join(pluginDir, "command"))).toBe(false);
+		expect(existsSync(join(pluginDir, "rule"))).toBe(false);
+
+		expect(existsSync(join(pluginDir, "skills"))).toBe(true);
+		expect(existsSync(join(pluginDir, "commands"))).toBe(true);
+		expect(existsSync(join(pluginDir, "rules"))).toBe(true);
+
+		// Verify content preserved
+		expect(existsSync(join(pluginDir, "skills", "example.md"))).toBe(true);
+		expect(existsSync(join(pluginDir, "commands", "example.md"))).toBe(true);
+		expect(existsSync(join(pluginDir, "rules", "example.md"))).toBe(true);
+	});
+
+	test("renames 'agent' to 'agents' for consistency", async () => {
+		const pluginDir = join(testDir.path, "plugins", "agent-plugin");
+		mkdirSync(join(pluginDir, "agent"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "agent", "researcher.md"), "# Researcher Agent\n");
+
+		// Verify singular folder exists
+		expect(existsSync(join(pluginDir, "agent"))).toBe(true);
+		expect(existsSync(join(pluginDir, "agents"))).toBe(false);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// 'agent' should be renamed to 'agents'
+		expect(existsSync(join(pluginDir, "agent"))).toBe(false);
+		expect(existsSync(join(pluginDir, "agents"))).toBe(true);
+		expect(existsSync(join(pluginDir, "agents", "researcher.md"))).toBe(true);
+	});
+
+	test("renames 'subagent' to 'subagents'", async () => {
+		const pluginDir = join(testDir.path, "plugins", "subagent-plugin");
+		mkdirSync(join(pluginDir, "subagent"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "subagent", "helper.md"), "# Helper Subagent\n");
+
+		// Verify singular folder exists
+		expect(existsSync(join(pluginDir, "subagent"))).toBe(true);
+		expect(existsSync(join(pluginDir, "subagents"))).toBe(false);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// 'subagent' should be renamed to 'subagents'
+		expect(existsSync(join(pluginDir, "subagent"))).toBe(false);
+		expect(existsSync(join(pluginDir, "subagents"))).toBe(true);
+		expect(existsSync(join(pluginDir, "subagents", "helper.md"))).toBe(true);
+	});
+
+	test("leaves 'docs' and 'documentation' as is", async () => {
+		const pluginDir = join(testDir.path, "plugins", "docs-plugin");
+		mkdirSync(join(pluginDir, "docs"), { recursive: true });
+
+		writeFileSync(join(pluginDir, "docs", "getting-started.md"), "# Getting Started\n");
+
+		// 'docs' is already plural, no rename needed
+		expect(existsSync(join(pluginDir, "docs"))).toBe(true);
+
+		// Run normalization
+		await normalizeFolderNames(pluginDir);
+
+		// Should remain unchanged
+		expect(existsSync(join(pluginDir, "docs"))).toBe(true);
 	});
 });
 
