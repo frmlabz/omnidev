@@ -4,6 +4,7 @@ import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { fetchAllCapabilitySources } from "./capability/sources";
 import { loadConfig } from "./config/config";
+import { hasAnyHooks } from "./hooks/merger.js";
 import { syncMcpJson } from "./mcp-json/manager";
 import {
 	buildManifestFromCapabilities,
@@ -128,6 +129,9 @@ export async function buildSyncBundle(options?: {
 	const commands = capabilities.flatMap((c) => c.commands);
 	const subagents = capabilities.flatMap((c) => c.subagents);
 
+	// Get merged hooks from all capabilities
+	const mergedHooks = registry.getMergedHooks();
+
 	// Generate instructions content
 	const instructionsContent = generateInstructionsContent(rules, docs);
 
@@ -141,6 +145,11 @@ export async function buildSyncBundle(options?: {
 		instructionsPath: ".omni/instructions.md",
 		instructionsContent,
 	};
+
+	// Only add hooks if there are any
+	if (hasAnyHooks(mergedHooks)) {
+		bundle.hooks = mergedHooks;
+	}
 
 	return { bundle };
 }

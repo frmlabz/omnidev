@@ -29,13 +29,16 @@ A capability can contribute one or more of the following:
 - **MCP servers**: Model Context Protocol endpoints configured in `omni.toml`
 - **Gitignore patterns**: added to `.omni/.gitignore` during sync
 - **Sync hooks**: custom setup steps run during `omnidev sync`
+- **Claude Code hooks**: automated scripts that run at specific agent lifecycle events
 - **Type hints**: optional `types.d.ts` for editor/LLM hints
 
 ## How content is loaded
 
 OmniDev merges content from two sources:
 
-1. **Static files** under `skills/`, `rules/`, `docs/`, `commands/`, and `subagents/`
+1. **Static files** under `skills/`, `rules/`, `docs/`, `commands/`, `subagents/`, and `hooks/`
 2. **Programmatic exports** from `index.ts`
 
-Programmatic exports take precedence when both are provided.
+Programmatic exports take precedence when both are provided (except for hooks, which are currently TOML-only).
+
+<!-- TODO: Add programmatic export support for hooks in index.ts -->

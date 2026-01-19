@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { validateEnv } from "../config/env";
 import { parseCapabilityConfig } from "../config/parser";
+import { loadCapabilityHooks } from "../hooks/loader.js";
 import type {
 	CapabilityConfig,
 	Command,
@@ -405,6 +406,9 @@ export async function loadCapability(
 			? (exportsAny.gitignore as string[])
 			: undefined;
 
+	// Load hooks from hooks/hooks.toml if present
+	const hooks = loadCapabilityHooks(id, capabilityPath);
+
 	// Build result object with explicit handling for optional typeDefinitions
 	const result: LoadedCapability = {
 		id,
@@ -426,6 +430,11 @@ export async function loadCapability(
 	// Only add gitignore if it exists
 	if (gitignore !== undefined) {
 		result.gitignore = gitignore;
+	}
+
+	// Only add hooks if found
+	if (hooks !== null) {
+		result.hooks = hooks;
 	}
 
 	return result;

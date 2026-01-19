@@ -1,6 +1,7 @@
 import { getEnabledCapabilities } from "../config/capabilities";
 import { loadEnvironment } from "../config/env";
-import type { Doc, LoadedCapability, Rule, Skill } from "../types";
+import { mergeHooksConfigs } from "../hooks/merger.js";
+import type { HooksConfig, CapabilityHooks, Doc, LoadedCapability, Rule, Skill } from "../types";
 import { discoverCapabilities, loadCapability } from "./loader";
 
 /**
@@ -13,6 +14,10 @@ export interface CapabilityRegistry {
 	getAllSkills(): Skill[];
 	getAllRules(): Rule[];
 	getAllDocs(): Doc[];
+	/** Get all capability hooks metadata */
+	getAllCapabilityHooks(): CapabilityHooks[];
+	/** Get merged hooks from all capabilities */
+	getMergedHooks(): HooksConfig;
 }
 
 /**
@@ -44,6 +49,17 @@ export async function buildCapabilityRegistry(): Promise<CapabilityRegistry> {
 		}
 	}
 
+	// Helper to get all capability hooks
+	const getAllCapabilityHooks = (): CapabilityHooks[] => {
+		const hooks: CapabilityHooks[] = [];
+		for (const cap of capabilities.values()) {
+			if (cap.hooks) {
+				hooks.push(cap.hooks);
+			}
+		}
+		return hooks;
+	};
+
 	return {
 		capabilities,
 		getCapability: (id: string) => capabilities.get(id),
@@ -51,5 +67,7 @@ export async function buildCapabilityRegistry(): Promise<CapabilityRegistry> {
 		getAllSkills: () => [...capabilities.values()].flatMap((c) => c.skills),
 		getAllRules: () => [...capabilities.values()].flatMap((c) => c.rules),
 		getAllDocs: () => [...capabilities.values()].flatMap((c) => c.docs),
+		getAllCapabilityHooks,
+		getMergedHooks: () => mergeHooksConfigs(getAllCapabilityHooks()),
 	};
 }

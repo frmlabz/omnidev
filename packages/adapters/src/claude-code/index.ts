@@ -2,12 +2,14 @@ import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
+	HooksConfig,
 	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
 	ProviderSyncResult,
 	SyncBundle,
 } from "@omnidev-ai/core";
+import { transformHooksConfig } from "@omnidev-ai/core/hooks";
 
 /**
  * Claude Code adapter - writes skills to .claude/skills/ and generates CLAUDE.md from OMNI.md
@@ -34,7 +36,10 @@ export const claudeCodeAdapter: ProviderAdapter = {
 		await writeFile(claudeMdPath, claudeMdContent, "utf-8");
 		filesWritten.push("CLAUDE.md");
 
-		const skillsDir = join(ctx.projectRoot, ".claude", "skills");
+		const claudeDir = join(ctx.projectRoot, ".claude");
+		mkdirSync(claudeDir, { recursive: true });
+
+		const skillsDir = join(claudeDir, "skills");
 		mkdirSync(skillsDir, { recursive: true });
 
 		// Write skills to .claude/skills/
@@ -52,6 +57,15 @@ ${skill.instructions}`;
 
 			await writeFile(skillPath, content, "utf-8");
 			filesWritten.push(`.claude/skills/${skill.name}/SKILL.md`);
+		}
+
+		// Write hooks to .claude/settings.json
+		if (bundle.hooks) {
+			const settingsPath = join(claudeDir, "settings.json");
+			const hooksWritten = await writeHooksToSettings(settingsPath, bundle.hooks);
+			if (hooksWritten) {
+				filesWritten.push(".claude/settings.json");
+			}
 		}
 
 		return {
@@ -78,4 +92,39 @@ async function generateClaudeMdContent(projectRoot: string): Promise<string> {
 	content += `\n\n## OmniDev\n\n@import .omni/instructions.md\n`;
 
 	return content;
+}
+
+/**
+ * Write hooks to .claude/settings.json
+ *
+ * - Loads existing settings.json (if any)
+ * - Transforms OMNIDEV_ variables to CLAUDE_ variables
+ * - Writes hooks under the "hooks" key
+ * - Preserves other settings that weren't set by OmniDev
+ */
+async function writeHooksToSettings(settingsPath: string, hooks: HooksConfig): Promise<boolean> {
+	// Transform OMNIDEV_ variables to CLAUDE_ variables
+	const claudeHooks = transformHooksConfig(hooks, "toClaude");
+
+	// Load existing settings if they exist
+	let existingSettings: Record<string, unknown> = {};
+	if (existsSync(settingsPath)) {
+		try {
+			const content = await readFile(settingsPath, "utf-8");
+			existingSettings = JSON.parse(content);
+		} catch {
+			// If we can't parse existing settings, start fresh
+			existingSettings = {};
+		}
+	}
+
+	// Merge hooks into settings
+	const newSettings = {
+		...existingSettings,
+		hooks: claudeHooks,
+	};
+
+	// Write settings.json
+	await writeFile(settingsPath, `${JSON.stringify(newSettings, null, 2)}\n`, "utf-8");
+	return true;
 }

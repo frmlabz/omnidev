@@ -18,6 +18,9 @@ export function getVersion(): string {
 // Export capability system
 export * from "./capability";
 
+// Export hooks system
+export * from "./hooks";
+
 // Export config functionality
 export * from "./config";
 // Export MCP JSON management

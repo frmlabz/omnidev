@@ -665,4 +665,121 @@ Skill instructions`,
 		expect(capability.typeDefinitions).toBe("export type T = string;");
 		expect(typeof capability.exports.helper).toBe("function");
 	});
+
+	test("loads capability without hooks when hooks.toml is missing", async () => {
+		const capPath = join(".omni", "capabilities", "no-hooks");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "no-hooks"
+name = "No Hooks"
+version = "1.0.0"
+description = "Has no hooks"`,
+		);
+
+		const capability = await loadCapability(capPath, {});
+
+		expect(capability.id).toBe("no-hooks");
+		expect(capability.hooks).toBeUndefined();
+	});
+
+	test("loads capability with hooks from hooks/hooks.toml", async () => {
+		const capPath = join(".omni", "capabilities", "with-hooks");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "with-hooks"
+name = "With Hooks"
+version = "1.0.0"
+description = "Has hooks"`,
+		);
+
+		// Create hooks directory and hooks.toml
+		const hooksPath = join(capPath, "hooks");
+		mkdirSync(hooksPath, { recursive: true });
+		writeFileSync(
+			join(hooksPath, "hooks.toml"),
+			`description = "Test hooks"
+
+[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "echo test"`,
+		);
+
+		const capability = await loadCapability(capPath, {});
+
+		expect(capability.id).toBe("with-hooks");
+		expect(capability.hooks).toBeDefined();
+		expect(capability.hooks?.capabilityName).toBe("with-hooks");
+		expect(capability.hooks?.config.PreToolUse).toHaveLength(1);
+		expect(capability.hooks?.config.PreToolUse?.[0]?.matcher).toBe("Bash");
+	});
+
+	test("loads capability with hooks and transforms CLAUDE_ variables", async () => {
+		const capPath = join(".omni", "capabilities", "hooks-transform");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "hooks-transform"
+name = "Hooks Transform"
+version = "1.0.0"
+description = "Transforms variables"`,
+		);
+
+		// Create hooks with CLAUDE_ variables (as if imported from external source)
+		const hooksPath = join(capPath, "hooks");
+		mkdirSync(hooksPath, { recursive: true });
+		writeFileSync(
+			join(hooksPath, "hooks.toml"),
+			`[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "\${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"`,
+		);
+
+		const capability = await loadCapability(capPath, {});
+
+		// CLAUDE_PLUGIN_ROOT should be transformed to OMNIDEV_CAPABILITY_ROOT
+		const command = capability.hooks?.config.PreToolUse?.[0]?.hooks[0];
+		expect(command?.type).toBe("command");
+		if (command?.type === "command") {
+			expect(command.command).toContain("OMNIDEV_CAPABILITY_ROOT");
+			expect(command.command).not.toContain("CLAUDE_PLUGIN_ROOT");
+		}
+	});
+
+	test("hooks validation result is included in loaded capability", async () => {
+		const capPath = join(".omni", "capabilities", "hooks-validation");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "hooks-validation"
+name = "Hooks Validation"
+version = "1.0.0"
+description = "Has valid hooks"`,
+		);
+
+		const hooksPath = join(capPath, "hooks");
+		mkdirSync(hooksPath, { recursive: true });
+		writeFileSync(
+			join(hooksPath, "hooks.toml"),
+			`[[Stop]]
+[[Stop.hooks]]
+type = "prompt"
+prompt = "Check completion"`,
+		);
+
+		const capability = await loadCapability(capPath, {});
+
+		expect(capability.hooks?.validation).toBeDefined();
+		expect(capability.hooks?.validation.valid).toBe(true);
+		expect(capability.hooks?.validation.errors).toHaveLength(0);
+	});
 });

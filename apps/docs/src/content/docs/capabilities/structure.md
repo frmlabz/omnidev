@@ -27,6 +27,7 @@ my-capability/
 ├── skills/               # Skill folders with SKILL.md
 ├── commands/             # Slash-style commands (COMMAND.md)
 ├── subagents/            # Specialized agents (SUBAGENT.md)
+├── hooks/                # Claude Code hooks (hooks.toml + scripts)
 ├── types.d.ts            # Optional type hints
 └── .gitignore            # Optional (capability-specific)
 ```
