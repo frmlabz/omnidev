@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.9.0
+
+### Patch Changes
+
+- fc14779: Add support for folder renaming when wrapping
+
 ## 0.8.0
 
 ### Minor Changes

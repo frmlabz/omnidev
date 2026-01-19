@@ -1,5 +1,17 @@
 # @omnidev-ai/cli
 
+## 0.9.0
+
+### Minor Changes
+
+- 66cfd80: Add capability groups and support for hooks
+
+### Patch Changes
+
+- fc14779: Add support for folder renaming when wrapping
+- Updated dependencies [fc14779]
+  - @omnidev-ai/core@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
