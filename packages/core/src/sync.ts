@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { writeRules } from "./capability/rules";
 import { fetchAllCapabilitySources } from "./capability/sources";
-import { loadConfig } from "./config/loader";
+import { loadConfig } from "./config/config";
 import { syncMcpJson } from "./mcp-json/manager";
 import {
 	buildManifestFromCapabilities,

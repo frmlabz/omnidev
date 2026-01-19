@@ -220,4 +220,181 @@ describe("resolveEnabledCapabilities", () => {
 		const result = resolveEnabledCapabilities(config, null);
 		expect(result).toEqual(["logging", "tasks", "debug"]);
 	});
+
+	test("expands group reference to constituent capabilities", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design", "expo-deployment", "upgrading-expo"],
+				},
+			},
+			profiles: {
+				mobile: {
+					capabilities: ["group:expo"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "mobile");
+		expect(result).toEqual(["expo-app-design", "expo-deployment", "upgrading-expo"]);
+	});
+
+	test("expands multiple groups in profile", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design", "expo-deployment"],
+					backend: ["cloudflare", "database-tools"],
+				},
+			},
+			profiles: {
+				fullstack: {
+					capabilities: ["group:expo", "group:backend"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "fullstack");
+		expect(result).toEqual(["expo-app-design", "expo-deployment", "cloudflare", "database-tools"]);
+	});
+
+	test("mixes group references with standalone capabilities", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design", "expo-deployment"],
+				},
+			},
+			profiles: {
+				mobile: {
+					capabilities: ["group:expo", "react-native-tools"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "mobile");
+		expect(result).toEqual(["expo-app-design", "expo-deployment", "react-native-tools"]);
+	});
+
+	test("deduplicates when capability appears in group and directly", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design", "expo-deployment"],
+				},
+			},
+			profiles: {
+				mobile: {
+					capabilities: ["expo-app-design", "group:expo"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "mobile");
+		expect(result).toEqual(["expo-app-design", "expo-deployment"]);
+	});
+
+	test("deduplicates when same capability appears in multiple groups", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					frontend: ["react", "typescript"],
+					fullstack: ["react", "node", "typescript"],
+				},
+			},
+			profiles: {
+				dev: {
+					capabilities: ["group:frontend", "group:fullstack"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["react", "typescript", "node"]);
+	});
+
+	test("warns and returns empty for unknown group", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design"],
+				},
+			},
+			profiles: {
+				mobile: {
+					capabilities: ["group:nonexistent", "other-cap"],
+				},
+			},
+		};
+		const originalWarn = console.warn;
+		const warnings: string[] = [];
+		console.warn = (msg: string) => warnings.push(msg);
+
+		const result = resolveEnabledCapabilities(config, "mobile");
+
+		console.warn = originalWarn;
+		expect(result).toEqual(["other-cap"]);
+		expect(warnings).toContain("Unknown capability group: nonexistent");
+	});
+
+	test("expands group references in always_enabled_capabilities", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					core: ["logging", "telemetry"],
+				},
+			},
+			always_enabled_capabilities: ["group:core"],
+			profiles: {
+				dev: {
+					capabilities: ["debug"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["logging", "telemetry", "debug"]);
+	});
+
+	test("deduplicates between always_enabled groups and profile groups", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					core: ["logging", "telemetry"],
+					dev: ["debug", "logging"],
+				},
+			},
+			always_enabled_capabilities: ["group:core"],
+			profiles: {
+				dev: {
+					capabilities: ["group:dev"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["logging", "telemetry", "debug"]);
+	});
+
+	test("handles empty group gracefully", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					empty: [],
+				},
+			},
+			profiles: {
+				test: {
+					capabilities: ["group:empty", "other-cap"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "test");
+		expect(result).toEqual(["other-cap"]);
+	});
+
+	test("handles config with groups but no profiles", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, null);
+		expect(result).toEqual([]);
+	});
 });

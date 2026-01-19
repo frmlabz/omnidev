@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
-import { loadConfig } from "./loader";
+import { loadConfig } from "./config";
 
 const CONFIG_PATH = "omni.toml";
 const LOCAL_CONFIG = "omni.local.toml";

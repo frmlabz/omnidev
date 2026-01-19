@@ -173,6 +173,31 @@ function generateConfigToml(config: OmniConfig): string {
 	}
 	lines.push("");
 
+	// Capability groups
+	lines.push("# =============================================================================");
+	lines.push("# Capability Groups");
+	lines.push("# =============================================================================");
+	lines.push("# Bundle multiple capabilities under a single name for cleaner profiles.");
+	lines.push('# Reference groups in profiles with the "group:" prefix.');
+	lines.push("#");
+
+	const groups = config.capabilities?.groups;
+	if (groups && Object.keys(groups).length > 0) {
+		lines.push("[capabilities.groups]");
+		for (const [name, caps] of Object.entries(groups)) {
+			const capsStr = caps.map((c) => `"${c}"`).join(", ");
+			lines.push(`${name} = [${capsStr}]`);
+		}
+	} else {
+		lines.push("# [capabilities.groups]");
+		lines.push('# expo = ["expo-app-design", "expo-deployment", "upgrading-expo"]');
+		lines.push('# backend = ["cloudflare", "database-tools"]');
+		lines.push("#");
+		lines.push("# [profiles.mobile]");
+		lines.push('# capabilities = ["group:expo", "react-native-tools"]');
+	}
+	lines.push("");
+
 	// MCP servers
 	lines.push("# =============================================================================");
 	lines.push("# MCP Servers");

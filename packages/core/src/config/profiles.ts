@@ -1,6 +1,6 @@
 import { readActiveProfileState, writeActiveProfileState } from "../state/active-profile.js";
 import type { OmniConfig, ProfileConfig } from "../types/index.js";
-import { loadConfig, writeConfig } from "./loader.js";
+import { loadConfig, writeConfig } from "./config.js";
 
 /**
  * Gets the name of the currently active profile.
@@ -45,9 +45,29 @@ export function resolveEnabledCapabilities(
 
 	const profileCapabilities = profile?.capabilities ?? [];
 	const alwaysEnabled = config.always_enabled_capabilities ?? [];
+	const groups = config.capabilities?.groups ?? {};
 
-	// Merge always-enabled capabilities with profile capabilities (no duplicates)
-	return [...new Set([...alwaysEnabled, ...profileCapabilities])];
+	// Expand group references (group:name -> constituent capabilities)
+	const expandCapabilities = (caps: string[]): string[] => {
+		return caps.flatMap((cap) => {
+			if (cap.startsWith("group:")) {
+				const groupName = cap.slice(6);
+				const groupCaps = groups[groupName];
+				if (!groupCaps) {
+					console.warn(`Unknown capability group: ${groupName}`);
+					return [];
+				}
+				return groupCaps;
+			}
+			return cap;
+		});
+	};
+
+	const expandedAlways = expandCapabilities(alwaysEnabled);
+	const expandedProfile = expandCapabilities(profileCapabilities);
+
+	// Merge always-enabled capabilities with profile capabilities (deduplicated)
+	return [...new Set([...expandedAlways, ...expandedProfile])];
 }
 
 /**

@@ -1,4 +1,4 @@
-import { loadBaseConfig, loadConfig, writeConfig } from "./loader.js";
+import { loadBaseConfig, loadConfig, writeConfig } from "./config.js";
 import { getActiveProfile, resolveEnabledCapabilities } from "./profiles.js";
 
 /**

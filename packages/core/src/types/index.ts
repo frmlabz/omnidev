@@ -220,6 +220,8 @@ export interface CapabilitiesConfig {
 	disable?: string[];
 	/** Capability sources: id -> source string or full config (git or file) */
 	sources?: Record<string, CapabilitySourceConfig>;
+	/** Capability groups: group name -> array of capability IDs */
+	groups?: Record<string, string[]>;
 }
 
 // Config Types
