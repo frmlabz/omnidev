@@ -2,28 +2,33 @@
 
 NPM for AI agentic coding capabilities. A universal way to discover, install, and manage command subagents, skills, and custom functionality for AI coding agents across all providers.
 
-[![xkcd: Standards](https://imgs.xkcd.com/comics/standards.png)](https://xkcd.com/927/)
-
-Yes, we know. Another standard. But hear us out.
+Yes, we know. Another standard ([obligatory xkcd](https://xkcd.com/927/)). But hear us out.
 
 ## The Problem
 
-AI coding assistants are fragmenting into incompatible ecosystems:
-- `.cursor/` for Cursor
-- `.claude/` for Claude Code
-- `.agent/` for other agents
-- Provider-specific tool servers that don't talk to each other
+[![config sprawl](./docs/img/config-sprawl.png)](./docs/img/config-sprawl.png)
 
-This makes it hard to:
-- **Share setups with your team** — Everyone uses different tools
-- **Switch between agents** — Reconfigure everything each time
-- **Customize without forking** — Override team defaults for your workflow
+We've reached a point of absolute configuration chaos. Every AI provider has decided to reinvent the wheel—different folder structures (`.cursor/`, `.claude/`, `.agent/`), different configuration formats, and they can't even agree on plurality, skill vs skills, agent vs agents, etc.
+
+This lack of standardization makes working in this ecosystem painful. You can't share setups with your team, you can't switch agents without rewriting everything or symlinking this to that.
+
+### Why not just use `npx skills`?
+
+The Vercel [`skills`](https://www.npmjs.com/package/skills) package is a cool idea, but it doesn't fully deliver. It lacks critical features (`find` and `update` commands are currently planned) and limits itself to just managing "skills".
+
+**OmniDev is the missing piece**
+
+It manages **hooks**, **commands**, **sub-agents**, **skills**, **rules**, and can even load **Claude plugins** in a single, clean system. It allows you to:
+- **Extend the CLI** to support tools like Ralph without external scripts.
+- **Import capabilities** from any GitHub repo or local folder.
+- **Make your setup portable** across any tool (OpenCode, Cursor, Claude, Codex, Amp,etc.).
+- **Manage everything via Git** with version locking.
 
 ## The Solution
 
 OmniDev is to agentic capabilities what npm is to JavaScript packages: a package manager that lets you discover, install, version, and share AI agent functionality.
 
-Capabilities are already hosted on Git, but OmniDev provides the missing piece: download them, lock their versions, and adapt them to work with any AI provider you use.
+Capabilities can easily be hosted on Git and OmniDev provides the missing piece: download them, lock their versions, and adapt them to work with any AI provider you use.
 
 It adds `omni.toml` and `omni.lock.toml` to your project. Yes, more config files. But the tradeoff is worth it:
 
@@ -49,7 +54,7 @@ capabilities = ["my-custom-workflow"]
 
 **3. Works across all AI providers**
 
-Define your capabilities once, use them anywhere—Cursor, Claude, GitHub Copilot, custom agents, and more. OmniDev provides the runtime layer that makes your agentic code provider-agnostic.
+Define your capabilities once, use them anywhere—OpenCode, Cursor, Claude, Codex, Amp, etc. OmniDev provides the runtime layer that makes your agentic code provider-agnostic.
 
 **4. Extensible CLI and runtime**
 
@@ -219,12 +224,14 @@ Capabilities can extend the CLI with custom commands—for example, `omnidev ral
 
 OmniDev supports multiple AI coding tools through **provider adapters**:
 
-| Provider | ID | Description |
-|----------|-----|-------------|
-| Claude Code | `claude-code` | Claude CLI (default) |
-| Cursor | `cursor` | Cursor IDE |
-| Codex | `codex` | GitHub Codex |
-| OpenCode | `opencode` | Open-source alternative |
+| Provider | ID | Skills Directory | Description |
+|----------|-----|-----------------|-------------|
+| Claude Code | `claude-code` | `.claude/skills/` | Claude CLI (default) |
+| Cursor | `cursor` | `.cursor/skills/` | Cursor IDE |
+| Codex | `codex` | `.codex/skills/` | GitHub Codex |
+| OpenCode | `opencode` | `.opencode/skills/` | Open-source alternative |
+| Amp | `amp` | `.agents/skills/` | Sourcegraph Amp |
+| OmniDev | `omnidev` | `.agent/skills/` | OmniDev itself |
 
 Enable providers during init or anytime:
 
@@ -235,6 +242,19 @@ omnidev init claude-code,cursor
 # Or enable later
 omnidev provider enable cursor
 ```
+
+### Terminology Note
+
+**Important:** Each AI coding tool uses different terminology for similar concepts:
+
+| Concept | Claude Code | Cursor | Codex | OpenCode | Amp | OmniDev |
+|---------|-------------|--------|-------|----------|-----|----------|
+| **Subagents** | Subagents | Agents | N/A (SDK only) | Subagents | Subagents | Agents |
+| **Skills** | Skills | Skills | N/A | Skills | Skills | Skills |
+| **Rules/Guidelines** | Settings | .cursorrules | Config | Rules | Commands | Rules |
+| **Custom Commands** | N/A | Slash commands | CLI commands | Commands | Commands | Commands |
+
+This fragmentation makes it difficult to share configurations between tools. OmniDev abstracts these differences so you write once, use everywhere.
 
 See [docs/provider-adapters.md](docs/provider-adapters.md) for full documentation.
 
@@ -270,6 +290,10 @@ See [docs/capability-development.md](docs/capability-development.md) for the ful
 ## Roadmap
 
 - [ ] Support `.env` files for MCP environment variables (qualify of life feature)
+- [ ] Hooks
+- [ ] Commands
+- [ ] Better versioning support
+- [ ] Programmatic skills with bash content should run chmod +x on them.
 
 ## Contributing
 

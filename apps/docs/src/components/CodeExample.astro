@@ -1,0 +1,32 @@
+---
+interface Panel {
+	filename: string;
+	content: string;
+}
+
+interface Props {
+	panels: Panel[];
+}
+
+const { panels } = Astro.props;
+---
+
+<div class="od-code-example">
+	{
+		panels.map((panel) => (
+			<div class="od-code-example__panel">
+				<div class="od-code-example__header">
+					<div class="od-code-example__dots">
+						<span class="od-code-example__dot od-code-example__dot--red" />
+						<span class="od-code-example__dot od-code-example__dot--yellow" />
+						<span class="od-code-example__dot od-code-example__dot--green" />
+					</div>
+					<span class="od-code-example__filename">{panel.filename}</span>
+				</div>
+				<div class="od-code-example__body">
+					<pre><code set:html={panel.content} /></pre>
+				</div>
+			</div>
+		))
+	}
+</div>

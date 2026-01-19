@@ -1,0 +1,51 @@
+---
+/**
+ * QuickStart - Interactive install command section with package manager tabs
+ */
+---
+
+<div class="od-quickstart">
+	<div class="od-quickstart__tabs">
+		<button class="od-quickstart__tab od-quickstart__tab--active" data-pm="npm">npm</button>
+		<button class="od-quickstart__tab" data-pm="bun">bun</button>
+		<button class="od-quickstart__tab" data-pm="pnpm">pnpm</button>
+	</div>
+
+	<div class="od-quickstart__code">
+		<div class="od-quickstart__code-comment"># Install globally</div>
+		<div class="od-quickstart__code-command" id="install-cmd">npm install -g @omnidev-ai/cli</div>
+		<br />
+		<div class="od-quickstart__code-comment"># Initialize in your project</div>
+		<div class="od-quickstart__code-command">cd your-project</div>
+		<div class="od-quickstart__code-command">omnidev init</div>
+		<br />
+		<div class="od-quickstart__code-comment"># Verify setup</div>
+		<div class="od-quickstart__code-command">omnidev doctor</div>
+	</div>
+
+	<div class="od-quickstart__cta">
+		<a href="/getting-started/" class="od-btn od-btn--primary">Read the Docs</a>
+	</div>
+</div>
+
+<script>
+	const tabs = document.querySelectorAll(".od-quickstart__tab");
+	const installCmd = document.getElementById("install-cmd");
+
+	const commands: Record<string, string> = {
+		npm: "npm install -g @omnidev-ai/cli",
+		bun: "bun install -g @omnidev-ai/cli",
+		pnpm: "pnpm add -g @omnidev-ai/cli",
+	};
+
+	tabs.forEach((tab) => {
+		tab.addEventListener("click", () => {
+			tabs.forEach((t) => t.classList.remove("od-quickstart__tab--active"));
+			tab.classList.add("od-quickstart__tab--active");
+			const pm = tab.getAttribute("data-pm");
+			if (installCmd && pm && commands[pm]) {
+				installCmd.textContent = commands[pm];
+			}
+		});
+	});
+</script>

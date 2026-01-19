@@ -1,0 +1,66 @@
+---
+interface Provider {
+	name: string;
+}
+
+const { providers, tagline } = Astro.props;
+---
+
+<div class="od-provider-grid" id="od-provider-grid-root">
+	{
+		providers &&
+			providers.map((provider: Provider) => {
+				return (
+					<div class="od-provider-grid__item" data-provider={provider.name}>
+						<img class="od-provider-img" alt={provider.name} />
+						<span>{provider.name}</span>
+					</div>
+				);
+			})
+	}
+</div>
+
+{tagline && <p class="od-provider-grid__tagline" set:html={tagline} />}
+
+<script>
+	const providerIcons: Record<string, { light: string; dark: string }> = {
+		Claude: { light: "/providers/claude.svg", dark: "/providers/claude.svg" },
+		Cursor: { light: "/providers/cursor-light.svg", dark: "/providers/cursor-dark.png" },
+		Codex: { light: "/providers/codex-light.svg", dark: "/providers/codex-dark.svg" },
+		OpenCode: { light: "/providers/opencode-light.svg", dark: "/providers/opencode-dark.svg" },
+		Amp: { light: "/providers/amp-light.svg", dark: "/providers/amp-dark.svg" },
+	};
+
+	function isDarkMode(): boolean {
+		return document.documentElement.dataset.theme === "dark";
+	}
+
+	function updateProviderIcons(): void {
+		const dark = isDarkMode();
+		document.querySelectorAll<HTMLElement>(".od-provider-grid__item").forEach((el) => {
+			const providerName = el.dataset.provider;
+			const img = el.querySelector<HTMLImageElement>(".od-provider-img");
+			if (img && providerName && providerIcons[providerName]) {
+				img.src = dark ? providerIcons[providerName].dark : providerIcons[providerName].light;
+			}
+		});
+	}
+
+	// Run on initial load and after View Transitions swap
+	updateProviderIcons();
+	document.addEventListener("astro:after-swap", updateProviderIcons);
+
+	// Watch for theme changes via Starlight's data-theme attribute
+	const observer = new MutationObserver((mutations) => {
+		for (const mutation of mutations) {
+			if (mutation.attributeName === "data-theme") {
+				updateProviderIcons();
+				break;
+			}
+		}
+	});
+	observer.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ["data-theme"],
+	});
+</script>

@@ -1,0 +1,46 @@
+---
+interface Props {
+	title?: string;
+}
+
+const { title = "Terminal" } = Astro.props;
+---
+
+<div class="od-terminal">
+	<div class="od-terminal__header">
+		<span class="od-terminal__dot od-terminal__dot--red"></span>
+		<span class="od-terminal__dot od-terminal__dot--yellow"></span>
+		<span class="od-terminal__dot od-terminal__dot--green"></span>
+		<span class="od-terminal__title">{title}</span>
+	</div>
+	<div class="od-terminal__body">
+		<slot />
+	</div>
+</div>
+
+<style>
+	/* Terminal line components for slot content */
+	:global(.od-terminal__line) {
+		display: flex;
+		align-items: flex-start;
+		margin-bottom: var(--od-space-2);
+	}
+	:global(.od-terminal__line:last-child) {
+		margin-bottom: 0;
+	}
+	:global(.od-terminal__prompt) {
+		color: var(--od-text-muted);
+		margin-right: var(--od-space-2);
+		user-select: none;
+	}
+	:global(.od-terminal__command) {
+		color: var(--od-text-primary);
+	}
+	:global(.od-terminal__output) {
+		color: var(--od-text-secondary);
+		padding-left: var(--od-space-4);
+	}
+	:global(.od-terminal__success) {
+		color: var(--od-accent-primary);
+	}
+</style>

@@ -1,0 +1,175 @@
+---
+title: OmniDev - The Missing Package Manager for AI Coding Capabilities
+description: The package manager for AI coding capabilities. Discover, install, and share skills across Claude, Cursor, Codex, and more.
+template: splash
+hero:
+  title: ""
+  tagline: ""
+---
+
+import Hero from "../../components/Hero.astro";
+import Terminal from "../../components/Terminal.astro";
+import Section from "../../components/Section.astro";
+import FeatureCard from "../../components/FeatureCard.astro";
+import FeatureGrid from "../../components/FeatureGrid.astro";
+import ProviderGrid from "../../components/ProviderGrid.astro";
+import CodeExample from "../../components/CodeExample.astro";
+import QuickStart from "../../components/QuickStart.astro";
+import Footer from "../../components/Footer.astro";
+
+<Hero
+  title="The Missing Package Manager for AI Coding Capabilities"
+  tagline="Discover, install, and share agent skills across Claude, Cursor, Codex, and more."
+  primaryCta={{ text: "Get Started", href: "/getting-started/" }}
+  secondaryCta={{ text: "View on GitHub", href: "https://github.com/Nikola-Milovic/omnidev" }}
+>
+  <Terminal title="~">
+    <div class="od-terminal__line">
+      <span class="od-terminal__prompt">$</span>
+      <span class="od-terminal__command">npm install -g @omnidev-ai/cli</span>
+    </div>
+    <div class="od-terminal__line">
+      <span class="od-terminal__prompt">$</span>
+      <span class="od-terminal__command">omnidev init</span>
+    </div>
+    <div class="od-terminal__line od-terminal__output od-terminal__success">
+      ✓ Created omni.toml
+    </div>
+    <div class="od-terminal__line od-terminal__output od-terminal__success">
+      ✓ Created OMNI.md
+    </div>
+    <div class="od-terminal__line od-terminal__output od-terminal__success">
+      ✓ Ready to sync capabilities
+    </div>
+  </Terminal>
+</Hero>
+
+<div class="od-problem">
+  <Section
+    title="The Problem"
+    description="Every AI coding tool invented its own configuration format. Different folders, different formats, different terminology."
+  >
+    <div class="od-problem__image-wrapper">
+      <img
+        src="/img/config-sprawl.png"
+        alt="Configuration sprawl showing multiple AI tool config folders"
+        class="od-problem__image"
+      />
+    </div>
+
+      <span class="od-problem__joke">The solution? <a href="https://xkcd.com/927/" target="_blank" rel="noopener">Another standard</a>.</span>
+  </Section>
+</div>
+
+<Section
+  title="The Solution"
+  description="Write once in OMNI.md and omni.toml. OmniDev generates the rest."
+>
+  <div class="od-solution__flow">
+    <div class="od-solution__source">
+      <p class="od-solution__source-title">Your Config</p>
+      <p class="od-solution__source-files">OMNI.md + omni.toml</p>
+    </div>
+    <div class="od-solution__arrow">↓</div>
+    <code class="od-solution__command">omnidev sync</code>
+    <div class="od-solution__arrow">↓</div>
+    <div class="od-solution__outputs">
+      <div class="od-solution__output">CLAUDE.md</div>
+      <div class="od-solution__output">.claude/</div>
+      <div class="od-solution__output">AGENTS.md</div>
+      <div class="od-solution__output">.cursor/</div>
+      <div class="od-solution__output">.codex/</div>
+    </div>
+  </div>
+</Section>
+
+<Section title="Everything You Need">
+  <FeatureGrid>
+    <FeatureCard
+      icon="package"
+      title="Capability Registry"
+      description="Install capabilities from GitHub or local directories. Version pin, update, and manage dependencies."
+    />
+    <FeatureCard
+      icon="git-branch"
+      title="Version Locked"
+      description="Lock capability versions with omni.lock.toml. Reproducible builds across your team."
+    />
+    <FeatureCard
+      icon="layers"
+      title="Profile Switching"
+      description="Frontend, backend, planning—switch context with one command. Different profiles for different work."
+    />
+    <FeatureCard
+      icon="users"
+      title="Team Sharing"
+      description="Commit omni.toml to git, teammates sync. Local overrides via omni.local.toml stay private."
+    />
+    <FeatureCard
+      icon="puzzle"
+      title="Extensible"
+      description="Capabilities can add CLI commands, skills, rules, docs, and subagents. Build your own."
+    />
+    <FeatureCard
+      icon="terminal"
+      title="CLI-First"
+      description="Designed for terminal workflows. init, sync, doctor. Simple commands, powerful results."
+    />
+  </FeatureGrid>
+</Section>
+
+<Section
+  title="Works With Your Tools"
+  description="Define once, deploy everywhere. OmniDev adapts to each provider's format."
+>
+  <ProviderGrid
+    providers={[
+      { name: "Claude" },
+      { name: "Cursor" },
+      { name: "Codex" },
+      { name: "OpenCode" },
+      { name: "Amp" },
+    ]}
+  />
+</Section>
+
+<Section title="See It In Action">
+  <CodeExample
+    panels={[
+      {
+        filename: "omni.toml",
+        content: `<span style="color: #6b7280"># Define capability sources</span>
+<span style="color: #9ca3af">[capabilities.sources]</span>
+obsidian = <span style="color: #7dd3fc">"github:kepano/obsidian-skills"</span>
+ui-design = <span style="color: #7dd3fc">"github:company/ui-patterns"</span>
+
+<span style="color: #6b7280"># Create profiles for different contexts</span>
+<span style="color: #9ca3af">[profiles.frontend]</span>
+capabilities = [
+  <span style="color: #7dd3fc">"ui-design"</span>,
+  <span style="color: #7dd3fc">"accessibility"</span>
+]`,
+      },
+      {
+        filename: "Terminal",
+        content: `<span style="color: #6b7280">$</span> omnidev init
+<span style="color: #4ade80">✓</span> Created omni.toml
+<span style="color: #4ade80">✓</span> Created OMNI.md
+
+<span style="color: #6b7280">$</span> omnidev sync
+<span style="color: #9ca3af">↓ Fetching capabilities...</span>
+<span style="color: #4ade80">✓</span> obsidian (v1.2.0)
+<span style="color: #4ade80">✓</span> ui-design (v0.4.1)
+<span style="color: #4ade80">✓</span> Generated CLAUDE.md
+<span style="color: #4ade80">✓</span> Generated AGENTS.md
+<span style="color: #4ade80">✓</span> Sync complete`,
+      },
+    ]}
+  />
+</Section>
+
+<Section title="Get Started in Seconds">
+  <QuickStart />
+</Section>
+
+<Footer />

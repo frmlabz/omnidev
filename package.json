@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"workspaces": [
-		"packages/*"
+		"packages/*",
+		"apps/*"
 	],
 	"scripts": {
 		"typecheck": "tsc --noEmit",
@@ -24,7 +25,9 @@
 		"changeset": "changeset",
 		"version": "changeset version && bun install",
 		"release": "bun run build && bun run release:packages",
-		"release:packages": "node scripts/publish.mjs"
+		"release:packages": "node scripts/publish.mjs",
+		"docs:build": "cd apps/docs && bun run build",
+		"docs:deploy": "cd apps/docs && bun run deploy"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",

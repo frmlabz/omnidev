@@ -1,0 +1,23 @@
+---
+interface Props {
+	title?: string;
+	description?: string;
+	id?: string;
+	fullWidth?: boolean;
+	class?: string;
+}
+
+const { title, description, id, fullWidth = false, class: className = "" } = Astro.props;
+---
+
+<section id={id} class:list={["od-section", { "od-section--full": fullWidth }, className]}>
+	{
+		(title || description) && (
+			<div class="od-section__header">
+				{title && <h2 class="od-section__title">{title}</h2>}
+				{description && <p class="od-section__description">{description}</p>}
+			</div>
+		)
+	}
+	<slot />
+</section>
