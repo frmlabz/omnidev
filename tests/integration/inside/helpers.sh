@@ -259,12 +259,12 @@ assert_omni_md_exists() {
   assert_file_exists "OMNI.md"
 }
 
-# Assert CLAUDE.md is generated from OMNI.md (contains OmniDev section with embedded instructions)
+# Assert CLAUDE.md is generated from OMNI.md (contains OMNI.md content)
 # Usage: assert_claude_md_generated_from_omni
 assert_claude_md_generated_from_omni() {
   assert_file_exists "CLAUDE.md"
-  assert_file_contains "CLAUDE.md" "## OmniDev"
-  assert_file_contains "CLAUDE.md" "## Capabilities"
+  # Check that OMNI.md content is present (# Project Instructions is from OMNI.md template)
+  assert_file_contains "CLAUDE.md" "# Project Instructions"
 }
 
 # Assert OMNI.md content is reflected in CLAUDE.md
