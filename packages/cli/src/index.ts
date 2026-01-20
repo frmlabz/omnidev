@@ -6,8 +6,9 @@
  */
 
 import { run } from "@stricli/core";
-import { buildDynamicApp } from "./lib/dynamic-app";
+import { buildDynamicApp, readCliVersion } from "./lib/dynamic-app";
 import { debug } from "@omnidev-ai/core";
+import { checkForUpdates } from "./lib/version-check";
 
 // Build app dynamically based on enabled capabilities
 const app = await buildDynamicApp();
@@ -17,12 +18,18 @@ debug("CLI startup", {
 	cwd: process.cwd(),
 });
 
+// Start version check in parallel (non-blocking, fire-and-forget)
+const versionCheckPromise = checkForUpdates(readCliVersion());
+
 // Run CLI with error handling
 try {
 	run(app, process.argv.slice(2), {
 		// biome-ignore lint/suspicious/noExplicitAny: Stricli expects a process-like object with stdin/stdout/stderr
 		process: process as any,
 	});
+
+	// Wait for version check to complete (will silently fail if there's an error)
+	await versionCheckPromise;
 } catch (error) {
 	// Provide helpful error messages instead of cryptic stack traces
 	if (error instanceof Error) {

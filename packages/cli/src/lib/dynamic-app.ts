@@ -15,7 +15,7 @@ import { debug } from "@omnidev-ai/core";
 
 const require = createRequire(import.meta.url);
 
-function readCliVersion(): string {
+export function readCliVersion(): string {
 	try {
 		const pkg = require("../../package.json") as { version?: string };
 		if (typeof pkg?.version === "string") {
