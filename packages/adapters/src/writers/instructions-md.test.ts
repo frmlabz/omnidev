@@ -45,7 +45,6 @@ describe("InstructionsMdWriter", () => {
 		expect(existsSync(`${testDir}/CLAUDE.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
-		expect(content).toContain("## OmniDev");
 		expect(content).toContain("Test instructions content");
 	});
 
@@ -63,8 +62,20 @@ describe("InstructionsMdWriter", () => {
 		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
 		expect(content).toContain("# Project Instructions");
 		expect(content).toContain("Base content here.");
-		expect(content).toContain("## OmniDev");
 		expect(content).toContain("Additional instructions");
+	});
+
+	test("does not append anything when instructionsContent is empty", async () => {
+		writeFileSync(`${testDir}/OMNI.md`, "# Project Instructions\n\nBase content here.");
+		const bundle = createBundle("");
+
+		await InstructionsMdWriter.write(bundle, {
+			outputPath: "CLAUDE.md",
+			projectRoot: testDir,
+		});
+
+		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		expect(content).toBe("# Project Instructions\n\nBase content here.");
 	});
 
 	test("creates parent directories for nested output path", async () => {

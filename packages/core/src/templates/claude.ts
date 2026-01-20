@@ -6,9 +6,5 @@ export function generateClaudeTemplate(): string {
 	return `# Project Instructions
 
 <!-- Add your project-specific instructions here -->
-
-## OmniDev
-
-<!-- This section is populated during sync with capability rules and docs -->
 `;
 }

@@ -71,35 +71,15 @@ TODO: Add example usage
 
 /**
  * Generate a rule markdown template file.
+ * Rules should start with a ### header and contain guidelines for AI agents.
  */
 export function generateRuleTemplate(ruleName: string): string {
-	return `# ${formatDisplayName(ruleName)}
+	return `### ${formatDisplayName(ruleName)}
 
 <!-- Rules are guidelines that the AI agent should follow when working in this project -->
+<!-- Each rule should start with a ### header -->
 
-## Overview
-
-TODO: Describe what this rule enforces or guides.
-
-## Guidelines
-
-- TODO: Add specific guidelines the AI should follow
-- Be specific and actionable
-- Include examples where helpful
-
-## Examples
-
-### Good
-
-\`\`\`
-TODO: Add example of correct behavior
-\`\`\`
-
-### Bad
-
-\`\`\`
-TODO: Add example of incorrect behavior
-\`\`\`
+TODO: Add specific guidelines the AI should follow. Be specific and actionable.
 `;
 }
 

@@ -32,7 +32,9 @@ export const InstructionsMdWriter: FileWriter = {
 
 		// Combine OMNI.md content with instructions
 		let content = omniMdContent;
-		content += `\n\n## OmniDev\n\n${bundle.instructionsContent}\n`;
+		if (bundle.instructionsContent) {
+			content += `\n\n${bundle.instructionsContent}\n`;
+		}
 
 		await writeFile(outputFullPath, content, "utf-8");
 

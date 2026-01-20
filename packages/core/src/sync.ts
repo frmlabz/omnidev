@@ -266,45 +266,24 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 }
 
 /**
- * Generate instructions.md content from rules and docs.
+ * Generate instructions.md content from rules.
  */
-function generateInstructionsContent(rules: SyncBundle["rules"], docs: SyncBundle["docs"]): string {
-	if (rules.length === 0 && docs.length === 0) {
-		return `## Capabilities
-
-No capabilities enabled yet. Run \`omnidev capability enable <name>\` to enable capabilities.`;
+function generateInstructionsContent(
+	rules: SyncBundle["rules"],
+	_docs: SyncBundle["docs"],
+): string {
+	if (rules.length === 0) {
+		return "";
 	}
 
-	let content = `## Capabilities
+	let content = `## Rules
 
 `;
 
-	// Add documentation section if there are docs
-	if (docs.length > 0) {
-		content += `### Documentation
+	for (const rule of rules) {
+		content += `${rule.content}
 
 `;
-		for (const doc of docs) {
-			content += `#### ${doc.name} (from ${doc.capabilityId})
-
-${doc.content}
-
-`;
-		}
-	}
-
-	// Add rules section if there are rules
-	if (rules.length > 0) {
-		content += `### Rules
-
-`;
-		for (const rule of rules) {
-			content += `#### ${rule.name} (from ${rule.capabilityId})
-
-${rule.content}
-
-`;
-		}
 	}
 
 	return content.trim();

@@ -77,26 +77,23 @@ describe("generateSkillTemplate", () => {
 });
 
 describe("generateRuleTemplate", () => {
-	test("generates markdown with title from kebab-case", () => {
+	test("generates markdown with ### header from kebab-case", () => {
 		const result = generateRuleTemplate("coding-standards");
 
-		expect(result).toContain("# Coding Standards");
+		expect(result).toContain("### Coding Standards");
 	});
 
 	test("converts single word to title case", () => {
 		const result = generateRuleTemplate("conventions");
 
-		expect(result).toContain("# Conventions");
+		expect(result).toContain("### Conventions");
 	});
 
-	test("includes standard rule sections", () => {
+	test("includes instructions comment and TODO", () => {
 		const result = generateRuleTemplate("test-rule");
 
-		expect(result).toContain("## Overview");
-		expect(result).toContain("## Guidelines");
-		expect(result).toContain("## Examples");
-		expect(result).toContain("### Good");
-		expect(result).toContain("### Bad");
+		expect(result).toContain("<!-- Rules are guidelines");
+		expect(result).toContain("TODO:");
 	});
 });
 

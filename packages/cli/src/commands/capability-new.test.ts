@@ -88,15 +88,14 @@ capabilities = []
 		expect(skill).toContain("## When to use me");
 	});
 
-	test("generates rule template with sections", async () => {
+	test("generates rule template with ### header", async () => {
 		await setupOmniDevProject();
 
 		await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 
 		const rule = readFileSync("capabilities/test-cap/rules/coding-standards.md", "utf-8");
-		expect(rule).toContain("# Coding Standards");
-		expect(rule).toContain("## Guidelines");
-		expect(rule).toContain("## Examples");
+		expect(rule).toContain("### Coding Standards");
+		expect(rule).toContain("TODO: Add specific guidelines");
 	});
 
 	test("generates hooks template with OMNIDEV variables", async () => {

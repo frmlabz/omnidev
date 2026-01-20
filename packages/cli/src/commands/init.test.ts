@@ -92,7 +92,6 @@ describe("init command", () => {
 		// AGENTS.md is generated from OMNI.md during sync with instructions embedded
 		const content = readFileSync("AGENTS.md", "utf-8");
 		expect(content).toContain("# Project Instructions");
-		expect(content).toContain("## Capabilities");
 	});
 
 	test("creates OMNI.md", async () => {
@@ -112,9 +111,9 @@ describe("init command", () => {
 		// Instructions are now embedded directly into AGENTS.md instead of .omni/instructions.md
 		expect(existsSync(".omni/instructions.md")).toBe(false);
 
+		// AGENTS.md should be generated from OMNI.md
 		const content = readFileSync("AGENTS.md", "utf-8");
-		expect(content).toContain("## Capabilities");
-		expect(content).toContain("No capabilities enabled yet");
+		expect(content).toContain("# Project Instructions");
 	});
 
 	test("does not create AGENTS.md for Claude Code provider", async () => {
@@ -131,7 +130,6 @@ describe("init command", () => {
 		// CLAUDE.md is generated from OMNI.md during sync with instructions embedded
 		const content = readFileSync("CLAUDE.md", "utf-8");
 		expect(content).toContain("# Project Instructions");
-		expect(content).toContain("## Capabilities");
 	});
 
 	test("does not create CLAUDE.md for Codex provider", async () => {
@@ -150,7 +148,6 @@ describe("init command", () => {
 		// CLAUDE.md is generated from OMNI.md during sync with instructions embedded
 		const claudeContent = readFileSync("CLAUDE.md", "utf-8");
 		expect(claudeContent).toContain("# Project Instructions");
-		expect(claudeContent).toContain("## Capabilities");
 	});
 
 	test("regenerates CLAUDE.md from OMNI.md on init", async () => {
@@ -163,7 +160,6 @@ describe("init command", () => {
 		const content = readFileSync("CLAUDE.md", "utf-8");
 		// Should be regenerated from OMNI.md, not preserve existing content
 		expect(content).toContain("# Project Instructions");
-		expect(content).toContain("## Capabilities");
 	});
 
 	test("regenerates AGENTS.md from OMNI.md on init", async () => {
@@ -176,7 +172,6 @@ describe("init command", () => {
 		const content = readFileSync("AGENTS.md", "utf-8");
 		// Should be regenerated from OMNI.md, not preserve existing content
 		expect(content).toContain("# Project Instructions");
-		expect(content).toContain("## Capabilities");
 	});
 
 	test("does not create .omni/.gitignore", async () => {
@@ -258,7 +253,6 @@ describe("init command", () => {
 		// But AGENTS.md should be regenerated from it with instructions embedded
 		const agentsContent = readFileSync("AGENTS.md", "utf-8");
 		expect(agentsContent).toContain("# My Custom Instructions");
-		expect(agentsContent).toContain("## Capabilities");
 	});
 
 	test("creates all directories even if some already exist", async () => {

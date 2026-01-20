@@ -306,7 +306,7 @@ capabilities = ["standard"]
 
 			// Verify CLAUDE.md contains instructions
 			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
-			expect(claudeMd).toContain("OmniDev");
+			expect(claudeMd).toContain("## Rules");
 
 			// Verify skills were written
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -336,7 +336,7 @@ capabilities = ["standard"]
 
 			// Verify CLAUDE.md contains instructions
 			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
-			expect(claudeMd).toContain("OmniDev");
+			expect(claudeMd).toContain("## Rules");
 
 			// Verify skills were written to .claude/skills
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -370,7 +370,7 @@ capabilities = ["standard"]
 
 			// Verify AGENTS.md contains instructions
 			const agentsMd = readFileSync("AGENTS.md", "utf-8");
-			expect(agentsMd).toContain("OmniDev");
+			expect(agentsMd).toContain("## Rules");
 
 			// Verify skills were written to .codex/skills
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -399,7 +399,7 @@ capabilities = ["standard"]
 
 			// Verify AGENTS.md contains instructions
 			const agentsMd = readFileSync("AGENTS.md", "utf-8");
-			expect(agentsMd).toContain("OmniDev");
+			expect(agentsMd).toContain("## Rules");
 
 			// Verify skills were written to .opencode/skills
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -434,7 +434,7 @@ capabilities = ["standard"]
 
 			// Verify content
 			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
-			expect(claudeMd).toContain("OmniDev");
+			expect(claudeMd).toContain("## Rules");
 
 			// Verify skills and rules
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -469,7 +469,7 @@ capabilities = ["standard"]
 
 			// Verify AGENTS.md content
 			const agentsMd = readFileSync("AGENTS.md", "utf-8");
-			expect(agentsMd).toContain("OmniDev");
+			expect(agentsMd).toContain("## Rules");
 
 			// Verify skills were written to both locations
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
@@ -507,10 +507,10 @@ capabilities = ["standard"]
 
 			// Verify both instruction files have content
 			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
-			expect(claudeMd).toContain("OmniDev");
+			expect(claudeMd).toContain("## Rules");
 
 			const agentsMd = readFileSync("AGENTS.md", "utf-8");
-			expect(agentsMd).toContain("OmniDev");
+			expect(agentsMd).toContain("## Rules");
 
 			// Verify skills in all locations
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
