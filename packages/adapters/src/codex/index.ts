@@ -1,5 +1,4 @@
-import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
 	ProviderAdapter,
@@ -8,60 +7,39 @@ import type {
 	ProviderSyncResult,
 	SyncBundle,
 } from "@omnidev-ai/core";
+import { executeWriters } from "../writers/index.js";
+import { InstructionsMdWriter } from "../writers/instructions-md.js";
+import { SkillsWriter } from "../writers/skills.js";
+import type { AdapterWriterConfig } from "../writers/types.js";
 
 /**
- * Codex adapter - generates AGENTS.md from OMNI.md
+ * Codex adapter - generates AGENTS.md and skills.
  */
-export const codexAdapter: ProviderAdapter = {
+export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
 	id: "codex",
 	displayName: "Codex",
 
-	async init(_ctx: ProviderContext): Promise<ProviderInitResult> {
-		// AGENTS.md is now generated during sync from OMNI.md
+	writers: [
+		{ writer: InstructionsMdWriter, outputPath: "AGENTS.md" },
+		{ writer: SkillsWriter, outputPath: ".codex/skills/" },
+	],
+
+	async init(ctx: ProviderContext): Promise<ProviderInitResult> {
+		const codexDir = join(ctx.projectRoot, ".codex");
+		mkdirSync(codexDir, { recursive: true });
+
 		return {
-			filesCreated: [],
+			filesCreated: [".codex/"],
 			message: "Codex adapter initialized",
 		};
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const filesWritten: string[] = [];
-		const filesDeleted: string[] = [];
-
-		// Generate AGENTS.md from OMNI.md + instructions content
-		const agentsMdPath = join(ctx.projectRoot, "AGENTS.md");
-		const agentsMdContent = await generateAgentsMdContent(
-			ctx.projectRoot,
-			bundle.instructionsContent,
-		);
-		await writeFile(agentsMdPath, agentsMdContent, "utf-8");
-		filesWritten.push("AGENTS.md");
+		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
 
 		return {
-			filesWritten,
-			filesDeleted,
+			filesWritten: result.filesWritten,
+			filesDeleted: [],
 		};
 	},
 };
-
-/**
- * Generate AGENTS.md content from OMNI.md with instructions directly embedded
- */
-async function generateAgentsMdContent(
-	projectRoot: string,
-	instructionsContent: string,
-): Promise<string> {
-	const omniMdPath = join(projectRoot, "OMNI.md");
-
-	let omniMdContent = "";
-
-	if (existsSync(omniMdPath)) {
-		omniMdContent = await readFile(omniMdPath, "utf-8");
-	}
-
-	// Combine OMNI.md content with instructions directly embedded
-	let content = omniMdContent;
-	content += `\n\n## OmniDev\n\n${instructionsContent}\n`;
-
-	return content;
-}

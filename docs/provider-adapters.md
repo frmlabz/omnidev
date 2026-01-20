@@ -15,8 +15,8 @@ OmniDev uses a **Provider Adapter** architecture to support multiple AI coding t
 ┌─────────────────────────────────────────────────────────────┐
 │                          Core                                │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
-│  │  Capability │───▶│ SyncBundle  │───▶│  Adapters   │      │
-│  │   Registry  │    │  (agnostic) │    │             │      │
+│  │  Capability │───▶│ SyncBundle  │───▶│   Writers   │      │
+│  │   Registry  │    │  (agnostic) │    │  (shared)   │      │
 │  └─────────────┘    └─────────────┘    └─────────────┘      │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -38,18 +38,22 @@ OmniDev uses a **Provider Adapter** architecture to support multiple AI coding t
 
 1. **Core builds a SyncBundle** - A provider-agnostic bundle containing all capabilities, skills, rules, docs, commands, and subagents.
 
-2. **Adapters materialize the bundle** - Each enabled adapter receives the bundle and writes provider-specific files to disk.
+2. **Adapters declare writers** - Each adapter specifies which file writers it needs and their output paths.
 
-3. **Provider state is local** - Enabled providers are stored in `.omni/state/providers.json`, which is gitignored. This allows team members to use different tools.
+3. **Writers are deduplicated** - If multiple adapters request the same writer with the same output path, it only executes once.
+
+4. **Writers materialize files** - Each writer receives the bundle and writes provider-specific files to disk.
+
+5. **Provider state is local** - Enabled providers are stored in `.omni/state/providers.json`, which is gitignored. This allows team members to use different tools.
 
 ## Supported Providers
 
 | Provider | ID | Files Written | Description |
 |----------|-----|---------------|-------------|
-| Claude Code | `claude-code` | `CLAUDE.md`, `.claude/skills/` | The Claude CLI tool |
-| Cursor | `cursor` | `.cursor/rules/` | Cursor IDE |
-| Codex | `codex` | `AGENTS.md` | GitHub Codex |
-| OpenCode | `opencode` | `.opencode/instructions.md` | Open-source alternative |
+| Claude Code | `claude-code` | `CLAUDE.md`, `.claude/skills/`, `.claude/settings.json` | The Claude CLI tool |
+| Cursor | `cursor` | `CLAUDE.md`, `.claude/skills/`, `.cursor/rules/` | Cursor IDE |
+| Codex | `codex` | `AGENTS.md`, `.codex/skills/` | GitHub Codex |
+| OpenCode | `opencode` | `AGENTS.md`, `.opencode/skills/` | Open-source alternative |
 
 ## CLI Commands
 
@@ -134,30 +138,72 @@ This file is:
 
 ### Claude Code (`claude-code`)
 
-**Sync:**
-- Generates `CLAUDE.md` from `OMNI.md` with instructions embedded directly
-- Writes skills to `.claude/skills/<skill-name>/SKILL.md`
+**Writers:**
+- `InstructionsMdWriter` → `CLAUDE.md` - Instructions from `OMNI.md` + capabilities
+- `SkillsWriter` → `.claude/skills/` - Skills as `<skill-name>/SKILL.md`
+- `HooksWriter` → `.claude/settings.json` - Lifecycle hooks
 
 ### Cursor (`cursor`)
 
 **Init:**
 - Creates `.cursor/rules/` directory
 
-**Sync:**
-- Writes rules to `.cursor/rules/omnidev-<rule-name>.mdc`
+**Writers:**
+- `InstructionsMdWriter` → `CLAUDE.md` - Instructions from `OMNI.md` + capabilities
+- `SkillsWriter` → `.claude/skills/` - Skills as `<skill-name>/SKILL.md`
+- `CursorRulesWriter` → `.cursor/rules/` - Rules as `omnidev-<rule-name>.mdc`
 
 ### Codex (`codex`)
 
-**Sync:**
-- Generates `AGENTS.md` from `OMNI.md` with instructions embedded directly
+**Init:**
+- Creates `.codex/` directory
+
+**Writers:**
+- `InstructionsMdWriter` → `AGENTS.md` - Instructions from `OMNI.md` + capabilities
+- `SkillsWriter` → `.codex/skills/` - Skills as `<skill-name>/SKILL.md`
 
 ### OpenCode (`opencode`)
 
 **Init:**
 - Creates `.opencode/` directory
 
-**Sync:**
-- Generates `.opencode/instructions.md` from `OMNI.md` with instructions embedded directly
+**Writers:**
+- `InstructionsMdWriter` → `AGENTS.md` - Instructions from `OMNI.md` + capabilities
+- `SkillsWriter` → `.opencode/skills/` - Skills as `<skill-name>/SKILL.md`
+
+## File Writers
+
+Adapters use **File Writers** to write content to disk. Writers are stateless and can be shared across adapters. The same writer can be used with different output paths.
+
+### Available Writers
+
+| Writer | ID | Description |
+|--------|-----|-------------|
+| `InstructionsMdWriter` | `instructions-md` | Writes instructions markdown (CLAUDE.md, AGENTS.md, etc.) |
+| `SkillsWriter` | `skills` | Writes skills to a directory structure |
+| `HooksWriter` | `hooks` | Writes hooks to settings.json |
+| `CursorRulesWriter` | `cursor-rules` | Writes rules as .mdc files |
+
+### Deduplication
+
+Writers are deduplicated by `(writer.id + outputPath)`. If two adapters both request:
+- `InstructionsMdWriter` → `AGENTS.md`
+
+The writer only executes once, preventing conflicts and duplicate writes.
+
+### Writer Interface
+
+```typescript
+interface FileWriter {
+  readonly id: string;
+  write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult>;
+}
+
+interface WriterContext {
+  outputPath: string;
+  projectRoot: string;
+}
+```
 
 ## Provider-Agnostic Files
 
@@ -171,22 +217,55 @@ Regardless of which providers are enabled, OmniDev always writes these files:
 
 ## Developing Custom Adapters
 
-The adapter interface is defined in `@omnidev-ai/core`:
+Adapters are defined in `@omnidev-ai/adapters`:
 
 ```typescript
-interface ProviderAdapter {
-  id: ProviderId;
-  displayName: string;
+import type { ProviderAdapter } from "@omnidev-ai/core";
+import { InstructionsMdWriter, SkillsWriter, type AdapterWriterConfig } from "@omnidev-ai/adapters";
 
-  // Called during `omnidev init`
-  init?(ctx: ProviderContext): Promise<ProviderInitResult>;
+export const myAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
+  id: "my-tool",
+  displayName: "My Tool",
 
-  // Called during `omnidev sync`
-  sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult>;
+  // Declare which writers this adapter needs
+  writers: [
+    { writer: InstructionsMdWriter, outputPath: "MY_TOOL.md" },
+    { writer: SkillsWriter, outputPath: ".my-tool/skills/" },
+  ],
 
-  // Called when provider is disabled or resources are stale
-  cleanup?(manifest: ProviderManifest, ctx: ProviderContext): Promise<void>;
-}
+  async init(ctx) {
+    // Create initial directories/files
+    return { filesCreated: [".my-tool/"] };
+  },
+
+  async sync(bundle, ctx) {
+    // Writers handle the actual file writing
+    const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
+    return { filesWritten: result.filesWritten, filesDeleted: [] };
+  },
+};
+```
+
+### Creating Custom Writers
+
+```typescript
+import type { FileWriter, WriterContext, WriterResult } from "@omnidev-ai/adapters";
+import type { SyncBundle } from "@omnidev-ai/core";
+
+export const MyCustomWriter: FileWriter = {
+  id: "my-custom-writer",
+
+  async write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult> {
+    // Write files based on bundle content
+    const outputPath = join(ctx.projectRoot, ctx.outputPath);
+
+    // ... write your files ...
+
+    return {
+      filesWritten: [ctx.outputPath],
+    };
+  },
+};
 ```
 
 ### SyncBundle Contents
@@ -199,41 +278,9 @@ interface SyncBundle {
   docs: Doc[];
   commands: Command[];
   subagents: Subagent[];
+  hooks?: HooksConfig;
   instructionsContent: string;   // Generated content to embed directly
 }
-```
-
-### Example Adapter
-
-```typescript
-import type {
-  ProviderAdapter,
-  ProviderContext,
-  ProviderSyncResult,
-  SyncBundle,
-} from "@omnidev-ai/core";
-
-export const myAdapter: ProviderAdapter = {
-  id: "my-tool",
-  displayName: "My Tool",
-
-  async init(ctx) {
-    // Create initial files
-    return { filesCreated: ["MY_TOOL.md"] };
-  },
-
-  async sync(bundle, ctx) {
-    const filesWritten: string[] = [];
-
-    // Write skills
-    for (const skill of bundle.skills) {
-      // ... write to appropriate location
-      filesWritten.push(`my-tool/skills/${skill.name}.md`);
-    }
-
-    return { filesWritten, filesDeleted: [] };
-  },
-};
 ```
 
 ## FAQ
@@ -249,7 +296,7 @@ omnidev provider enable cursor
 
 ### Q: What happens if two providers write the same file?
 
-Each adapter writes to its own provider-specific directories, so conflicts are unlikely. The manifest system tracks which files belong to which provider.
+Writers are deduplicated by `(writer.id + outputPath)`. If two adapters both want to write the same file with the same writer, it only executes once. This prevents conflicts and ensures consistent output.
 
 ### Q: How do I migrate from one provider to another?
 

@@ -130,9 +130,9 @@ describe("examples integration", () => {
 				const config = readFileSync(examplePath, "utf-8");
 				await writeFile("omni.toml", config, "utf-8");
 
-				// Run init
+				// Run init with claude-code provider
 				await captureConsole(async () => {
-					await runInit({}, "claude");
+					await runInit({}, "claude-code");
 				});
 
 				// Run sync
@@ -158,7 +158,7 @@ describe("examples integration", () => {
 
 				// Verify no critical errors in output
 				const criticalErrors = stderr.filter(
-					(line) =>
+					(line: string) =>
 						line.includes("Error:") && !line.includes("Warning:") && !line.includes("not found"),
 				);
 				expect(criticalErrors).toEqual([]);
@@ -202,7 +202,7 @@ capabilities = ["standard"]
 			await writeFile("omni.toml", config, "utf-8");
 
 			await captureConsole(async () => {
-				await runInit({}, "claude");
+				await runInit({}, "claude-code");
 			});
 
 			await captureConsole(async () => {
@@ -233,7 +233,7 @@ capabilities = ["claude-plugin"]
 			await writeFile("omni.toml", config, "utf-8");
 
 			await captureConsole(async () => {
-				await runInit({}, "claude");
+				await runInit({}, "claude-code");
 			});
 
 			await captureConsole(async () => {
@@ -260,7 +260,7 @@ capabilities = ["bare-skills"]
 			await writeFile("omni.toml", config, "utf-8");
 
 			await captureConsole(async () => {
-				await runInit({}, "claude");
+				await runInit({}, "claude-code");
 			});
 
 			await captureConsole(async () => {
@@ -270,6 +270,257 @@ capabilities = ["bare-skills"]
 			// Verify skill marker is present
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS["bare-skills"].skill);
 			expect(skillFiles.length).toBeGreaterThan(0);
+		},
+		{ timeout: 30000 },
+	);
+});
+
+describe("provider adapters", () => {
+	setupTestDir("provider-adapters-", { chdir: true });
+
+	const standardConfig = `
+[capabilities.sources]
+standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
+
+[profiles.default]
+capabilities = ["standard"]
+`;
+
+	test(
+		"claude-code adapter writes correct files",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "claude-code");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Verify claude-code specific files
+			expect(existsSync("CLAUDE.md")).toBe(true);
+			expect(existsSync(".claude/skills")).toBe(true);
+			// Note: .claude/settings.json is only written when hooks are present
+
+			// Verify CLAUDE.md contains instructions
+			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
+			expect(claudeMd).toContain("OmniDev");
+
+			// Verify skills were written
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+			expect(skillFiles.some((f) => f.includes(".claude/skills"))).toBe(true);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"cursor adapter writes correct files",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "cursor");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Verify cursor specific files
+			expect(existsSync("CLAUDE.md")).toBe(true);
+			expect(existsSync(".claude/skills")).toBe(true);
+			expect(existsSync(".cursor/rules")).toBe(true);
+
+			// Verify CLAUDE.md contains instructions
+			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
+			expect(claudeMd).toContain("OmniDev");
+
+			// Verify skills were written to .claude/skills
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+			expect(skillFiles.some((f) => f.includes(".claude/skills"))).toBe(true);
+
+			// Verify rules were written to .cursor/rules
+			const ruleFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.rule);
+			expect(ruleFiles.length).toBeGreaterThan(0);
+			expect(ruleFiles.some((f) => f.includes(".cursor/rules"))).toBe(true);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"codex adapter writes correct files",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "codex");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Verify codex specific files
+			expect(existsSync("AGENTS.md")).toBe(true);
+			expect(existsSync(".codex/skills")).toBe(true);
+
+			// Verify AGENTS.md contains instructions
+			const agentsMd = readFileSync("AGENTS.md", "utf-8");
+			expect(agentsMd).toContain("OmniDev");
+
+			// Verify skills were written to .codex/skills
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"opencode adapter writes correct files",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "opencode");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Verify opencode specific files
+			expect(existsSync("AGENTS.md")).toBe(true);
+			expect(existsSync(".opencode/skills")).toBe(true);
+
+			// Verify AGENTS.md contains instructions
+			const agentsMd = readFileSync("AGENTS.md", "utf-8");
+			expect(agentsMd).toContain("OmniDev");
+
+			// Verify skills were written to .opencode/skills
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+			expect(skillFiles.some((f) => f.includes(".opencode/skills"))).toBe(true);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"multiple providers with shared files (deduplication)",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			// Enable both claude-code and cursor (they share CLAUDE.md and .claude/skills)
+			await captureConsole(async () => {
+				await runInit({}, "claude-code,cursor");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Both adapters share these files - verify they exist (written once via deduplication)
+			expect(existsSync("CLAUDE.md")).toBe(true);
+			expect(existsSync(".claude/skills")).toBe(true);
+
+			// Cursor-specific files
+			expect(existsSync(".cursor/rules")).toBe(true);
+
+			// Note: .claude/settings.json is only written when hooks are present
+
+			// Verify content
+			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
+			expect(claudeMd).toContain("OmniDev");
+
+			// Verify skills and rules
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+
+			const ruleFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.rule);
+			expect(ruleFiles.length).toBeGreaterThan(0);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"codex and opencode with shared AGENTS.md (deduplication)",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			// Enable both codex and opencode (they share AGENTS.md)
+			await captureConsole(async () => {
+				await runInit({}, "codex,opencode");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Both adapters share AGENTS.md - verify it exists (written once via deduplication)
+			expect(existsSync("AGENTS.md")).toBe(true);
+
+			// Each adapter has its own skills directory
+			expect(existsSync(".codex/skills")).toBe(true);
+			expect(existsSync(".opencode/skills")).toBe(true);
+
+			// Verify AGENTS.md content
+			const agentsMd = readFileSync("AGENTS.md", "utf-8");
+			expect(agentsMd).toContain("OmniDev");
+
+			// Verify skills were written to both locations
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.length).toBeGreaterThan(0);
+			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
+			expect(skillFiles.some((f) => f.includes(".opencode/skills"))).toBe(true);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
+		"all providers enabled together",
+		async () => {
+			await writeFile("omni.toml", standardConfig, "utf-8");
+
+			// Enable all providers
+			await captureConsole(async () => {
+				await runInit({}, "claude-code,cursor,codex,opencode");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			// Claude-based providers
+			expect(existsSync("CLAUDE.md")).toBe(true);
+			expect(existsSync(".claude/skills")).toBe(true);
+			expect(existsSync(".cursor/rules")).toBe(true);
+			// Note: .claude/settings.json is only written when hooks are present
+
+			// Codex-based providers
+			expect(existsSync("AGENTS.md")).toBe(true);
+			expect(existsSync(".codex/skills")).toBe(true);
+			expect(existsSync(".opencode/skills")).toBe(true);
+
+			// Verify both instruction files have content
+			const claudeMd = readFileSync("CLAUDE.md", "utf-8");
+			expect(claudeMd).toContain("OmniDev");
+
+			const agentsMd = readFileSync("AGENTS.md", "utf-8");
+			expect(agentsMd).toContain("OmniDev");
+
+			// Verify skills in all locations
+			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
+			expect(skillFiles.some((f) => f.includes(".claude/skills"))).toBe(true);
+			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
+			expect(skillFiles.some((f) => f.includes(".opencode/skills"))).toBe(true);
+
+			// Verify rules in cursor
+			const ruleFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.rule);
+			expect(ruleFiles.some((f) => f.includes(".cursor/rules"))).toBe(true);
 		},
 		{ timeout: 30000 },
 	);

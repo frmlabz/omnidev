@@ -1,5 +1,4 @@
 import { mkdirSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ProviderAdapter,
@@ -8,13 +7,24 @@ import type {
 	ProviderSyncResult,
 	SyncBundle,
 } from "@omnidev-ai/core";
+import { CursorRulesWriter } from "../writers/cursor-rules.js";
+import { executeWriters } from "../writers/index.js";
+import { InstructionsMdWriter } from "../writers/instructions-md.js";
+import { SkillsWriter } from "../writers/skills.js";
+import type { AdapterWriterConfig } from "../writers/types.js";
 
 /**
- * Cursor adapter - writes rules to .cursor/rules/
+ * Cursor adapter - writes CLAUDE.md, skills, and rules.
  */
-export const cursorAdapter: ProviderAdapter = {
+export const cursorAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
 	id: "cursor",
 	displayName: "Cursor",
+
+	writers: [
+		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },
+		{ writer: SkillsWriter, outputPath: ".claude/skills/" },
+		{ writer: CursorRulesWriter, outputPath: ".cursor/rules/" },
+	],
 
 	async init(ctx: ProviderContext): Promise<ProviderInitResult> {
 		const rulesDir = join(ctx.projectRoot, ".cursor", "rules");
@@ -27,22 +37,11 @@ export const cursorAdapter: ProviderAdapter = {
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const filesWritten: string[] = [];
-		const filesDeleted: string[] = [];
-
-		const rulesDir = join(ctx.projectRoot, ".cursor", "rules");
-		mkdirSync(rulesDir, { recursive: true });
-
-		// Write rules to .cursor/rules/
-		for (const rule of bundle.rules) {
-			const rulePath = join(rulesDir, `omnidev-${rule.name}.mdc`);
-			await writeFile(rulePath, rule.content, "utf-8");
-			filesWritten.push(`.cursor/rules/omnidev-${rule.name}.mdc`);
-		}
+		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
 
 		return {
-			filesWritten,
-			filesDeleted,
+			filesWritten: result.filesWritten,
+			filesDeleted: [],
 		};
 	},
 };

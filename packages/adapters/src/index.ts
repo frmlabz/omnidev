@@ -19,6 +19,30 @@ export {
 	type AdapterRegistry,
 } from "./registry.js";
 
+// Export sync with writers
+export {
+	syncAdaptersWithWriters,
+	type AdapterWithWriters,
+	type SyncAdaptersResult,
+} from "./sync.js";
+
+// Export writers
+export {
+	// Types
+	type AdapterWriterConfig,
+	type FileWriter,
+	type WriterContext,
+	type WriterResult,
+	type ExecuteWritersResult,
+	// Writers
+	CursorRulesWriter,
+	HooksWriter,
+	InstructionsMdWriter,
+	SkillsWriter,
+	// Execution
+	executeWriters,
+} from "./writers/index.js";
+
 // Re-export types from core for convenience
 export type {
 	ProviderAdapter,

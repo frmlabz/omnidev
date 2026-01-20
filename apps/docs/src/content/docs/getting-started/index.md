@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Get OmniDev running quickly with a single flow.
+Get OmniDev running quickly with a few commands.
 
 ## 1) Install the CLI
 

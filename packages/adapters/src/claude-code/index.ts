@@ -1,25 +1,30 @@
-import { existsSync, mkdirSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import {
-	transformHooksConfig,
-	type HooksConfig,
-	type ProviderAdapter,
-	type ProviderContext,
-	type ProviderInitResult,
-	type ProviderSyncResult,
-	type SyncBundle,
+import type {
+	ProviderAdapter,
+	ProviderContext,
+	ProviderInitResult,
+	ProviderSyncResult,
+	SyncBundle,
 } from "@omnidev-ai/core";
+import { executeWriters } from "../writers/index.js";
+import { HooksWriter } from "../writers/hooks.js";
+import { InstructionsMdWriter } from "../writers/instructions-md.js";
+import { SkillsWriter } from "../writers/skills.js";
+import type { AdapterWriterConfig } from "../writers/types.js";
 
 /**
- * Claude Code adapter - writes skills to .claude/skills/ and generates CLAUDE.md from OMNI.md
+ * Claude Code adapter - writes CLAUDE.md, skills, and hooks.
  */
-export const claudeCodeAdapter: ProviderAdapter = {
+export const claudeCodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
 	id: "claude-code",
 	displayName: "Claude Code",
 
+	writers: [
+		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },
+		{ writer: SkillsWriter, outputPath: ".claude/skills/" },
+		{ writer: HooksWriter, outputPath: ".claude/settings.json" },
+	],
+
 	async init(_ctx: ProviderContext): Promise<ProviderInitResult> {
-		// CLAUDE.md is now generated during sync from OMNI.md
 		return {
 			filesCreated: [],
 			message: "Claude Code adapter initialized",
@@ -27,110 +32,11 @@ export const claudeCodeAdapter: ProviderAdapter = {
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const filesWritten: string[] = [];
-		const filesDeleted: string[] = [];
-
-		// Generate CLAUDE.md from OMNI.md + instructions content
-		const claudeMdPath = join(ctx.projectRoot, "CLAUDE.md");
-		const claudeMdContent = await generateClaudeMdContent(
-			ctx.projectRoot,
-			bundle.instructionsContent,
-		);
-		await writeFile(claudeMdPath, claudeMdContent, "utf-8");
-		filesWritten.push("CLAUDE.md");
-
-		const claudeDir = join(ctx.projectRoot, ".claude");
-		mkdirSync(claudeDir, { recursive: true });
-
-		const skillsDir = join(claudeDir, "skills");
-		mkdirSync(skillsDir, { recursive: true });
-
-		// Write skills to .claude/skills/
-		for (const skill of bundle.skills) {
-			const skillDir = join(skillsDir, skill.name);
-			mkdirSync(skillDir, { recursive: true });
-
-			const skillPath = join(skillDir, "SKILL.md");
-			const content = `---
-name: ${skill.name}
-description: "${skill.description}"
----
-
-${skill.instructions}`;
-
-			await writeFile(skillPath, content, "utf-8");
-			filesWritten.push(`.claude/skills/${skill.name}/SKILL.md`);
-		}
-
-		// Write hooks to .claude/settings.json
-		if (bundle.hooks) {
-			const settingsPath = join(claudeDir, "settings.json");
-			const hooksWritten = await writeHooksToSettings(settingsPath, bundle.hooks);
-			if (hooksWritten) {
-				filesWritten.push(".claude/settings.json");
-			}
-		}
+		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
 
 		return {
-			filesWritten,
-			filesDeleted,
+			filesWritten: result.filesWritten,
+			filesDeleted: [],
 		};
 	},
 };
-
-/**
- * Generate CLAUDE.md content from OMNI.md with instructions directly embedded
- */
-async function generateClaudeMdContent(
-	projectRoot: string,
-	instructionsContent: string,
-): Promise<string> {
-	const omniMdPath = join(projectRoot, "OMNI.md");
-
-	let omniMdContent = "";
-
-	if (existsSync(omniMdPath)) {
-		omniMdContent = await readFile(omniMdPath, "utf-8");
-	}
-
-	// Combine OMNI.md content with instructions directly embedded
-	let content = omniMdContent;
-	content += `\n\n## OmniDev\n\n${instructionsContent}\n`;
-
-	return content;
-}
-
-/**
- * Write hooks to .claude/settings.json
- *
- * - Loads existing settings.json (if any)
- * - Transforms OMNIDEV_ variables to CLAUDE_ variables
- * - Writes hooks under the "hooks" key
- * - Preserves other settings that weren't set by OmniDev
- */
-async function writeHooksToSettings(settingsPath: string, hooks: HooksConfig): Promise<boolean> {
-	// Transform OMNIDEV_ variables to CLAUDE_ variables
-	const claudeHooks = transformHooksConfig(hooks, "toClaude");
-
-	// Load existing settings if they exist
-	let existingSettings: Record<string, unknown> = {};
-	if (existsSync(settingsPath)) {
-		try {
-			const content = await readFile(settingsPath, "utf-8");
-			existingSettings = JSON.parse(content);
-		} catch {
-			// If we can't parse existing settings, start fresh
-			existingSettings = {};
-		}
-	}
-
-	// Merge hooks into settings
-	const newSettings = {
-		...existingSettings,
-		hooks: claudeHooks,
-	};
-
-	// Write settings.json
-	await writeFile(settingsPath, `${JSON.stringify(newSettings, null, 2)}\n`, "utf-8");
-	return true;
-}
