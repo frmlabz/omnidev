@@ -51,7 +51,7 @@ This creates an `omni.toml` configuration file and `.omni/` directory with your 
 Install reusable AI capabilities from GitHub or local directories:
 ```bash
 omnidev add cap obsidian --github kepano/obsidian-skills
-omnidev add cap my-local --source file://./capabilities/custom
+omnidev add cap my-local --local ./capabilities/custom
 ```
 
 ### Switch Profiles

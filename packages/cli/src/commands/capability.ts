@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { input } from "@inquirer/prompts";
 import { getEnabledAdapters } from "@omnidev-ai/adapters";
 import {
 	disableCapability,
@@ -129,7 +130,7 @@ function toTitleCase(kebabCase: string): string {
  * Run the capability new command to bootstrap a new capability.
  */
 export async function runCapabilityNew(
-	_flags: Record<string, never>,
+	flags: { path?: string },
 	capabilityId: string,
 ): Promise<void> {
 	try {
@@ -152,10 +153,24 @@ export async function runCapabilityNew(
 
 		const id = capabilityId;
 
-		// Check if capability already exists
-		const capabilityDir = join(".omni", "capabilities", id);
+		// Determine output path
+		let capabilityDir: string;
+
+		if (flags.path) {
+			// Use provided path directly
+			capabilityDir = flags.path;
+		} else {
+			// Prompt for output path with default
+			const defaultPath = `capabilities/${id}`;
+			capabilityDir = await input({
+				message: "Output path:",
+				default: defaultPath,
+			});
+		}
+
+		// Check if capability already exists at that path
 		if (existsSync(capabilityDir)) {
-			console.error(`✗ Capability '${id}' already exists at ${capabilityDir}`);
+			console.error(`✗ Directory already exists at ${capabilityDir}`);
 			process.exit(1);
 		}
 
@@ -199,8 +214,8 @@ export async function runCapabilityNew(
 		console.log("    - hooks/hooks.toml");
 		console.log("    - hooks/example-hook.sh");
 		console.log("");
-		console.log("💡 To enable this capability, run:");
-		console.log(`   omnidev capability enable ${id}`);
+		console.log("💡 To add this capability as a local source, run:");
+		console.log(`   omnidev add cap --local ./${capabilityDir}`);
 	} catch (error) {
 		console.error("Error creating capability:", error);
 		process.exit(1);
@@ -210,9 +225,23 @@ export async function runCapabilityNew(
 const newCommand = buildCommand({
 	docs: {
 		brief: "Create a new capability with templates",
+		fullDescription: `Create a new capability with templates at a specified path.
+
+By default, creates the capability at capabilities/<id>. You can specify a custom path using the --path flag or interactively.
+
+Examples:
+  omnidev capability new my-cap                    # Prompts for path, defaults to capabilities/my-cap
+  omnidev capability new my-cap --path ./caps/my   # Uses ./caps/my directly`,
 	},
 	parameters: {
-		flags: {},
+		flags: {
+			path: {
+				kind: "parsed" as const,
+				brief: "Output path for the capability (skips interactive prompt)",
+				parse: String,
+				optional: true,
+			},
+		},
 		positional: {
 			kind: "tuple" as const,
 			parameters: [
@@ -221,6 +250,9 @@ const newCommand = buildCommand({
 					parse: String,
 				},
 			],
+		},
+		aliases: {
+			p: "path",
 		},
 	},
 	func: runCapabilityNew,

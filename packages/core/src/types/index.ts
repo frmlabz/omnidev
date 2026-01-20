@@ -205,10 +205,29 @@ export interface GitCapabilitySourceConfig {
 	path?: string;
 }
 
+/** Configuration for a local file-sourced capability */
+export interface FileCapabilitySourceConfig {
+	/** Source path with file:// prefix (e.g., "file://./capabilities/my-cap") */
+	source: string;
+}
+
 /** Combined type for all capability source configurations */
 export type CapabilitySourceConfig =
-	| string // shorthand: "github:user/repo"
-	| GitCapabilitySourceConfig;
+	| string // shorthand: "github:user/repo" or "file://./path"
+	| GitCapabilitySourceConfig
+	| FileCapabilitySourceConfig;
+
+/**
+ * Type guard to check if a source config is a FileCapabilitySourceConfig
+ */
+export function isFileSourceConfig(
+	config: CapabilitySourceConfig,
+): config is FileCapabilitySourceConfig {
+	if (typeof config === "string") {
+		return config.startsWith("file://");
+	}
+	return config.source.startsWith("file://");
+}
 
 /** Lock file entry for a capability (version tracking) */
 export interface CapabilityLockEntry {

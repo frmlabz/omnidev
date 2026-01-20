@@ -179,6 +179,199 @@ capabilities = ["existing-cap"]
 			const output = consoleOutput.join("\n");
 			expect(output).toContain("Enabled in profile: planning");
 		});
+
+		test("should add capability source from local path", async () => {
+			mkdirSync(".omni", { recursive: true });
+			mkdirSync("capabilities/my-local-cap", { recursive: true });
+			await writeFile(
+				"capabilities/my-local-cap/capability.toml",
+				`[capability]
+id = "my-local-cap"
+name = "My Local Cap"
+version = "1.0.0"
+description = "Test local capability"
+`,
+				"utf-8",
+			);
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			await runAddCap({ local: "./capabilities/my-local-cap" }, "my-local-cap");
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain("[capabilities.sources]");
+			expect(configContent).toContain('my-local-cap = "file://./capabilities/my-local-cap"');
+			expect(configContent).toContain('capabilities = ["my-local-cap"]');
+
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Added capability source: my-local-cap");
+			expect(output).toContain("Source: file://./capabilities/my-local-cap");
+		});
+
+		test("should infer capability ID from capability.toml for local source", async () => {
+			mkdirSync(".omni", { recursive: true });
+			mkdirSync("caps/test-cap", { recursive: true });
+			await writeFile(
+				"caps/test-cap/capability.toml",
+				`[capability]
+id = "inferred-id"
+name = "Inferred Capability"
+version = "1.0.0"
+description = "Test"
+`,
+				"utf-8",
+			);
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			// Don't pass name, it should be inferred
+			await runAddCap({ local: "./caps/test-cap" });
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain('inferred-id = "file://./caps/test-cap"');
+
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Inferred capability ID: inferred-id");
+		});
+
+		test("should infer capability ID from directory name when no capability.toml", async () => {
+			mkdirSync(".omni", { recursive: true });
+			mkdirSync("caps/my-dir-cap", { recursive: true });
+			// Create a minimal capability.toml without id
+			await writeFile(
+				"caps/my-dir-cap/capability.toml",
+				`[capability]
+name = "My Cap"
+version = "1.0.0"
+description = "Test"
+`,
+				"utf-8",
+			);
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			await runAddCap({ local: "./caps/my-dir-cap" });
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain('my-dir-cap = "file://./caps/my-dir-cap"');
+		});
+
+		test("should infer capability ID from github repo name", async () => {
+			mkdirSync(".omni", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			await runAddCap({ github: "expo/skills" });
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain('skills = "github:expo/skills"');
+
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Inferred capability ID: skills");
+		});
+
+		test("should show error when neither --github nor --local is provided", async () => {
+			mkdirSync(".omni", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			try {
+				await runAddCap({});
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			expect(consoleErrors.join("\n")).toContain("No source specified");
+		});
+
+		test("should show error when both --github and --local are provided", async () => {
+			mkdirSync(".omni", { recursive: true });
+			mkdirSync("caps/test", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			try {
+				await runAddCap({ github: "user/repo", local: "./caps/test" });
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			expect(consoleErrors.join("\n")).toContain("Cannot specify both --github and --local");
+		});
+
+		test("should show error when local path does not exist", async () => {
+			mkdirSync(".omni", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`project = "test-project"
+
+[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			try {
+				await runAddCap({ local: "./nonexistent/path" });
+			} catch {
+				// Expected to throw due to process.exit mock
+			}
+
+			expect(exitCode).toBe(1);
+			expect(consoleErrors.join("\n")).toContain("Local path not found");
+		});
 	});
 
 	describe("runAddMcp", () => {

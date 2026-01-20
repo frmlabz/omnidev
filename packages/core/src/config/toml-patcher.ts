@@ -53,7 +53,7 @@ function formatCapabilitySource(name: string, source: CapabilitySourceConfig): s
 	if (typeof source === "string") {
 		return `${name} = "${source}"`;
 	}
-	if (source.path) {
+	if ("path" in source && source.path) {
 		return `${name} = { source = "${source.source}", path = "${source.path}" }`;
 	}
 	return `${name} = "${source.source}"`;

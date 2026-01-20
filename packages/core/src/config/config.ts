@@ -149,8 +149,8 @@ function generateConfigToml(config: OmniConfig): string {
 			if (typeof sourceConfig === "string") {
 				// Simple string source
 				lines.push(`${name} = "${sourceConfig}"`);
-			} else if (sourceConfig.path) {
-				// Full config object with path
+			} else if ("path" in sourceConfig && sourceConfig.path) {
+				// Full config object with path (git source)
 				lines.push(
 					`${name} = { source = "${sourceConfig.source}", path = "${sourceConfig.path}" }`,
 				);

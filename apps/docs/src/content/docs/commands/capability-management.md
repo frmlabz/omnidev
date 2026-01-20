@@ -15,10 +15,20 @@ omnidev capability new my-capability
 
 The capability ID must be lowercase kebab-case (e.g., `my-capability`, `api-client`, `tasks`).
 
+### Output Location
+
+By default, capabilities are created at `capabilities/<id>`. You can specify a custom path using the `--path` flag:
+
+```bash
+omnidev capability new my-cap --path ./custom/location
+```
+
+Or interactively choose the path when prompted.
+
 ### Generated Files
 
 ```
-.omni/capabilities/my-capability/
+capabilities/my-capability/
 ├── capability.toml               # Capability metadata
 ├── skills/
 │   └── getting-started/
@@ -41,7 +51,7 @@ omnidev capability new api-client
 Output:
 ```
 ✓ Created capability: Api Client
-  Location: .omni/capabilities/api-client
+  Location: capabilities/api-client
 
   Files created:
     - capability.toml
@@ -50,9 +60,23 @@ Output:
     - hooks/hooks.toml
     - hooks/example-hook.sh
 
-💡 To enable this capability, run:
-   omnidev capability enable api-client
+💡 To add this capability as a local source, run:
+   omnidev add cap --local ./capabilities/api-client
 ```
+
+### Workflow: Creating and Using Local Capabilities
+
+1. Create a new capability:
+   ```bash
+   omnidev capability new my-cap
+   ```
+
+2. Add it as a local source:
+   ```bash
+   omnidev add cap --local ./capabilities/my-cap
+   ```
+
+3. The capability is now tracked in `omni.toml` and synced to your agents.
 
 ## `omnidev capability list`
 

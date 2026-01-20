@@ -11,6 +11,8 @@ sidebar:
 
 Add a capability source and enable it in the active profile.
 
+### GitHub Sources
+
 ```bash
 omnidev add cap my-cap --github user/repo
 ```
@@ -19,6 +21,29 @@ With a subdirectory:
 
 ```bash
 omnidev add cap my-cap --github user/repo --path plugins/subdir
+```
+
+### Local Sources
+
+Add a capability from a local directory:
+
+```bash
+omnidev add cap my-cap --local ./capabilities/my-cap
+```
+
+### ID Inference
+
+If you omit the capability ID, it will be inferred automatically:
+
+- **Local sources**: Reads the `id` from `capability.toml`, or uses the directory name
+- **GitHub sources**: Uses the repository name or last path segment
+
+```bash
+# Infers "skills" from repo name
+omnidev add cap --github expo/skills
+
+# Infers "my-cap" from capability.toml or directory name
+omnidev add cap --local ./capabilities/my-cap
 ```
 
 ## `omnidev add mcp`

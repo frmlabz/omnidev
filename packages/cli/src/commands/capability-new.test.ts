@@ -1,8 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import { runCapabilityNew } from "./capability.js";
+
+// Mock @inquirer/prompts
+mock.module("@inquirer/prompts", () => ({
+	input: mock(async ({ default: defaultValue }: { default: string }) => defaultValue),
+}));
 
 describe("capability new command", () => {
 	setupTestDir("capability-new-test-", { chdir: true });
@@ -37,26 +42,36 @@ capabilities = []
 		);
 	}
 
-	test("creates capability directory with all templates", async () => {
+	test("creates capability directory with all templates at default path", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "my-cap");
+		// Using --path flag to skip prompt
+		await runCapabilityNew({ path: "capabilities/my-cap" }, "my-cap");
 
-		// Check all files are created
-		expect(existsSync(".omni/capabilities/my-cap")).toBe(true);
-		expect(existsSync(".omni/capabilities/my-cap/capability.toml")).toBe(true);
-		expect(existsSync(".omni/capabilities/my-cap/skills/getting-started/SKILL.md")).toBe(true);
-		expect(existsSync(".omni/capabilities/my-cap/rules/coding-standards.md")).toBe(true);
-		expect(existsSync(".omni/capabilities/my-cap/hooks/hooks.toml")).toBe(true);
-		expect(existsSync(".omni/capabilities/my-cap/hooks/example-hook.sh")).toBe(true);
+		// Check all files are created at capabilities/my-cap (not .omni/capabilities)
+		expect(existsSync("capabilities/my-cap")).toBe(true);
+		expect(existsSync("capabilities/my-cap/capability.toml")).toBe(true);
+		expect(existsSync("capabilities/my-cap/skills/getting-started/SKILL.md")).toBe(true);
+		expect(existsSync("capabilities/my-cap/rules/coding-standards.md")).toBe(true);
+		expect(existsSync("capabilities/my-cap/hooks/hooks.toml")).toBe(true);
+		expect(existsSync("capabilities/my-cap/hooks/example-hook.sh")).toBe(true);
+	});
+
+	test("creates capability at custom path with --path flag", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "custom/path/my-cap" }, "my-cap");
+
+		expect(existsSync("custom/path/my-cap")).toBe(true);
+		expect(existsSync("custom/path/my-cap/capability.toml")).toBe(true);
 	});
 
 	test("generates correct capability.toml content", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "my-cap");
+		await runCapabilityNew({ path: "capabilities/my-cap" }, "my-cap");
 
-		const toml = readFileSync(".omni/capabilities/my-cap/capability.toml", "utf-8");
+		const toml = readFileSync("capabilities/my-cap/capability.toml", "utf-8");
 		expect(toml).toContain('id = "my-cap"');
 		expect(toml).toContain('name = "My Cap"');
 		expect(toml).toContain('version = "0.1.0"');
@@ -65,12 +80,9 @@ capabilities = []
 	test("generates skill template with correct frontmatter", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "test-cap");
+		await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 
-		const skill = readFileSync(
-			".omni/capabilities/test-cap/skills/getting-started/SKILL.md",
-			"utf-8",
-		);
+		const skill = readFileSync("capabilities/test-cap/skills/getting-started/SKILL.md", "utf-8");
 		expect(skill).toContain("name: getting-started");
 		expect(skill).toContain("## What I do");
 		expect(skill).toContain("## When to use me");
@@ -79,9 +91,9 @@ capabilities = []
 	test("generates rule template with sections", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "test-cap");
+		await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 
-		const rule = readFileSync(".omni/capabilities/test-cap/rules/coding-standards.md", "utf-8");
+		const rule = readFileSync("capabilities/test-cap/rules/coding-standards.md", "utf-8");
 		expect(rule).toContain("# Coding Standards");
 		expect(rule).toContain("## Guidelines");
 		expect(rule).toContain("## Examples");
@@ -90,9 +102,9 @@ capabilities = []
 	test("generates hooks template with OMNIDEV variables", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "test-cap");
+		await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 
-		const hooks = readFileSync(".omni/capabilities/test-cap/hooks/hooks.toml", "utf-8");
+		const hooks = readFileSync("capabilities/test-cap/hooks/hooks.toml", "utf-8");
 		expect(hooks).toContain("PreToolUse");
 		expect(hooks).toContain("OMNIDEV_CAPABILITY_ROOT");
 	});
@@ -100,11 +112,22 @@ capabilities = []
 	test("generates hook script with bash shebang", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "test-cap");
+		await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 
-		const script = readFileSync(".omni/capabilities/test-cap/hooks/example-hook.sh", "utf-8");
+		const script = readFileSync("capabilities/test-cap/hooks/example-hook.sh", "utf-8");
 		expect(script).toContain("#!/bin/bash");
 		expect(script).toContain("INPUT=$(cat)");
+	});
+
+	test("uses default path from prompt when no --path flag", async () => {
+		await setupOmniDevProject();
+
+		// Without --path flag, should use the prompt which returns default value
+		await runCapabilityNew({}, "prompted-cap");
+
+		// The mock returns the default value which is "capabilities/<id>"
+		expect(existsSync("capabilities/prompted-cap")).toBe(true);
+		expect(existsSync("capabilities/prompted-cap/capability.toml")).toBe(true);
 	});
 
 	test("validates capability ID format - rejects uppercase", async () => {
@@ -147,15 +170,15 @@ capabilities = []
 		expect(exitCode).toBe(1);
 	});
 
-	test("prevents duplicate capability creation", async () => {
+	test("prevents duplicate capability creation at same path", async () => {
 		await setupOmniDevProject();
-		mkdirSync(".omni/capabilities/existing", { recursive: true });
+		mkdirSync("capabilities/existing", { recursive: true });
 
 		const originalError = console.error;
 		console.error = () => {};
 
 		try {
-			await runCapabilityNew({}, "existing");
+			await runCapabilityNew({ path: "capabilities/existing" }, "existing");
 		} catch (_error) {
 			// Expected to throw from process.exit mock
 		}
@@ -172,7 +195,7 @@ capabilities = []
 		console.log = () => {};
 
 		try {
-			await runCapabilityNew({}, "test-cap");
+			await runCapabilityNew({ path: "capabilities/test-cap" }, "test-cap");
 		} catch (_error) {
 			// Expected to throw from process.exit mock
 		}
@@ -186,19 +209,19 @@ capabilities = []
 	test("converts kebab-case id to Title Case name", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "my-awesome-capability");
+		await runCapabilityNew({ path: "capabilities/my-awesome-capability" }, "my-awesome-capability");
 
-		const toml = readFileSync(".omni/capabilities/my-awesome-capability/capability.toml", "utf-8");
+		const toml = readFileSync("capabilities/my-awesome-capability/capability.toml", "utf-8");
 		expect(toml).toContain('name = "My Awesome Capability"');
 	});
 
 	test("accepts single-word capability ID", async () => {
 		await setupOmniDevProject();
 
-		await runCapabilityNew({}, "tasks");
+		await runCapabilityNew({ path: "capabilities/tasks" }, "tasks");
 
-		expect(existsSync(".omni/capabilities/tasks")).toBe(true);
-		const toml = readFileSync(".omni/capabilities/tasks/capability.toml", "utf-8");
+		expect(existsSync("capabilities/tasks")).toBe(true);
+		const toml = readFileSync("capabilities/tasks/capability.toml", "utf-8");
 		expect(toml).toContain('id = "tasks"');
 		expect(toml).toContain('name = "Tasks"');
 	});

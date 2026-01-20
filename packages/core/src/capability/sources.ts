@@ -17,9 +17,11 @@ import type {
 	CapabilitiesLockFile,
 	CapabilityLockEntry,
 	CapabilitySourceConfig,
+	FileCapabilitySourceConfig,
 	GitCapabilitySourceConfig,
 	OmniConfig,
 } from "../types/index.js";
+import { isFileSourceConfig } from "../types/index.js";
 
 // Local path for .omni directory
 const OMNI_LOCAL = ".omni";
@@ -98,11 +100,61 @@ export function isGitSource(source: string): boolean {
 }
 
 /**
- * Parse a capability source string or config into normalized form
- * Returns a GitCapabilitySourceConfig
+ * Check if a source string is a file source
  */
-export function parseSourceConfig(source: CapabilitySourceConfig): GitCapabilitySourceConfig {
+export function isFileSource(source: string): boolean {
+	return source.startsWith("file://");
+}
+
+/**
+ * Parse a file:// source to get the actual file path
+ */
+export function parseFileSourcePath(source: string): string {
+	if (!source.startsWith("file://")) {
+		throw new Error(`Invalid file source: ${source}`);
+	}
+	return source.slice(7); // Remove "file://" prefix
+}
+
+/**
+ * Read the capability ID from a capability directory
+ * Tries to read from capability.toml first, then falls back to directory name
+ */
+export async function readCapabilityIdFromPath(capabilityPath: string): Promise<string | null> {
+	const tomlPath = join(capabilityPath, "capability.toml");
+
+	if (existsSync(tomlPath)) {
+		try {
+			const content = await readFile(tomlPath, "utf-8");
+			const parsed = parseToml(content) as Record<string, unknown>;
+			const capability = parsed["capability"] as Record<string, unknown> | undefined;
+			if (capability?.["id"] && typeof capability["id"] === "string") {
+				return capability["id"];
+			}
+		} catch {
+			// Fall through to directory name
+		}
+	}
+
+	// Fall back to directory name
+	const parts = capabilityPath.replace(/\\/g, "/").split("/");
+	const dirName = parts.pop() || parts.pop(); // Handle trailing slash
+	return dirName || null;
+}
+
+/**
+ * Parse a capability source string or config into normalized form
+ * Returns a GitCapabilitySourceConfig or FileCapabilitySourceConfig
+ */
+export function parseSourceConfig(
+	source: CapabilitySourceConfig,
+): GitCapabilitySourceConfig | FileCapabilitySourceConfig {
 	if (typeof source === "string") {
+		// Check for file source
+		if (isFileSource(source)) {
+			return { source } as FileCapabilitySourceConfig;
+		}
+
 		// Git source shorthand formats:
 		// - "github:user/repo"
 		// - "github:user/repo#ref"
@@ -125,7 +177,13 @@ export function parseSourceConfig(source: CapabilitySourceConfig): GitCapability
 		}
 		return result;
 	}
-	return source;
+
+	// Check if the config object is a file source
+	if (isFileSourceConfig(source)) {
+		return source as FileCapabilitySourceConfig;
+	}
+
+	return source as GitCapabilitySourceConfig;
 }
 
 /**
@@ -769,7 +827,74 @@ async function fetchGitCapabilitySource(
 }
 
 /**
- * Fetch a single capability source from git
+ * Fetch a file-sourced capability (copy from local path)
+ */
+async function fetchFileCapabilitySource(
+	id: string,
+	config: FileCapabilitySourceConfig,
+	options?: { silent?: boolean },
+): Promise<FetchResult> {
+	const sourcePath = parseFileSourcePath(config.source);
+	const targetPath = getSourceCapabilityPath(id);
+
+	// Validate source exists
+	if (!existsSync(sourcePath)) {
+		throw new Error(`File source not found: ${sourcePath}`);
+	}
+
+	// Check if it's a directory
+	const sourceStats = await stat(sourcePath);
+	if (!sourceStats.isDirectory()) {
+		throw new Error(`File source must be a directory: ${sourcePath}`);
+	}
+
+	// Check if capability.toml exists in source
+	if (!existsSync(join(sourcePath, "capability.toml"))) {
+		throw new Error(`No capability.toml found in: ${sourcePath}`);
+	}
+
+	if (!options?.silent) {
+		console.log(`  Copying ${id} from ${sourcePath}...`);
+	}
+
+	// Remove old target if exists
+	if (existsSync(targetPath)) {
+		await rm(targetPath, { recursive: true });
+	}
+
+	// Create parent directory
+	await mkdir(join(targetPath, ".."), { recursive: true });
+
+	// Copy directory contents
+	await cp(sourcePath, targetPath, { recursive: true });
+
+	// Read version from capability.toml
+	let version = "local";
+	const capTomlPath = join(targetPath, "capability.toml");
+	if (existsSync(capTomlPath)) {
+		try {
+			const content = await readFile(capTomlPath, "utf-8");
+			const parsed = parseToml(content) as Record<string, unknown>;
+			const capability = parsed["capability"] as Record<string, unknown> | undefined;
+			if (capability?.["version"] && typeof capability["version"] === "string") {
+				version = capability["version"];
+			}
+		} catch {
+			// Ignore parse errors
+		}
+	}
+
+	return {
+		id,
+		path: targetPath,
+		version,
+		updated: true,
+		wrapped: false,
+	};
+}
+
+/**
+ * Fetch a single capability source (git or file)
  */
 export async function fetchCapabilitySource(
 	id: string,
@@ -777,7 +902,13 @@ export async function fetchCapabilitySource(
 	options?: { silent?: boolean },
 ): Promise<FetchResult> {
 	const config = parseSourceConfig(sourceConfig);
-	return fetchGitCapabilitySource(id, config, options);
+
+	// Check if it's a file source
+	if (isFileSourceConfig(sourceConfig) || isFileSource(config.source)) {
+		return fetchFileCapabilitySource(id, config as FileCapabilitySourceConfig, options);
+	}
+
+	return fetchGitCapabilitySource(id, config as GitCapabilitySourceConfig, options);
 }
 
 /**
@@ -969,12 +1100,15 @@ export async function fetchAllCapabilitySources(
 			};
 
 			// Git source: use commit and ref
-			const gitConfig = parseSourceConfig(source);
 			if (result.commit) {
 				lockEntry.commit = result.commit;
 			}
-			if (gitConfig.ref) {
-				lockEntry.ref = gitConfig.ref;
+			// Only access ref if it's a git source
+			if (!isFileSourceConfig(source)) {
+				const gitConfig = parseSourceConfig(source) as GitCapabilitySourceConfig;
+				if (gitConfig.ref) {
+					lockEntry.ref = gitConfig.ref;
+				}
 			}
 
 			// Check if lock entry changed
@@ -1029,8 +1163,20 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 		const targetPath = getSourceCapabilityPath(id);
 		const existing = lockFile.capabilities[id];
 
+		// Skip file sources - they don't have update checking
+		if (isFileSourceConfig(source) || isFileSource(sourceConfig.source)) {
+			updates.push({
+				id,
+				source: sourceConfig.source,
+				currentVersion: existing?.version || "local",
+				latestVersion: "local",
+				hasUpdate: false,
+			});
+			continue;
+		}
+
 		// Handle git sources
-		const gitConfig = sourceConfig;
+		const gitConfig = sourceConfig as GitCapabilitySourceConfig;
 
 		if (!existsSync(join(targetPath, ".git"))) {
 			// Not yet cloned

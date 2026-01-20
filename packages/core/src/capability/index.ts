@@ -15,6 +15,10 @@ export {
 	sourceToGitUrl,
 	getSourceCapabilityPath,
 	getLockFilePath,
+	isGitSource,
+	isFileSource,
+	parseFileSourcePath,
+	readCapabilityIdFromPath,
 } from "./sources";
 export type { FetchResult, SourceUpdateInfo, DiscoveredContent } from "./sources";
 export { loadSubagents } from "./subagents";

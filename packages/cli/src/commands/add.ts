@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import { getEnabledAdapters } from "@omnidev-ai/adapters";
 import {
 	getActiveProfile,
@@ -7,20 +8,49 @@ import {
 	patchAddMcp,
 	patchAddToProfile,
 	syncAgentConfiguration,
+	readCapabilityIdFromPath,
 	type McpConfig,
 	type McpTransport,
 } from "@omnidev-ai/core";
 import { buildCommand, buildRouteMap } from "@stricli/core";
 
 interface AddCapFlags {
-	github: string;
+	github?: string | undefined;
+	local?: string | undefined;
 	path?: string | undefined;
+}
+
+/**
+ * Infer capability ID from source
+ */
+async function inferCapabilityId(source: string, sourceType: "github" | "local"): Promise<string> {
+	if (sourceType === "local") {
+		// For local sources, try to read from capability.toml or use directory name
+		const localPath = source.startsWith("file://") ? source.slice(7) : source;
+		const resolvedPath = resolve(localPath);
+		const id = await readCapabilityIdFromPath(resolvedPath);
+		if (id) {
+			return id;
+		}
+		// Last resort: use basename
+		return basename(resolvedPath);
+	}
+
+	// For GitHub sources: parse github:user/repo or github:user/repo/path
+	// Use last path segment or repo name
+	const parts = source.replace("github:", "").split("/");
+	if (parts.length >= 2) {
+		// If there's a path like user/repo/subdir/cap, use the last segment
+		// Otherwise use the repo name
+		return parts[parts.length - 1] ?? parts[1] ?? "capability";
+	}
+	return "capability";
 }
 
 /**
  * Run the add cap command
  */
-export async function runAddCap(flags: AddCapFlags, name: string): Promise<void> {
+export async function runAddCap(flags: AddCapFlags, name?: string): Promise<void> {
 	try {
 		// Check if omni.toml exists
 		if (!existsSync("omni.toml")) {
@@ -29,12 +59,60 @@ export async function runAddCap(flags: AddCapFlags, name: string): Promise<void>
 			process.exit(1);
 		}
 
-		// Validate github format
-		if (!flags.github.includes("/")) {
-			console.error("✗ Invalid GitHub repository format");
-			console.log("  Expected format: user/repo");
-			console.log("  Example: omnidev add cap my-cap --github expo/skills");
+		// Validate that exactly one source flag is provided
+		if (!flags.github && !flags.local) {
+			console.error("✗ No source specified");
+			console.log("  Use --github or --local to specify the capability source");
+			console.log("  Example: omnidev add cap --github expo/skills");
+			console.log("  Example: omnidev add cap --local ./capabilities/my-cap");
 			process.exit(1);
+		}
+
+		if (flags.github && flags.local) {
+			console.error("✗ Cannot specify both --github and --local");
+			console.log("  Use only one source flag");
+			process.exit(1);
+		}
+
+		// Determine source type and build source string
+		let source: string;
+		let sourceType: "github" | "local";
+
+		if (flags.local) {
+			sourceType = "local";
+			// Normalize local path to file:// URL
+			const localPath = flags.local.startsWith("file://") ? flags.local.slice(7) : flags.local;
+			source = `file://${localPath}`;
+
+			// Validate local path exists
+			if (!existsSync(localPath)) {
+				console.error(`✗ Local path not found: ${localPath}`);
+				process.exit(1);
+			}
+		} else if (flags.github) {
+			sourceType = "github";
+			// Validate github format
+			if (!flags.github.includes("/")) {
+				console.error("✗ Invalid GitHub repository format");
+				console.log("  Expected format: user/repo");
+				console.log("  Example: omnidev add cap --github expo/skills");
+				process.exit(1);
+			}
+			source = `github:${flags.github}`;
+		} else {
+			// This shouldn't happen due to earlier validation, but satisfy TypeScript
+			throw new Error("Unreachable: no source specified");
+		}
+
+		// Infer ID if not provided
+		let capabilityId = name;
+		if (!capabilityId) {
+			const sourceValue = sourceType === "local" ? flags.local : flags.github;
+			if (!sourceValue) {
+				throw new Error("Unreachable: cannot infer capability ID");
+			}
+			capabilityId = await inferCapabilityId(sourceValue, sourceType);
+			console.log(`  Inferred capability ID: ${capabilityId}`);
 		}
 
 		// Load config to check for duplicates and get active profile
@@ -42,24 +120,23 @@ export async function runAddCap(flags: AddCapFlags, name: string): Promise<void>
 		const activeProfile = (await getActiveProfile()) ?? config.active_profile ?? "default";
 
 		// Check if source already exists
-		if (config.capabilities?.sources?.[name]) {
-			console.error(`✗ Capability source "${name}" already exists`);
+		if (config.capabilities?.sources?.[capabilityId]) {
+			console.error(`✗ Capability source "${capabilityId}" already exists`);
 			console.log("  Use a different name or remove the existing source first");
 			process.exit(1);
 		}
 
 		// Create source config and patch the TOML file (preserves comments)
-		const source = `github:${flags.github}`;
-		if (flags.path) {
-			await patchAddCapabilitySource(name, { source, path: flags.path });
+		if (flags.path && sourceType === "github") {
+			await patchAddCapabilitySource(capabilityId, { source, path: flags.path });
 		} else {
-			await patchAddCapabilitySource(name, source);
+			await patchAddCapabilitySource(capabilityId, source);
 		}
 
 		// Add to active profile (also preserves comments)
-		await patchAddToProfile(activeProfile, name);
+		await patchAddToProfile(activeProfile, capabilityId);
 
-		console.log(`✓ Added capability source: ${name}`);
+		console.log(`✓ Added capability source: ${capabilityId}`);
 		console.log(`  Source: ${source}`);
 		if (flags.path) {
 			console.log(`  Path: ${flags.path}`);
@@ -241,17 +318,32 @@ function parseArgs(argsString: string): string[] {
 }
 
 async function runAddCapWrapper(
-	flags: { github: string; path: string | undefined },
-	name: string,
+	flags: { github: string | undefined; local: string | undefined; path: string | undefined },
+	name: string | undefined,
 ): Promise<void> {
-	await runAddCap({ github: flags.github, path: flags.path }, name);
+	await runAddCap({ github: flags.github, local: flags.local, path: flags.path }, name);
 }
 
 const addCapCommand = buildCommand({
 	docs: {
-		brief: "Add a capability source from GitHub",
-		fullDescription:
-			"Add a capability source from a GitHub repository. The capability will be auto-enabled in the active profile.",
+		brief: "Add a capability source from GitHub or local path",
+		fullDescription: `Add a capability source from a GitHub repository or local path. The capability will be auto-enabled in the active profile.
+
+GitHub source:
+  omnidev add cap [name] --github user/repo [--path subdir]
+
+Local source:
+  omnidev add cap [name] --local ./path/to/capability
+
+If the capability name is omitted, it will be inferred from:
+- For local sources: the ID in capability.toml or directory name
+- For GitHub sources: the repository name or last path segment
+
+Examples:
+  omnidev add cap my-cap --github expo/skills
+  omnidev add cap --github expo/skills                     # Infers name as "skills"
+  omnidev add cap --local ./capabilities/my-cap            # Infers name from capability.toml
+  omnidev add cap custom-name --local ./capabilities/my-cap`,
 	},
 	parameters: {
 		flags: {
@@ -259,10 +351,17 @@ const addCapCommand = buildCommand({
 				kind: "parsed" as const,
 				brief: "GitHub repository in user/repo format",
 				parse: String,
+				optional: true,
+			},
+			local: {
+				kind: "parsed" as const,
+				brief: "Local path to capability directory",
+				parse: String,
+				optional: true,
 			},
 			path: {
 				kind: "parsed" as const,
-				brief: "Subdirectory within the repo containing the capability",
+				brief: "Subdirectory within the repo containing the capability (GitHub only)",
 				parse: String,
 				optional: true,
 			},
@@ -271,10 +370,16 @@ const addCapCommand = buildCommand({
 			kind: "tuple" as const,
 			parameters: [
 				{
-					brief: "Capability name",
+					brief: "Capability name (optional, will be inferred if omitted)",
 					parse: String,
+					optional: true,
 				},
 			],
+		},
+		aliases: {
+			g: "github",
+			l: "local",
+			p: "path",
 		},
 	},
 	func: runAddCapWrapper,

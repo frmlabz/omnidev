@@ -10,8 +10,16 @@ import {
 	getLockFilePath,
 	loadLockFile,
 	saveLockFile,
+	isFileSource,
+	isGitSource,
+	parseFileSourcePath,
+	readCapabilityIdFromPath,
 } from "./sources";
-import type { CapabilitiesLockFile, GitCapabilitySourceConfig } from "../types/index.js";
+import type {
+	CapabilitiesLockFile,
+	FileCapabilitySourceConfig,
+	GitCapabilitySourceConfig,
+} from "../types/index.js";
 
 describe("parseSourceConfig", () => {
 	test("parses simple github shorthand", () => {
@@ -76,6 +84,116 @@ describe("parseSourceConfig", () => {
 
 		expect(config.source).toBe("github:user/monorepo");
 		expect(config.path).toBe("packages/my-cap");
+	});
+
+	test("parses file source shorthand", () => {
+		const config = parseSourceConfig("file://./capabilities/my-cap") as FileCapabilitySourceConfig;
+
+		expect(config.source).toBe("file://./capabilities/my-cap");
+	});
+
+	test("passes through file source config object", () => {
+		const config = parseSourceConfig({
+			source: "file://./local/capability",
+		}) as FileCapabilitySourceConfig;
+
+		expect(config.source).toBe("file://./local/capability");
+	});
+});
+
+describe("isFileSource", () => {
+	test("returns true for file:// prefix", () => {
+		expect(isFileSource("file://./path")).toBe(true);
+		expect(isFileSource("file:///absolute/path")).toBe(true);
+	});
+
+	test("returns false for non-file sources", () => {
+		expect(isFileSource("github:user/repo")).toBe(false);
+		expect(isFileSource("https://github.com/user/repo.git")).toBe(false);
+		expect(isFileSource("git@github.com:user/repo.git")).toBe(false);
+	});
+});
+
+describe("isGitSource", () => {
+	test("returns true for github shorthand", () => {
+		expect(isGitSource("github:user/repo")).toBe(true);
+	});
+
+	test("returns true for https URLs", () => {
+		expect(isGitSource("https://github.com/user/repo.git")).toBe(true);
+	});
+
+	test("returns true for SSH URLs", () => {
+		expect(isGitSource("git@github.com:user/repo.git")).toBe(true);
+	});
+
+	test("returns false for file sources", () => {
+		expect(isGitSource("file://./path")).toBe(false);
+	});
+});
+
+describe("parseFileSourcePath", () => {
+	test("removes file:// prefix for relative path", () => {
+		expect(parseFileSourcePath("file://./capabilities/my-cap")).toBe("./capabilities/my-cap");
+	});
+
+	test("removes file:// prefix for absolute path", () => {
+		expect(parseFileSourcePath("file:///home/user/caps")).toBe("/home/user/caps");
+	});
+
+	test("throws for non-file source", () => {
+		expect(() => parseFileSourcePath("github:user/repo")).toThrow("Invalid file source");
+	});
+});
+
+describe("readCapabilityIdFromPath", () => {
+	const testDir = setupTestDir("read-cap-id-test-", { chdir: true, createOmniDir: true });
+
+	test("reads ID from capability.toml", async () => {
+		const capDir = join(testDir.path, "test-cap");
+		mkdirSync(capDir, { recursive: true });
+		writeFileSync(
+			join(capDir, "capability.toml"),
+			`[capability]
+id = "my-custom-id"
+name = "Test"
+version = "1.0.0"
+description = "Test capability"
+`,
+		);
+
+		const id = await readCapabilityIdFromPath(capDir);
+		expect(id).toBe("my-custom-id");
+	});
+
+	test("falls back to directory name when no capability.toml", async () => {
+		const capDir = join(testDir.path, "fallback-dir");
+		mkdirSync(capDir, { recursive: true });
+
+		const id = await readCapabilityIdFromPath(capDir);
+		expect(id).toBe("fallback-dir");
+	});
+
+	test("falls back to directory name when capability.toml has no id", async () => {
+		const capDir = join(testDir.path, "no-id-cap");
+		mkdirSync(capDir, { recursive: true });
+		writeFileSync(
+			join(capDir, "capability.toml"),
+			`[capability]
+name = "Test"
+`,
+		);
+
+		const id = await readCapabilityIdFromPath(capDir);
+		expect(id).toBe("no-id-cap");
+	});
+
+	test("handles trailing slash in path", async () => {
+		const capDir = join(testDir.path, "trailing-slash");
+		mkdirSync(capDir, { recursive: true });
+
+		const id = await readCapabilityIdFromPath(`${capDir}/`);
+		expect(id).toBe("trailing-slash");
 	});
 });
 
