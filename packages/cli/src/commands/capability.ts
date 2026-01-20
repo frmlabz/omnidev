@@ -1,13 +1,22 @@
+import { existsSync, mkdirSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getEnabledAdapters } from "@omnidev-ai/adapters";
 import {
 	disableCapability,
 	discoverCapabilities,
 	enableCapability,
+	generateCapabilityToml,
+	generateHooksTemplate,
+	generateHookScript,
+	generateRuleTemplate,
+	generateSkillTemplate,
 	getEnabledCapabilities,
 	loadCapabilityConfig,
 	syncAgentConfiguration,
 } from "@omnidev-ai/core";
 import { buildCommand, buildRouteMap } from "@stricli/core";
+import { isValidCapabilityId } from "../prompts/capability.js";
 
 /**
  * Run the capability list command.
@@ -106,6 +115,117 @@ export async function runCapabilityDisable(
 	}
 }
 
+/**
+ * Convert kebab-case to Title Case.
+ */
+function toTitleCase(kebabCase: string): string {
+	return kebabCase
+		.split("-")
+		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+		.join(" ");
+}
+
+/**
+ * Run the capability new command to bootstrap a new capability.
+ */
+export async function runCapabilityNew(
+	_flags: Record<string, never>,
+	capabilityId: string,
+): Promise<void> {
+	try {
+		// Check if OmniDev is initialized
+		if (!existsSync(".omni")) {
+			console.error("✗ OmniDev is not initialized in this directory.");
+			console.log("");
+			console.log("  Run: omnidev init");
+			process.exit(1);
+		}
+
+		// Validate capability ID
+		if (!isValidCapabilityId(capabilityId)) {
+			console.error(`✗ Invalid capability ID: '${capabilityId}'`);
+			console.log("");
+			console.log("  ID must be lowercase, start with a letter, and use kebab-case");
+			console.log("  Example: my-capability, tasks, api-client");
+			process.exit(1);
+		}
+
+		const id = capabilityId;
+
+		// Check if capability already exists
+		const capabilityDir = join(".omni", "capabilities", id);
+		if (existsSync(capabilityDir)) {
+			console.error(`✗ Capability '${id}' already exists at ${capabilityDir}`);
+			process.exit(1);
+		}
+
+		// Derive name from ID
+		const name = toTitleCase(id);
+
+		// Create directory structure
+		mkdirSync(capabilityDir, { recursive: true });
+
+		// Write capability.toml
+		const capabilityToml = generateCapabilityToml({ id, name });
+		await writeFile(join(capabilityDir, "capability.toml"), capabilityToml, "utf-8");
+
+		// Create skill template
+		const skillDir = join(capabilityDir, "skills", "getting-started");
+		mkdirSync(skillDir, { recursive: true });
+		await writeFile(join(skillDir, "SKILL.md"), generateSkillTemplate("getting-started"), "utf-8");
+
+		// Create rule template
+		const rulesDir = join(capabilityDir, "rules");
+		mkdirSync(rulesDir, { recursive: true });
+		await writeFile(
+			join(rulesDir, "coding-standards.md"),
+			generateRuleTemplate("coding-standards"),
+			"utf-8",
+		);
+
+		// Create hooks template
+		const hooksDir = join(capabilityDir, "hooks");
+		mkdirSync(hooksDir, { recursive: true });
+		await writeFile(join(hooksDir, "hooks.toml"), generateHooksTemplate(), "utf-8");
+		await writeFile(join(hooksDir, "example-hook.sh"), generateHookScript(), "utf-8");
+
+		console.log(`✓ Created capability: ${name}`);
+		console.log(`  Location: ${capabilityDir}`);
+		console.log("");
+		console.log("  Files created:");
+		console.log("    - capability.toml");
+		console.log("    - skills/getting-started/SKILL.md");
+		console.log("    - rules/coding-standards.md");
+		console.log("    - hooks/hooks.toml");
+		console.log("    - hooks/example-hook.sh");
+		console.log("");
+		console.log("💡 To enable this capability, run:");
+		console.log(`   omnidev capability enable ${id}`);
+	} catch (error) {
+		console.error("Error creating capability:", error);
+		process.exit(1);
+	}
+}
+
+const newCommand = buildCommand({
+	docs: {
+		brief: "Create a new capability with templates",
+	},
+	parameters: {
+		flags: {},
+		positional: {
+			kind: "tuple" as const,
+			parameters: [
+				{
+					brief: "Capability ID (kebab-case)",
+					parse: String,
+				},
+			],
+		},
+	},
+	func: runCapabilityNew,
+});
+
 const listCommand = buildCommand({
 	docs: {
 		brief: "List all discovered capabilities",
@@ -156,6 +276,7 @@ const disableCommand = buildCommand({
 
 export const capabilityRoutes = buildRouteMap({
 	routes: {
+		new: newCommand,
 		list: listCommand,
 		enable: enableCommand,
 		disable: disableCommand,

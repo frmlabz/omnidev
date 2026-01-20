@@ -143,6 +143,8 @@ Amp uses MCP hooks and permission-based tool gating rather than explicit hooks.
 
 ## OpenCode
 
+Uses AGENTS.md
+
 ### Configuration File Locations
 
 **User-Scoped Configuration:**
