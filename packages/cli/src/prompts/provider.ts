@@ -2,8 +2,7 @@ import { checkbox, confirm } from "@inquirer/prompts";
 import type { ProviderId } from "@omnidev-ai/core";
 
 const PROVIDER_GITIGNORE_FILES: Record<string, string[]> = {
-	claude: ["CLAUDE.md", ".claude/"], // Legacy alias for claude-code
-	"claude-code": ["CLAUDE.md", ".claude/"],
+	"claude-code": ["CLAUDE.md", ".claude/", ".mcp.json"],
 	cursor: [".cursor/"],
 	codex: ["AGENTS.md", ".codex/"],
 	opencode: [".opencode/"],

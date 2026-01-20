@@ -1,8 +1,8 @@
 ---
-title: Add Commands
+title: add
 description: Quickly add capabilities and MCP servers.
 sidebar:
-  order: 5
+  order: 4
 ---
 
 `omnidev add` provides shortcuts for updating `omni.toml` and syncing.

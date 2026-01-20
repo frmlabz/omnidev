@@ -2,7 +2,7 @@
 title: Best Practices
 description: Patterns for maintainable capabilities.
 sidebar:
-  order: 12
+  order: 3
 ---
 
 ## Naming
@@ -15,7 +15,6 @@ sidebar:
 
 - Keep CLI routes in `cli.ts` and export them from `index.ts`.
 - Group related rules/docs/skills into focused subfolders.
-- Use `types.d.ts` only for type hints you want agents to see.
 - Use sync hooks sparingly and keep them idempotent.
 
 ## Static vs programmatic

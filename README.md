@@ -1,8 +1,8 @@
 # OmniDev, the missing package manager for AI coding capabilities
 
-A universal package manager to discover, install, and manage capabilities for AI coding agents across all providers.
+Turn any GitHub repo with skills, rules, or prompts into a portable capability.
 
-**OmniDev creates capabilities, which can contain subagents, commands, hooks, skills, and rules, adapts them to work with every AI coding tool.** Define once, use everywhere.
+**Point to any directory. Wrap it. Use it.** OmniDev takes existing content—GitHub repos, local folders—and wraps them into capabilities that you can version, share, and manage across your AI coding tools.
 
 Yes, we know. Another standard ([obligatory xkcd](https://xkcd.com/927/)). But hear me out.
 
@@ -23,14 +23,14 @@ But it's not just about config locations. **It's also about context.** AI agents
 
 ## The Solution
 
-OmniDev is to AI capabilities what npm is to JavaScript packages. Write your configuration once, use it everywhere:
+OmniDev is a package manager for AI capabilities, similar to how npm works for JavaScript packages:
 
-- **One config, all tools** — Works with Cursor, Claude Code, Codex, OpenCode, Amp, and more
-- **Git-based capabilities** — Install from GitHub, version lock, and share with your team
+- **Wrap anything** — Point to any GitHub repo or local folder containing skills/rules/prompts and OmniDev wraps it into a capability
+- **One config, all tools** — Works with Claude Code, Cursor, Codex, OpenCode, Amp, and more
 - **Profile switching** — Load different capability sets for frontend, backend, planning, etc.
-- **Extensible** — Capabilities can add custom CLI commands and extend functionality
+- **Full-featured** — Capabilities can contain skills, rules, commands, subagents, hooks, and MCP servers
 
-**Why OmniDev vs `npx skills`?** OmniDev manages more than just skills—it handles **subagents**, **commands**, **rules**, **MCP servers**, and can even load **Claude plugins** in a single system.
+**Why OmniDev?** Stop copying files between projects. Point to a repo, wrap it as a capability, version it, and share it with your team.
 
 ## Quick Start
 
@@ -80,9 +80,9 @@ Define your project instructions in `OMNI.md` and OmniDev generates provider-spe
 ## Documentation
 
 - **[Getting Started](https://omnidev.nikolamilovic2001.workers.dev/getting-started/)** — Installation and first steps
-- **[Configuration](https://omnidev.nikolamilovic2001.workers.dev/configuration/overview/)** — Configure capabilities, profiles, and providers
+- **[Configuration](https://omnidev.nikolamilovic2001.workers.dev/configuration/config-files/)** — Configure capabilities, profiles, and providers
 - **[Capabilities](https://omnidev.nikolamilovic2001.workers.dev/capabilities/overview/)** — Create and share capabilities
-- **[Commands](https://omnidev.nikolamilovic2001.workers.dev/commands/core/)** — CLI reference
+- **[Commands](https://omnidev.nikolamilovic2001.workers.dev/commands/init/)** — CLI reference
 - **[Examples](examples/)** — Sample configurations for different setups
 
 ## Examples

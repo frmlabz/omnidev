@@ -1,23 +1,25 @@
 ---
-title: Capability Management
-description: Create, list, enable, and disable capabilities.
+title: capability new
+description: Create a new capability with template files.
 sidebar:
-  order: 2
+  order: 6
 ---
-
-## `omnidev capability new <id>`
 
 Create a new capability with all template files.
 
+## Usage
+
 ```bash
-omnidev capability new my-capability
+omnidev capability new <id>
 ```
 
 The capability ID must be lowercase kebab-case (e.g., `my-capability`, `api-client`, `tasks`).
 
-### Output Location
+## Options
 
-By default, capabilities are created at `capabilities/<id>`. You can specify a custom path using the `--path` flag:
+### `--path`
+
+Specify a custom output path:
 
 ```bash
 omnidev capability new my-cap --path ./custom/location
@@ -25,7 +27,7 @@ omnidev capability new my-cap --path ./custom/location
 
 Or interactively choose the path when prompted.
 
-### Generated Files
+## Generated files
 
 ```
 capabilities/my-capability/
@@ -42,7 +44,7 @@ capabilities/my-capability/
 
 Delete any files you don't need after creation.
 
-### Example
+## Example
 
 ```bash
 omnidev capability new api-client
@@ -64,7 +66,7 @@ Output:
    omnidev add cap --local ./capabilities/api-client
 ```
 
-### Workflow: Creating and Using Local Capabilities
+## Workflow
 
 1. Create a new capability:
    ```bash
@@ -78,32 +80,6 @@ Output:
 
 3. The capability is now tracked in `omni.toml` and synced to your agents.
 
-## `omnidev capability list`
+---
 
-List discovered capabilities and their enabled status.
-
-```bash
-omnidev capability list
-```
-
-## `omnidev capability enable <name>`
-
-Enable a capability in the active profile.
-
-```bash
-omnidev capability enable tasks
-```
-
-## `omnidev capability disable <name>`
-
-Disable a capability in the active profile.
-
-```bash
-omnidev capability disable tasks
-```
-
-After enabling or disabling, run:
-
-```bash
-omnidev sync
-```
+For a complete guide on capability development, see [Creating Capabilities](/advanced/creating-capabilities/).
