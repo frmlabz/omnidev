@@ -339,54 +339,6 @@ id = "cap2"
 		expect(registry.getCapability("cap2")).toBeUndefined();
 	});
 
-	test("validates environment requirements before loading", async () => {
-		// Create capability requiring env var
-		const capPath = join(".omni", "capabilities", "cap1");
-		mkdirSync(capPath, { recursive: true });
-		writeFileSync(
-			join(capPath, "capability.toml"),
-			`[capability]
-id = "cap1"
-name = "Needs Env"
-version = "1.0.0"
-description = "Requires env"
-
-[env.REQUIRED_VAR]
-required = true`,
-		);
-
-		const registry = await buildCapabilityRegistry();
-
-		// Should not load capability without required env var
-		expect(registry.capabilities.size).toBe(0);
-	});
-
-	test("loads capabilities when environment is satisfied", async () => {
-		// Create .env file with required var
-		writeFileSync(join(".omni", ".env"), "REQUIRED_VAR=test-value");
-
-		// Create capability requiring env var
-		const capPath = join(".omni", "capabilities", "cap1");
-		mkdirSync(capPath, { recursive: true });
-		writeFileSync(
-			join(capPath, "capability.toml"),
-			`[capability]
-id = "cap1"
-name = "Needs Env"
-version = "1.0.0"
-description = "Requires env"
-
-[env.REQUIRED_VAR]
-required = true`,
-		);
-
-		const registry = await buildCapabilityRegistry();
-
-		// Should load capability when env var is provided
-		expect(registry.capabilities.size).toBe(1);
-		expect(registry.getCapability("cap1")).toBeDefined();
-	});
-
 	test("getCapability returns undefined for non-existent capability", async () => {
 		const registry = await buildCapabilityRegistry();
 

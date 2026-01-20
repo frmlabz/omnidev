@@ -41,6 +41,14 @@ export async function syncAdaptersWithWriters(
 	bundle: SyncBundle,
 	ctx: ProviderContext,
 ): Promise<SyncAdaptersResult> {
+	if (adapters.length === 0) {
+		return {
+			filesWritten: [],
+			deduplicatedCount: 0,
+			perAdapter: new Map(),
+		};
+	}
+
 	// Collect all writer configs from all adapters
 	const allWriterConfigs: AdapterWriterConfig[] = [];
 	const writerToAdapter = new Map<string, string>(); // key -> adapter id (for per-adapter tracking)

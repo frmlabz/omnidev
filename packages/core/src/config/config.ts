@@ -15,9 +15,6 @@ const LOCAL_CONFIG = "omni.local.toml";
 function mergeConfigs(base: OmniConfig, override: OmniConfig): OmniConfig {
 	const merged: OmniConfig = { ...base, ...override };
 
-	// Deep merge env
-	merged.env = { ...base.env, ...override.env };
-
 	// Deep merge profiles
 	merged.profiles = { ...base.profiles };
 	for (const [name, profile] of Object.entries(override.profiles || {})) {
@@ -84,26 +81,6 @@ export async function writeConfig(config: OmniConfig): Promise<void> {
 function generateConfigToml(config: OmniConfig): string {
 	const lines: string[] = [];
 
-	lines.push("# =============================================================================");
-	lines.push("# OmniDev Configuration");
-	lines.push("# =============================================================================");
-	lines.push("# This file defines your project's capabilities, profiles, and settings.");
-	lines.push("#");
-	lines.push("# Files:");
-	lines.push("#   • omni.toml - Main config (commit to share with team)");
-	lines.push("#   • omni.local.toml - Local overrides (add to .gitignore)");
-	lines.push("#   • omni.lock.toml - Version lock file (commit for reproducibility)");
-	lines.push("#");
-	lines.push("# Quick start:");
-	lines.push("#   1. Add capability sources to [capabilities.sources]");
-	lines.push("#   2. Reference them in your profiles");
-	lines.push("#   3. Run: omnidev sync");
-	lines.push("#   4. Switch profiles: omnidev profile use <name>");
-	lines.push("");
-
-	// Note: active_profile is stored in .omni/state/active-profile, not in config.toml
-	// We still read it from config.toml for backwards compatibility, but don't write it here
-
 	// Providers
 	if (config.providers?.enabled && config.providers.enabled.length > 0) {
 		lines.push("# AI providers to enable (claude, codex, or both)");
@@ -111,28 +88,6 @@ function generateConfigToml(config: OmniConfig): string {
 		lines.push(`enabled = [${config.providers.enabled.map((p) => `"${p}"`).join(", ")}]`);
 		lines.push("");
 	}
-
-	// Environment variables
-	lines.push("# =============================================================================");
-	lines.push("# Environment Variables");
-	lines.push("# =============================================================================");
-	lines.push("# Global environment variables available to all capabilities.");
-	// biome-ignore lint/suspicious/noTemplateCurlyInString: Example of env var syntax
-	lines.push("# Use ${VAR_NAME} syntax to reference shell environment variables.");
-	lines.push("#");
-	if (config.env && Object.keys(config.env).length > 0) {
-		lines.push("[env]");
-		for (const [key, value] of Object.entries(config.env)) {
-			lines.push(`${key} = "${value}"`);
-		}
-	} else {
-		lines.push("# [env]");
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: Example of env var syntax
-		lines.push('# DATABASE_URL = "${DATABASE_URL}"');
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: Example of env var syntax
-		lines.push('# API_KEY = "${MY_API_KEY}"');
-	}
-	lines.push("");
 
 	// Capability sources
 	lines.push("# =============================================================================");
@@ -235,12 +190,10 @@ function generateConfigToml(config: OmniConfig): string {
 				lines.push(`url = "${mcpConfig.url}"`);
 			}
 
-			// Environment variables (sub-table)
+			// Environment variables (inline table)
 			if (mcpConfig.env && Object.keys(mcpConfig.env).length > 0) {
-				lines.push(`[mcps.${name}.env]`);
-				for (const [key, value] of Object.entries(mcpConfig.env)) {
-					lines.push(`${key} = "${value}"`);
-				}
+				const entries = Object.entries(mcpConfig.env).map(([key, value]) => `${key} = "${value}"`);
+				lines.push(`env = { ${entries.join(", ")} }`);
 			}
 
 			// Headers (sub-table)
@@ -263,9 +216,8 @@ function generateConfigToml(config: OmniConfig): string {
 		lines.push('# command = "node"');
 		lines.push('# args = ["./servers/database.js"]');
 		lines.push('# cwd = "./mcp-servers"');
-		lines.push("# [mcps.database.env]");
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: Example of env var syntax
-		lines.push('# DB_URL = "${DATABASE_URL}"');
+		lines.push('# env = { DB_URL = "${DATABASE_URL}" }');
 		lines.push("");
 	}
 

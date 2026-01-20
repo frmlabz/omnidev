@@ -1,7 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { validateEnv } from "../config/env";
 import { parseCapabilityConfig } from "../config/parser";
 import { loadCapabilityHooks } from "../hooks/loader.js";
 import type {
@@ -339,24 +338,13 @@ function convertCommandExports(commandExports: unknown[], capabilityId: string):
 
 /**
  * Loads a complete capability including config, skills, rules, docs, and exports.
- * Validates environment requirements before loading.
- *
  * @param capabilityPath - Path to the capability directory
- * @param env - Environment variables to validate against
  * @returns Fully loaded capability
- * @throws Error if validation fails or loading errors occur
+ * @throws Error if loading errors occur
  */
-export async function loadCapability(
-	capabilityPath: string,
-	env: Record<string, string>,
-): Promise<LoadedCapability> {
+export async function loadCapability(capabilityPath: string): Promise<LoadedCapability> {
 	const config = await loadCapabilityConfig(capabilityPath);
 	const id = config.capability.id;
-
-	// Validate environment
-	if (config.env) {
-		validateEnv(config.env, env, id);
-	}
 
 	// Load content - programmatic takes precedence
 	const exports = await importCapabilityExports(capabilityPath);

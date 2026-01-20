@@ -1,6 +1,17 @@
+import { existsSync } from "node:fs";
 import { getEnabledAdapters } from "@omnidev-ai/adapters";
-import { getActiveProfile, loadConfig, syncAgentConfiguration } from "@omnidev-ai/core";
+import type { ProviderContext } from "@omnidev-ai/core";
+import {
+	getActiveProfile,
+	loadConfig,
+	syncAgentConfiguration,
+	writeEnabledProviders,
+} from "@omnidev-ai/core";
 import { buildCommand } from "@stricli/core";
+import { promptForProviders } from "../prompts/provider.js";
+import { initializeAdaptersForProviders } from "./init.js";
+
+const PROVIDERS_STATE_PATH = ".omni/state/providers.json";
 
 export const syncCommand = buildCommand({
 	docs: {
@@ -21,7 +32,21 @@ export async function runSync(): Promise<void> {
 		const activeProfile = (await getActiveProfile()) ?? config.active_profile ?? "default";
 
 		// Get enabled adapters for provider-specific sync
-		const adapters = await getEnabledAdapters();
+		let adapters = await getEnabledAdapters();
+
+		if (!existsSync(PROVIDERS_STATE_PATH) || adapters.length === 0) {
+			console.log("No providers configured yet. Select your provider(s):");
+			const providerIds = await promptForProviders();
+			await writeEnabledProviders(providerIds);
+
+			const ctx: ProviderContext = {
+				projectRoot: process.cwd(),
+				config,
+			};
+
+			adapters = await initializeAdaptersForProviders(providerIds, ctx);
+			console.log("");
+		}
 
 		const result = await syncAgentConfiguration({ silent: false, adapters });
 

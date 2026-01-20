@@ -48,12 +48,6 @@ export interface CapabilityExports {
 	gitignore?: string[];
 }
 
-export interface EnvDeclaration {
-	required?: boolean;
-	secret?: boolean;
-	default?: string;
-}
-
 export interface SyncConfig {
 	on_sync?: string;
 }
@@ -65,7 +59,6 @@ export interface CliConfig {
 export interface CapabilityConfig {
 	capability: CapabilityMetadata;
 	exports?: CapabilityExports;
-	env?: Record<string, EnvDeclaration | Record<string, never>>;
 	mcp?: McpConfig;
 	sync?: SyncConfig;
 	cli?: CliConfig;
@@ -84,7 +77,7 @@ export interface McpToolSchema {
  *
  * - **stdio**: Local process using stdin/stdout (default)
  *   - Requires: command
- *   - Optional: args, env, cwd
+ *   - Optional: args, cwd
  *
  * - **http**: Remote HTTP server (recommended for remote servers)
  *   - Requires: url
@@ -269,7 +262,6 @@ export interface OmniConfig {
 	project?: string;
 	active_profile?: string;
 	always_enabled_capabilities?: string[];
-	env?: Record<string, string>;
 	profiles?: Record<string, ProfileConfig>;
 	providers?: {
 		enabled?: Provider[];

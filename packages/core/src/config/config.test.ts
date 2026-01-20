@@ -10,10 +10,7 @@ describe("loadConfig", () => {
 	setupTestDir("loader-test-", { chdir: true });
 	test("returns empty config when no files exist", async () => {
 		const config = await loadConfig();
-		expect(config).toEqual({
-			env: {},
-			profiles: {},
-		});
+		expect(config).toEqual({ profiles: {} });
 	});
 
 	test("loads config when only main config exists", async () => {
@@ -64,9 +61,6 @@ active_profile = "production"
 
 [profiles.default]
 capabilities = ["tasks"]
-
-[env]
-API_URL = "https://main-api.com"
 `,
 		);
 
@@ -77,10 +71,6 @@ project = "local-override"
 
 [profiles.default]
 capabilities = ["git"]
-
-[env]
-API_URL = "http://localhost:3000"
-DEBUG = "true"
 `,
 		);
 
@@ -91,10 +81,6 @@ DEBUG = "true"
 
 		// Profile capabilities from local should override main
 		expect(config.profiles?.default?.capabilities).toEqual(["git"]);
-
-		// Env should be merged with local taking precedence
-		expect(config.env?.API_URL).toBe("http://localhost:3000");
-		expect(config.env?.DEBUG).toBe("true");
 	});
 
 	test("merges profiles with local taking precedence", async () => {
@@ -150,34 +136,6 @@ project = "test"
 		writeFileSync(LOCAL_CONFIG, "invalid toml [[[");
 
 		await expect(loadConfig()).rejects.toThrow("Invalid TOML in config");
-	});
-
-	test("merges env objects correctly", async () => {
-		mkdirSync(".omni", { recursive: true });
-		mkdirSync(".omni", { recursive: true });
-
-		writeFileSync(
-			CONFIG_PATH,
-			`
-[env]
-VAR1 = "team1"
-VAR2 = "team2"
-`,
-		);
-
-		writeFileSync(
-			LOCAL_CONFIG,
-			`
-[env]
-VAR2 = "local2"
-VAR3 = "local3"
-`,
-		);
-
-		const config = await loadConfig();
-		expect(config.env?.VAR1).toBe("team1");
-		expect(config.env?.VAR2).toBe("local2");
-		expect(config.env?.VAR3).toBe("local3");
 	});
 
 	test("reads active_profile from config.toml for backwards compatibility", async () => {

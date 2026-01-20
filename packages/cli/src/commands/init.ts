@@ -96,14 +96,7 @@ export async function runInit(_flags: Record<string, never>, providerArg?: strin
 	};
 
 	// Initialize enabled adapters
-	const allAdapters = getAllAdapters();
-	const selectedAdapters = allAdapters.filter((a) => providerIds.includes(a.id));
-
-	for (const adapter of selectedAdapters) {
-		if (adapter.init) {
-			await adapter.init(ctx);
-		}
-	}
+	const selectedAdapters = await initializeAdaptersForProviders(providerIds, ctx);
 
 	// Run initial sync with enabled adapters (silent - no need to show details)
 	const enabledAdapters = await getEnabledAdapters();
@@ -123,6 +116,22 @@ export async function runInit(_flags: Record<string, never>, providerArg?: strin
 	);
 	console.log("");
 	console.log("💡 Run 'omnidev capability list' to see available capabilities.");
+}
+
+export async function initializeAdaptersForProviders(
+	providerIds: ProviderId[],
+	ctx: ProviderContext,
+) {
+	const allAdapters = getAllAdapters();
+	const selectedAdapters = allAdapters.filter((a) => providerIds.includes(a.id));
+
+	for (const adapter of selectedAdapters) {
+		if (adapter.init) {
+			await adapter.init(ctx);
+		}
+	}
+
+	return selectedAdapters;
 }
 
 export const initCommand = buildCommand({

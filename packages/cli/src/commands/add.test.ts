@@ -502,8 +502,7 @@ capabilities = []
 
 			const configContent = await readFile("omni.toml", "utf-8");
 			expect(configContent).toContain("[mcps.database]");
-			expect(configContent).toContain("[mcps.database.env]");
-			expect(configContent).toContain('DB_URL = "postgres://localhost"');
+			expect(configContent).toContain('env = { DB_URL = "postgres://localhost" }');
 		});
 
 		test("should show error when MCP already exists", async () => {

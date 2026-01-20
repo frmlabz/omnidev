@@ -150,8 +150,7 @@ command = "npx"
 
 			const content = await readFile("omni.toml", "utf-8");
 			expect(content).toContain("[mcps.db-server]");
-			expect(content).toContain("[mcps.db-server.env]");
-			expect(content).toContain('DATABASE_URL = "postgres://localhost"');
+			expect(content).toContain('env = { DATABASE_URL = "postgres://localhost" }');
 		});
 
 		test("preserves comments when adding MCP", async () => {
@@ -270,12 +269,7 @@ value = true
 			writeFileSync(
 				"omni.toml",
 				`# =============================================================================
-# OmniDev Configuration - DO NOT DELETE THIS HEADER
 # =============================================================================
-
-# Environment variables
-[env]
-API_KEY = "secret"
 
 # Capability Sources
 # These are fetched from GitHub
@@ -316,8 +310,6 @@ capabilities = ["tasks", "debug"]
 			expect(content).toContain(
 				"# =============================================================================",
 			);
-			expect(content).toContain("# OmniDev Configuration - DO NOT DELETE THIS HEADER");
-			expect(content).toContain("# Environment variables");
 			expect(content).toContain("# These are fetched from GitHub");
 			expect(content).toContain("# Commented out source below");
 			expect(content).toContain("# old-cap");

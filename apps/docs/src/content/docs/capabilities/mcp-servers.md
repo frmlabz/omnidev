@@ -21,6 +21,7 @@ OmniDev treats MCP servers as capabilities. Define them in `omni.toml`, then ena
 [mcps.filesystem]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+env = { SOMENAME = "SOMEVALUE", SOMEVALUE = "$SOME_ENV_VALUE" }
 ```
 
 Optional fields:
@@ -81,6 +82,5 @@ Use `${VAR}` to reference values from your shell or environment files:
 [mcps.database]
 command = "node"
 args = ["./mcp-server.js"]
-[mcps.database.env]
-DB_URL = "${DATABASE_URL}"
+env = { DB_URL = "${DATABASE_URL}" }
 ```

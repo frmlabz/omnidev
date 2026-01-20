@@ -150,12 +150,10 @@ function formatMcpConfig(name: string, config: McpConfig): string[] {
 		lines.push(`url = "${config.url}"`);
 	}
 
-	// Environment variables
+	// Environment variables (inline table)
 	if (config.env && Object.keys(config.env).length > 0) {
-		lines.push(`[mcps.${name}.env]`);
-		for (const [key, value] of Object.entries(config.env)) {
-			lines.push(`${key} = "${value}"`);
-		}
+		const entries = Object.entries(config.env).map(([key, value]) => `${key} = "${value}"`);
+		lines.push(`env = { ${entries.join(", ")} }`);
 	}
 
 	// Headers

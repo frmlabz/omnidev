@@ -11,9 +11,6 @@ default_profile = "dev"
 enable = ["tasks", "git"]
 disable = ["docker"]
 
-[env]
-API_URL = "https://api.example.com"
-
 [profiles.dev]
 enable = ["debug"]
 disable = []
@@ -29,7 +26,6 @@ disable = ["debug"]
 		expect(config.default_profile).toBe("dev");
 		expect(config.capabilities?.enable).toEqual(["tasks", "git"]);
 		expect(config.capabilities?.disable).toEqual(["docker"]);
-		expect(config.env?.API_URL).toBe("https://api.example.com");
 		expect(config.profiles?.dev?.enable).toEqual(["debug"]);
 		expect(config.profiles?.prod?.disable).toEqual(["debug"]);
 	});
@@ -157,32 +153,6 @@ module = "index.ts"
 		expect(config.exports?.module).toBe("index.ts");
 	});
 
-	test("parses capability with env declarations", () => {
-		const toml = `
-[capability]
-id = "api"
-name = "API Client"
-version = "1.0.0"
-description = "API access"
-
-[env.API_KEY]
-required = true
-secret = true
-
-[env.API_URL]
-required = false
-default = "https://api.example.com"
-		`;
-
-		const config = parseCapabilityConfig(toml);
-
-		expect(config.env?.API_KEY).toEqual({ required: true, secret: true });
-		expect(config.env?.API_URL).toEqual({
-			required: false,
-			default: "https://api.example.com",
-		});
-	});
-
 	test("throws error when capability.id is missing", () => {
 		const toml = `
 [capability]
@@ -236,21 +206,5 @@ id = "test"
 		`;
 
 		expect(() => parseCapabilityConfig(toml)).toThrow(/Invalid capability.toml:/);
-	});
-
-	test("handles empty env declarations", () => {
-		const toml = `
-[capability]
-id = "test"
-name = "Test"
-version = "1.0.0"
-description = "Test"
-
-[env.SIMPLE_VAR]
-		`;
-
-		const config = parseCapabilityConfig(toml);
-
-		expect(config.env?.SIMPLE_VAR).toEqual({});
 	});
 });

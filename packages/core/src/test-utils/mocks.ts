@@ -17,7 +17,6 @@ export interface MockConfig {
 		disable?: string[];
 	};
 	profiles?: Record<string, unknown>;
-	env?: Record<string, string>;
 }
 
 export interface MockSkill {
@@ -64,7 +63,6 @@ export function createMockConfig(overrides: Partial<MockConfig> = {}): MockConfi
 			disable: [],
 		},
 		profiles: {},
-		env: {},
 		...overrides,
 	};
 }

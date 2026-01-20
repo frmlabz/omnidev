@@ -1,5 +1,4 @@
 import { getEnabledCapabilities } from "../config/capabilities";
-import { loadEnvironment } from "../config/env";
 import { mergeHooksConfigs } from "../hooks/merger.js";
 import type { HooksConfig, CapabilityHooks, Doc, LoadedCapability, Rule, Skill } from "../types";
 import { discoverCapabilities, loadCapability } from "./loader";
@@ -27,7 +26,6 @@ export interface CapabilityRegistry {
  * @returns Capability registry with helper functions
  */
 export async function buildCapabilityRegistry(): Promise<CapabilityRegistry> {
-	const env = await loadEnvironment();
 	const enabledIds = await getEnabledCapabilities();
 
 	const capabilityPaths = await discoverCapabilities();
@@ -35,7 +33,7 @@ export async function buildCapabilityRegistry(): Promise<CapabilityRegistry> {
 
 	for (const path of capabilityPaths) {
 		try {
-			const cap = await loadCapability(path, env);
+			const cap = await loadCapability(path);
 
 			// Only add if enabled
 			if (enabledIds.includes(cap.id)) {

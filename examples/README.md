@@ -1,4 +1,4 @@
-# OmniDev Configuration Examples
+# OmniDev Config Examples
 
 This directory contains example `omni.toml` configurations demonstrating different ways to load and organize capabilities.
 

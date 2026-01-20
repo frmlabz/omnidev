@@ -30,8 +30,6 @@ describe("init command", () => {
 		expect(content).toContain("[profiles.coding]");
 		// providers are stored in local state, not config.toml
 		expect(content).not.toContain("[providers]");
-		// should have documentation comments
-		expect(content).toContain("# OmniDev Configuration");
 	});
 
 	test("creates active profile in state file", async () => {

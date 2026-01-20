@@ -23,8 +23,7 @@ command = "node"
 args = ["./servers/database.js"]
 cwd = "./mcp-servers"
 transport = "stdio"
-[mcps.database.env]
-DB_URL = "${DATABASE_URL}"
+env = { DB_URL = "${DATABASE_URL}" }
 
 # ============================================================================
 # OPTION 2: http transport - Remote HTTP server (recommended for remote)

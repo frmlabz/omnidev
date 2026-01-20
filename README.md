@@ -6,6 +6,13 @@ A universal package manager to discover, install, and manage capabilities for AI
 
 Yes, we know. Another standard ([obligatory xkcd](https://xkcd.com/927/)). But hear me out.
 
+---
+
+> ⚠️ **Alpha Notice:**  
+> OmniDev is **alpha software**—breaking changes may occur as we continue rapid development and iterate on features!
+
+---
+
 ## The Problem
 
 [![config sprawl](./docs/img/config-sprawl.png)](./docs/img/config-sprawl.png)
@@ -66,7 +73,7 @@ Integrate Model Context Protocol servers:
 ```bash
 omnidev add mcp filesystem --command npx --args "-y @modelcontextprotocol/server-filesystem /path"
 ```
-
+MCP-only environment variables can be set in `omni.toml` with `env = { KEY = "value" }` under `[mcps.<name>]` or via `omnidev add mcp --env KEY=value`.
 ### Write Once, Use Everywhere
 Define your project instructions in `OMNI.md` and OmniDev generates provider-specific files (`CLAUDE.md`, `AGENTS.md`, etc.) automatically.
 
@@ -87,7 +94,21 @@ Check out the [examples/](examples/) directory for sample configurations:
 
 Explore community capabilities at [omnidev-capabilities](https://github.com/Nikola-Milovic/omnidev-capabilities).
 
-## Contributing
+
+## 🤝 Contributing
+
+We wholeheartedly welcome contributions!  
+With so many providers and configuration permutations, we rely on your feedback and help to ensure everything runs smoothly.
+
+- **Found a bug or issue?**  
+  [Open an issue](https://github.com/Nikola-Milovic/omnidev/issues) to let us know!
+
+- **Want to submit a pull request?**  
+  Awesome! Feel free to submit fixes and improvements.
+
+- **Thinking of adding a new feature?**  
+  **Let's discuss it first!**  
+  Open an issue to propose your idea so we can chat and plan the best approach.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and architecture.
 

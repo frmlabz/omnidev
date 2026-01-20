@@ -175,33 +175,6 @@ functions = ["create", "list", "get"]`,
 		expect(config.exports?.functions).toEqual(["create", "list", "get"]);
 	});
 
-	test("loads capability config with optional env field", async () => {
-		const capPath = join(".omni", "capabilities", "with-env");
-		mkdirSync(capPath, { recursive: true });
-		writeFileSync(
-			join(capPath, "capability.toml"),
-			`[capability]
-id = "with-env"
-name = "With Env"
-version = "1.0.0"
-description = "Has env vars"
-
-[[env]]
-key = "API_KEY"
-description = "API key"
-required = true
-secret = true`,
-		);
-
-		const config = await loadCapabilityConfig(capPath);
-
-		expect(config.capability.id).toBe("with-env");
-		expect(config.env).toBeDefined();
-		expect(config.env?.[0]?.key).toBe("API_KEY");
-		expect(config.env?.[0]?.required).toBe(true);
-		expect(config.env?.[0]?.secret).toBe(true);
-	});
-
 	test("throws error when capability.toml is missing", async () => {
 		const capPath = join(".omni", "capabilities", "missing-config");
 		mkdirSync(capPath, { recursive: true });
@@ -250,18 +223,6 @@ description = "Has all fields"
 
 [exports]
 functions = ["fn1", "fn2"]
-
-[[env]]
-key = "VAR1"
-description = "Variable 1"
-required = true
-secret = false
-
-[[env]]
-key = "VAR2"
-description = "Variable 2"
-required = false
-secret = true
 `,
 		);
 
@@ -269,7 +230,6 @@ secret = true
 
 		expect(config.capability.id).toBe("complete-cap");
 		expect(config.exports?.functions).toEqual(["fn1", "fn2"]);
-		expect(config.env).toHaveLength(2);
 	});
 });
 
@@ -295,7 +255,7 @@ version = "1.0.0"
 description = "A minimal capability"`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.id).toBe("minimal-cap");
 		expect(capability.path).toBe(capPath);
@@ -331,7 +291,7 @@ description: A test skill
 Do something useful`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.skills).toHaveLength(1);
 		expect(capability.skills[0]?.name).toBe("test-skill");
@@ -358,7 +318,7 @@ description = "Has rules"`,
 		writeFileSync(join(rulesPath, "rule-1.md"), "Rule 1 content");
 		writeFileSync(join(rulesPath, "rule-2.md"), "Rule 2 content");
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.rules).toHaveLength(2);
 		expect(capability.rules.find((r) => r.name === "rule-1")).toBeDefined();
@@ -385,7 +345,7 @@ description = "Has docs"`,
 		mkdirSync(docsPath, { recursive: true });
 		writeFileSync(join(docsPath, "guide.md"), "# Guide");
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.docs).toHaveLength(2);
 		expect(capability.docs.find((d) => d.name === "definition")).toBeDefined();
@@ -407,7 +367,7 @@ description = "Has type definitions"`,
 		// Create types.d.ts
 		writeFileSync(join(capPath, "types.d.ts"), "export function doSomething(): void;");
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.typeDefinitions).toBe("export function doSomething(): void;");
 	});
@@ -427,33 +387,10 @@ description = "Has exports"`,
 		// Create index.ts with exports
 		writeFileSync(join(capPath, "index.ts"), 'export function myFunction() { return "hello"; }');
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.exports).toBeDefined();
 		expect(typeof capability.exports.myFunction).toBe("function");
-	});
-
-	test("validates environment variables when config has env requirements", async () => {
-		const capPath = join(".omni", "capabilities", "needs-env");
-		mkdirSync(capPath, { recursive: true });
-		writeFileSync(
-			join(capPath, "capability.toml"),
-			`[capability]
-id = "needs-env"
-name = "Needs Env"
-version = "1.0.0"
-description = "Requires env vars"
-
-[env.API_KEY]
-required = true`,
-		);
-
-		// Should throw when required env var is missing
-		expect(async () => await loadCapability(capPath, {})).toThrow();
-
-		// Should succeed when env var is provided
-		const capability = await loadCapability(capPath, { API_KEY: "test-key" });
-		expect(capability.id).toBe("needs-env");
 	});
 
 	test("programmatic skills take precedence over filesystem", async () => {
@@ -494,7 +431,7 @@ From code\`
 ];`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		// Should have programmatic skills, not filesystem ones
 		expect(capability.skills).toHaveLength(1);
@@ -527,7 +464,7 @@ description = "Has programmatic rules"`,
 ];`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		// Should have programmatic rules, not filesystem ones
 		expect(capability.rules).toHaveLength(1);
@@ -561,7 +498,7 @@ description = "Has programmatic docs"`,
 ];`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		// Should have programmatic docs, not filesystem ones
 		expect(capability.docs).toHaveLength(1);
@@ -590,7 +527,7 @@ description = "Has programmatic type definitions"`,
 			'export const typeDefinitions = "export type Bar = number;";',
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		// Should have programmatic type definitions, not filesystem ones
 		expect(capability.typeDefinitions).toBe("export type Bar = number;");
@@ -612,7 +549,7 @@ description = "Has import errors"`,
 		writeFileSync(join(capPath, "index.ts"), "export const foo = bar; // bar is undefined");
 
 		// Should throw when trying to import
-		expect(async () => await loadCapability(capPath, {})).toThrow();
+		expect(async () => await loadCapability(capPath)).toThrow();
 	});
 
 	test("loads complete capability with all features", async () => {
@@ -656,7 +593,7 @@ Skill instructions`,
 		// Create exports
 		writeFileSync(join(capPath, "index.ts"), "export function helper() { return 42; }");
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.id).toBe("complete");
 		expect(capability.skills).toHaveLength(1);
@@ -678,7 +615,7 @@ version = "1.0.0"
 description = "Has no hooks"`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.id).toBe("no-hooks");
 		expect(capability.hooks).toBeUndefined();
@@ -710,7 +647,7 @@ type = "command"
 command = "echo test"`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.id).toBe("with-hooks");
 		expect(capability.hooks).toBeDefined();
@@ -743,7 +680,7 @@ type = "command"
 command = "\${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		// CLAUDE_PLUGIN_ROOT should be transformed to OMNIDEV_CAPABILITY_ROOT
 		const command = capability.hooks?.config.PreToolUse?.[0]?.hooks[0];
@@ -776,7 +713,7 @@ type = "prompt"
 prompt = "Check completion"`,
 		);
 
-		const capability = await loadCapability(capPath, {});
+		const capability = await loadCapability(capPath);
 
 		expect(capability.hooks?.validation).toBeDefined();
 		expect(capability.hooks?.validation.valid).toBe(true);
