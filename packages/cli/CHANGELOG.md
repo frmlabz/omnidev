@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.10.1
+
+### Patch Changes
+
+- 0e0e4c5: Remove .env support
+  - @omnidev-ai/core@0.10.1
+
 ## 0.10.0
 
 ### Minor Changes
