@@ -264,7 +264,9 @@ Git hooks (via [Lefthook](https://github.com/evilmartians/lefthook)) run checks 
 2. **Make your changes** with tests
 3. **Run checks**: `bun run check`
 4. **Commit** with a descriptive message
-5. **Open a PR** against `main`
+5. **Open a PR** against `main` (direct pushes to `main` are blocked)
+
+We use PR and issue templates to keep reviews and reports consistent.
 
 ### Commit Messages
 
@@ -277,6 +279,12 @@ add file:// protocol support for capability sources
 - Implement parseFilePath() for file:// URLs
 - Add content hash tracking for change detection
 - Update lock file format for file sources
+```
+
+Optional: enable the commit message template locally:
+
+```bash
+git config commit.template .gitmessage
 ```
 
 ## Roadmap

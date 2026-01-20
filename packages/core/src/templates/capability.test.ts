@@ -113,6 +113,7 @@ describe("generateHooksTemplate", () => {
 	test("uses OMNIDEV_ variable prefix", () => {
 		const result = generateHooksTemplate();
 
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: Testing for literal ${} in template output
 		expect(result).toContain("${OMNIDEV_CAPABILITY_ROOT}");
 		expect(result).not.toContain("${CLAUDE_");
 	});
