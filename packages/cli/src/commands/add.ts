@@ -107,11 +107,20 @@ export async function runAddCap(flags: AddCapFlags, name?: string): Promise<void
 		// Infer ID if not provided
 		let capabilityId = name;
 		if (!capabilityId) {
-			const sourceValue = sourceType === "local" ? flags.local : flags.github;
-			if (!sourceValue) {
-				throw new Error("Unreachable: cannot infer capability ID");
+			// If a path is specified for GitHub source, use the last segment of the path
+			if (flags.path && sourceType === "github") {
+				const pathParts = flags.path.split("/").filter(Boolean);
+				capabilityId = pathParts[pathParts.length - 1];
+				if (!capabilityId) {
+					capabilityId = "capability";
+				}
+			} else {
+				const sourceValue = sourceType === "local" ? flags.local : flags.github;
+				if (!sourceValue) {
+					throw new Error("Unreachable: cannot infer capability ID");
+				}
+				capabilityId = await inferCapabilityId(sourceValue, sourceType);
 			}
-			capabilityId = await inferCapabilityId(sourceValue, sourceType);
 			console.log(`  Inferred capability ID: ${capabilityId}`);
 		}
 

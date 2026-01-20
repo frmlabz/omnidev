@@ -288,6 +288,52 @@ capabilities = []
 			expect(output).toContain("Inferred capability ID: skills");
 		});
 
+		test("should infer capability ID from path when --path is provided", async () => {
+			mkdirSync(".omni", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			await runAddCap({ github: "expo/skills", path: "plugins/expo-app-design" });
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain(
+				'expo-app-design = { source = "github:expo/skills", path = "plugins/expo-app-design" }',
+			);
+
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Inferred capability ID: expo-app-design");
+		});
+
+		test("should infer capability ID from single-segment path", async () => {
+			mkdirSync(".omni", { recursive: true });
+			await writeFile(
+				"omni.toml",
+				`[profiles.default]
+capabilities = []
+`,
+				"utf-8",
+			);
+
+			await runAddCap({ github: "user/capabilities-repo", path: "my-cap" });
+
+			expect(exitCode).toBeUndefined();
+
+			const configContent = await readFile("omni.toml", "utf-8");
+			expect(configContent).toContain(
+				'my-cap = { source = "github:user/capabilities-repo", path = "my-cap" }',
+			);
+
+			const output = consoleOutput.join("\n");
+			expect(output).toContain("Inferred capability ID: my-cap");
+		});
+
 		test("should show error when neither --github nor --local is provided", async () => {
 			mkdirSync(".omni", { recursive: true });
 			await writeFile(
