@@ -27,11 +27,11 @@ export interface SyncOptions {
 }
 
 /**
- * Install dependencies for capabilities in .omni/capabilities/
- * Only installs for capabilities that have a package.json
+ * Install dependencies and build TypeScript capabilities in .omni/capabilities/
+ * Only processes capabilities that have a package.json
  */
 export async function installCapabilityDependencies(silent: boolean): Promise<void> {
-	const { existsSync, readdirSync } = await import("node:fs");
+	const { existsSync, readdirSync, readFileSync } = await import("node:fs");
 	const { join } = await import("node:path");
 
 	const capabilitiesDir = ".omni/capabilities";
@@ -100,6 +100,55 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 				reject(error);
 			});
 		});
+
+		// Check if capability needs building (has index.ts but no dist/index.js)
+		const hasIndexTs = existsSync(join(capabilityPath, "index.ts"));
+		const hasBuiltIndex = existsSync(join(capabilityPath, "dist", "index.js"));
+
+		if (hasIndexTs && !hasBuiltIndex) {
+			// Check if package.json has a build script
+			let hasBuildScript = false;
+			try {
+				const pkgJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+				hasBuildScript = Boolean(pkgJson.scripts?.build);
+			} catch {
+				// Ignore parse errors
+			}
+
+			if (hasBuildScript) {
+				if (!silent) {
+					console.log(`Building TypeScript capability ${entry.name}...`);
+				}
+
+				await new Promise<void>((resolve, reject) => {
+					const cmd = hasBun ? "bun" : "npm";
+					const args = ["run", "build"];
+
+					const proc = spawn(cmd, args, {
+						cwd: capabilityPath,
+						stdio: silent ? "ignore" : "inherit",
+					});
+
+					proc.on("close", (code) => {
+						if (code === 0) {
+							resolve();
+						} else {
+							reject(new Error(`Failed to build capability ${capabilityPath}`));
+						}
+					});
+
+					proc.on("error", (error) => {
+						reject(error);
+					});
+				});
+			} else {
+				// Warn user that capability has TypeScript but no build setup
+				console.warn(
+					`Warning: Capability at ${capabilityPath} has index.ts but no build script.\n` +
+						`  Add a "build" script to package.json (e.g., "build": "tsc") to compile TypeScript.`,
+				);
+			}
+		}
 	}
 }
 

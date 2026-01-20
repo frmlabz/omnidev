@@ -71,17 +71,35 @@ export async function loadCapabilityConfig(capabilityPath: string): Promise<Capa
 }
 
 /**
- * Dynamically imports capability exports from index.ts.
- * Returns an empty object if index.ts doesn't exist.
+ * Dynamically imports capability exports.
+ * Checks for built output (dist/index.js) first, then falls back to index.js or index.ts.
+ * Returns an empty object if no entry point exists.
  *
  * @param capabilityPath - Path to the capability directory
  * @returns Exported module or empty object
  * @throws Error if import fails
  */
 async function importCapabilityExports(capabilityPath: string): Promise<Record<string, unknown>> {
-	const indexPath = join(capabilityPath, "index.ts");
+	// Check for entry points in order of preference:
+	// 1. Built output (dist/index.js) - compiled TypeScript
+	// 2. Plain JavaScript (index.js)
+	// 3. TypeScript source (index.ts) - only works with TypeScript-aware runtimes
+	const builtIndexPath = join(capabilityPath, "dist", "index.js");
+	const jsIndexPath = join(capabilityPath, "index.js");
+	const tsIndexPath = join(capabilityPath, "index.ts");
 
-	if (!existsSync(indexPath)) {
+	let indexPath: string | null = null;
+
+	if (existsSync(builtIndexPath)) {
+		indexPath = builtIndexPath;
+	} else if (existsSync(jsIndexPath)) {
+		indexPath = jsIndexPath;
+	} else if (existsSync(tsIndexPath)) {
+		// TypeScript file exists but no built output - this will likely fail with Node.js
+		indexPath = tsIndexPath;
+	}
+
+	if (!indexPath) {
 		return {};
 	}
 
@@ -95,6 +113,16 @@ async function importCapabilityExports(capabilityPath: string): Promise<Record<s
 		if (errorMessage.includes("Cannot find module")) {
 			const match = errorMessage.match(/Cannot find module '([^']+)'/);
 			const missingModule = match ? match[1] : "unknown";
+
+			// Check if this is a TypeScript resolution issue
+			if (indexPath === tsIndexPath && missingModule?.endsWith(".js")) {
+				throw new Error(
+					`Capability at ${capabilityPath} has TypeScript files but no built output.\n` +
+						`Add a "build" script to package.json (e.g., "build": "tsc") and run it to compile TypeScript.\n` +
+						`The build output should be in dist/index.js.`,
+				);
+			}
+
 			throw new Error(
 				`Missing dependency '${missingModule}' for capability at ${capabilityPath}.\n` +
 					`If this is a project-specific capability, install dependencies or remove it from .omni/capabilities/`,
