@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.11.1
+
+### Patch Changes
+
+- e13e0a1: Fix version check
+  - @omnidev-ai/core@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
