@@ -1,5 +1,16 @@
 # @omnidev-ai/adapters
 
+## 0.1.0
+
+### Minor Changes
+
+- 2085dbb: Add [general] section to omni.toml configuration for project, active_profile, and always_enabled_capabilities settings. This prevents TOML parsing issues where root-level keys placed after section headers were incorrectly parsed as belonging to those sections.
+
+### Patch Changes
+
+- Updated dependencies [2085dbb]
+  - @omnidev-ai/core@0.11.0
+
 ## 0.0.14
 
 ### Patch Changes
