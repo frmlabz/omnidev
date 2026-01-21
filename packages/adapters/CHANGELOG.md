@@ -1,5 +1,12 @@
 # @omnidev-ai/adapters
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [dc3510e]
+  - @omnidev-ai/core@0.12.0
+
 ## 0.1.1
 
 ### Patch Changes
