@@ -222,4 +222,87 @@ capabilities = []
 		expect(toml).toContain('id = "tasks"');
 		expect(toml).toContain('name = "Tasks"');
 	});
+
+	test("creates programmatic capability with --programmatic flag", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "capabilities/my-cli", programmatic: true }, "my-cli");
+
+		// Check standard files exist
+		expect(existsSync("capabilities/my-cli")).toBe(true);
+		expect(existsSync("capabilities/my-cli/capability.toml")).toBe(true);
+
+		// Check programmatic files exist
+		expect(existsSync("capabilities/my-cli/package.json")).toBe(true);
+		expect(existsSync("capabilities/my-cli/index.ts")).toBe(true);
+		expect(existsSync("capabilities/my-cli/.gitignore")).toBe(true);
+	});
+
+	test("generates correct package.json for programmatic capability", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "capabilities/api-tool", programmatic: true }, "api-tool");
+
+		const pkg = JSON.parse(readFileSync("capabilities/api-tool/package.json", "utf-8"));
+		expect(pkg.name).toBe("@capability/api-tool");
+		expect(pkg.version).toBe("0.1.0");
+		expect(pkg.type).toBe("module");
+		expect(pkg.main).toBe("dist/index.js");
+		expect(pkg.scripts.build).toContain("esbuild");
+		expect(pkg.dependencies["@omnidev-ai/core"]).toBe("latest");
+		expect(pkg.devDependencies.esbuild).toBeDefined();
+	});
+
+	test("generates correct index.ts for programmatic capability", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "capabilities/my-tool", programmatic: true }, "my-tool");
+
+		const indexTs = readFileSync("capabilities/my-tool/index.ts", "utf-8");
+		expect(indexTs).toContain("CapabilityExport");
+		expect(indexTs).toContain("buildCommand");
+		expect(indexTs).toContain("cliCommands");
+		expect(indexTs).toContain('"my-tool"');
+		expect(indexTs).toContain("My Tool");
+	});
+
+	test("generates .gitignore for programmatic capability", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "capabilities/test-cap", programmatic: true }, "test-cap");
+
+		const gitignore = readFileSync("capabilities/test-cap/.gitignore", "utf-8");
+		expect(gitignore).toContain("dist/");
+		expect(gitignore).toContain("node_modules/");
+	});
+
+	test("does not create programmatic files without --programmatic flag", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew({ path: "capabilities/plain-cap" }, "plain-cap");
+
+		// Standard files should exist
+		expect(existsSync("capabilities/plain-cap/capability.toml")).toBe(true);
+
+		// Programmatic files should NOT exist
+		expect(existsSync("capabilities/plain-cap/package.json")).toBe(false);
+		expect(existsSync("capabilities/plain-cap/index.ts")).toBe(false);
+		expect(existsSync("capabilities/plain-cap/.gitignore")).toBe(false);
+	});
+
+	test("programmatic capability handles kebab-case in variable names", async () => {
+		await setupOmniDevProject();
+
+		await runCapabilityNew(
+			{ path: "capabilities/my-awesome-tool", programmatic: true },
+			"my-awesome-tool",
+		);
+
+		const indexTs = readFileSync("capabilities/my-awesome-tool/index.ts", "utf-8");
+		// Variable names should not contain hyphens
+		expect(indexTs).toContain("myawesometoolCommand");
+		expect(indexTs).toContain("runMyawesometool");
+		// But the CLI command key should preserve kebab-case
+		expect(indexTs).toContain('"my-awesome-tool"');
+	});
 });

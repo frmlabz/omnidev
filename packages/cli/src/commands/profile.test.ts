@@ -255,7 +255,7 @@ capabilities = []
 
 			expect(exitCode).toBeUndefined();
 			const output = consoleOutput.join("\n");
-			expect(output).toContain("Syncing agent configuration");
+			expect(output).toContain("Active profile set to: planning");
 		});
 
 		test("should show list of available profiles when profile not found", async () => {

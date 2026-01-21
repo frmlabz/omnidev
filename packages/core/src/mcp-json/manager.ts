@@ -132,7 +132,6 @@ function buildMcpServerConfig(mcp: McpConfig): McpServerConfig {
 export async function syncMcpJson(
 	capabilities: LoadedCapability[],
 	previousManifest: ResourceManifest,
-	options: { silent?: boolean } = {},
 ): Promise<void> {
 	const mcpJson = await readMcpJson();
 
@@ -150,17 +149,11 @@ export async function syncMcpJson(
 	}
 
 	// Add MCPs from all enabled capabilities
-	let addedCount = 0;
 	for (const cap of capabilities) {
 		if (cap.config.mcp) {
 			mcpJson.mcpServers[cap.id] = buildMcpServerConfig(cap.config.mcp);
-			addedCount++;
 		}
 	}
 
 	await writeMcpJson(mcpJson);
-
-	if (!options.silent) {
-		console.log(`  - .mcp.json (${addedCount} MCP server(s))`);
-	}
 }

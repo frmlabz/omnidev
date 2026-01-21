@@ -46,8 +46,12 @@ export async function buildDynamicApp() {
 	debug("Core routes registered", Object.keys(routes));
 
 	// Only load capability commands if initialized
-	if (existsSync(".omni/config.toml")) {
+	const configPath = join(process.cwd(), "omni.toml");
+	debug("Checking for config", { configPath, exists: existsSync(configPath), cwd: process.cwd() });
+
+	if (existsSync(configPath)) {
 		try {
+			debug("Loading capability commands...");
 			const capabilityCommands = await loadCapabilityCommands();
 			debug("Capability commands loaded", {
 				commands: Object.keys(capabilityCommands),
@@ -107,6 +111,11 @@ async function loadCapabilityCommands(): Promise<Record<string, unknown>> {
 	const registry = await buildCapabilityRegistry();
 	const capabilities = registry.getAllCapabilities();
 
+	debug("Registry built", {
+		capabilityCount: capabilities.length,
+		capabilities: capabilities.map((c) => ({ id: c.id, path: c.path })),
+	});
+
 	const commands: Record<string, unknown> = {};
 
 	for (const capability of capabilities) {
@@ -147,32 +156,61 @@ async function loadCapabilityCommands(): Promise<Record<string, unknown>> {
 
 /**
  * Load the default export from a capability
+ * Checks for built output (dist/index.js) first, then falls back to index.js or index.ts.
  */
 async function loadCapabilityExport(capability: {
 	id: string;
 	path: string;
 }): Promise<CapabilityExport | null> {
 	const capabilityPath = join(process.cwd(), capability.path);
-	const indexPath = join(capabilityPath, "index.ts");
 
-	if (!existsSync(indexPath)) {
-		// Try .js extension
-		const jsIndexPath = join(capabilityPath, "index.js");
-		if (!existsSync(jsIndexPath)) {
-			return null;
-		}
-		// Use .js path
-		const module = await import(jsIndexPath);
-		if (!module.default) {
-			return null;
-		}
-		return module.default as CapabilityExport;
+	// Check for entry points in order of preference:
+	// 1. Built output (dist/index.js) - compiled TypeScript
+	// 2. Plain JavaScript (index.js)
+	// 3. TypeScript source (index.ts) - only works with TypeScript-aware runtimes
+	const builtIndexPath = join(capabilityPath, "dist", "index.js");
+	const jsIndexPath = join(capabilityPath, "index.js");
+	const tsIndexPath = join(capabilityPath, "index.ts");
+
+	debug(`Checking entry points for '${capability.id}'`, {
+		capabilityPath,
+		builtIndexPath,
+		builtExists: existsSync(builtIndexPath),
+		jsIndexPath,
+		jsExists: existsSync(jsIndexPath),
+		tsIndexPath,
+		tsExists: existsSync(tsIndexPath),
+	});
+
+	let indexPath: string | null = null;
+
+	if (existsSync(builtIndexPath)) {
+		indexPath = builtIndexPath;
+	} else if (existsSync(jsIndexPath)) {
+		indexPath = jsIndexPath;
+	} else if (existsSync(tsIndexPath)) {
+		indexPath = tsIndexPath;
 	}
+
+	if (!indexPath) {
+		debug(`No entry point found for '${capability.id}'`);
+		return null;
+	}
+
+	debug(`Using entry point for '${capability.id}'`, { indexPath });
 
 	const module = await import(indexPath);
 
+	debug(`Module loaded for '${capability.id}'`, {
+		hasDefault: !!module.default,
+		moduleKeys: Object.keys(module),
+		defaultType: typeof module.default,
+		defaultKeys: module.default ? Object.keys(module.default) : [],
+	});
+
 	// Get default export (structured capability export)
 	if (!module.default) {
+		debug(`No default export for '${capability.id}'`);
 		return null;
 	}
 

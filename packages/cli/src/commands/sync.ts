@@ -24,9 +24,6 @@ export const syncCommand = buildCommand({
 });
 
 export async function runSync(): Promise<void> {
-	console.log("Syncing OmniDev configuration...");
-	console.log("");
-
 	try {
 		const config = await loadConfig();
 		const activeProfile = (await getActiveProfile()) ?? "default";
@@ -48,22 +45,16 @@ export async function runSync(): Promise<void> {
 			console.log("");
 		}
 
+		// Show profile and providers at the top
+		const providerNames = adapters.map((a) => a.displayName).join(", ") || "none";
+		console.log(`Profile: ${activeProfile} | Providers: ${providerNames}`);
+		console.log("");
+
 		const result = await syncAgentConfiguration({ silent: false, adapters });
 
-		console.log("");
-		console.log("✓ Sync completed successfully!");
-		console.log("");
-		console.log(`Profile: ${activeProfile}`);
-		console.log(`Capabilities: ${result.capabilities.join(", ") || "none"}`);
-		console.log(`Providers: ${adapters.map((a) => a.displayName).join(", ") || "none"}`);
-		console.log("");
-		console.log("Synced components:");
-		console.log("  • Capability registry");
-		console.log("  • Capability sync hooks");
-		console.log("  • .omni/.gitignore");
-		if (adapters.length > 0) {
-			console.log("  • Provider-specific files (instructions embedded)");
-		}
+		// Final summary - just show capability IDs
+		const capList = result.capabilities.join(", ");
+		console.log(`✓ Synced - ${capList}`);
 	} catch (error) {
 		console.error("");
 		console.error("✗ Sync failed:");

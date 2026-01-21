@@ -73,11 +73,7 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 			continue;
 		}
 
-		if (!silent) {
-			console.log(`Installing dependencies for ${capabilityPath}...`);
-		}
-
-		// Prefer Bun if available, otherwise fallback to npm.
+		// Install dependencies silently (only show errors)
 		await new Promise<void>((resolve, reject) => {
 			const useNpmCi = hasNpm && existsSync(join(capabilityPath, "package-lock.json"));
 			const cmd = hasBun ? "bun" : "npm";
@@ -85,14 +81,19 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 
 			const proc = spawn(cmd, args, {
 				cwd: capabilityPath,
-				stdio: silent ? "ignore" : "inherit",
+				stdio: "pipe",
+			});
+
+			let stderr = "";
+			proc.stderr?.on("data", (data) => {
+				stderr += data.toString();
 			});
 
 			proc.on("close", (code) => {
 				if (code === 0) {
 					resolve();
 				} else {
-					reject(new Error(`Failed to install dependencies for ${capabilityPath}`));
+					reject(new Error(`Failed to install dependencies for ${capabilityPath}:\n${stderr}`));
 				}
 			});
 
@@ -116,24 +117,26 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 			}
 
 			if (hasBuildScript) {
-				if (!silent) {
-					console.log(`Building TypeScript capability ${entry.name}...`);
-				}
-
+				// Build silently (only show errors)
 				await new Promise<void>((resolve, reject) => {
 					const cmd = hasBun ? "bun" : "npm";
 					const args = ["run", "build"];
 
 					const proc = spawn(cmd, args, {
 						cwd: capabilityPath,
-						stdio: silent ? "ignore" : "inherit",
+						stdio: "pipe",
+					});
+
+					let stderr = "";
+					proc.stderr?.on("data", (data) => {
+						stderr += data.toString();
 					});
 
 					proc.on("close", (code) => {
 						if (code === 0) {
 							resolve();
 						} else {
-							reject(new Error(`Failed to build capability ${capabilityPath}`));
+							reject(new Error(`Failed to build capability ${capabilityPath}:\n${stderr}`));
 						}
 					});
 
@@ -141,7 +144,7 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 						reject(error);
 					});
 				});
-			} else {
+			} else if (!silent) {
 				// Warn user that capability has TypeScript but no build setup
 				console.warn(
 					`Warning: Capability at ${capabilityPath} has index.ts but no build script.\n` +
@@ -211,10 +214,6 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	const silent = options?.silent ?? false;
 	const adapters = options?.adapters ?? [];
 
-	if (!silent) {
-		console.log("Syncing agent configuration...");
-	}
-
 	const { bundle } = await buildSyncBundle({ silent });
 	const capabilities = bundle.capabilities;
 
@@ -222,24 +221,7 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	const previousManifest = await loadManifest();
 	const currentCapabilityIds = new Set(capabilities.map((c) => c.id));
 
-	const cleanupResult = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-	if (
-		!silent &&
-		(cleanupResult.deletedSkills.length > 0 || cleanupResult.deletedRules.length > 0)
-	) {
-		console.log("Cleaned up stale resources:");
-		if (cleanupResult.deletedSkills.length > 0) {
-			console.log(
-				`  - Removed ${cleanupResult.deletedSkills.length} skill(s): ${cleanupResult.deletedSkills.join(", ")}`,
-			);
-		}
-		if (cleanupResult.deletedRules.length > 0) {
-			console.log(
-				`  - Removed ${cleanupResult.deletedRules.length} rule(s): ${cleanupResult.deletedRules.join(", ")}`,
-			);
-		}
-	}
+	await cleanupStaleResources(previousManifest, currentCapabilityIds);
 
 	// Call sync hooks for capabilities that have them
 	for (const capability of capabilities) {
@@ -272,7 +254,7 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	mkdirSync(".omni", { recursive: true });
 
 	// Sync .mcp.json with capability MCP servers (before saving manifest)
-	await syncMcpJson(capabilities, previousManifest, { silent });
+	await syncMcpJson(capabilities, previousManifest);
 
 	// Save updated manifest for future cleanup
 	const newManifest = buildManifestFromCapabilities(capabilities);
@@ -288,21 +270,10 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 
 		for (const adapter of adapters) {
 			try {
-				const result = await adapter.sync(bundle, ctx);
-				if (!silent && result.filesWritten.length > 0) {
-					console.log(`  - ${adapter.displayName}: ${result.filesWritten.length} files`);
-				}
+				await adapter.sync(bundle, ctx);
 			} catch (error) {
 				console.error(`Error running ${adapter.displayName} adapter:`, error);
 			}
-		}
-	}
-
-	if (!silent) {
-		console.log("✓ Synced:");
-		console.log(`  - ${bundle.docs.length} docs, ${bundle.rules.length} rules`);
-		if (adapters.length > 0) {
-			console.log(`  - Provider adapters: ${adapters.map((a) => a.displayName).join(", ")}`);
 		}
 	}
 

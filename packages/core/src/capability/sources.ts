@@ -728,15 +728,9 @@ async function fetchGitCapabilitySource(
 
 		// Check if already cloned to temp
 		if (existsSync(join(tempPath, ".git"))) {
-			if (!options?.silent) {
-				console.log(`  Checking ${id}...`);
-			}
 			updated = await fetchRepo(tempPath, config.ref);
 			commit = await getRepoCommit(tempPath);
 		} else {
-			if (!options?.silent) {
-				console.log(`  Cloning ${id} from ${config.source}...`);
-			}
 			await mkdir(join(tempPath, ".."), { recursive: true });
 			await cloneRepo(gitUrl, tempPath, config.ref);
 			commit = await getRepoCommit(tempPath);
@@ -1079,10 +1073,6 @@ export async function fetchAllCapabilitySources(
 		return [];
 	}
 
-	if (!options?.silent) {
-		console.log("Fetching capability sources...");
-	}
-
 	const results: FetchResult[] = [];
 	const lockFile = await loadLockFile();
 	let lockUpdated = false;
@@ -1118,11 +1108,6 @@ export async function fetchAllCapabilitySources(
 			if (hasChanged) {
 				lockFile.capabilities[id] = lockEntry;
 				lockUpdated = true;
-
-				if (!options?.silent && result.updated) {
-					const oldVersion = existing?.version || "new";
-					console.log(`  ${result.wrapped ? "+" : "~"} ${id}: ${oldVersion} -> ${result.version}`);
-				}
 			}
 		} catch (error) {
 			console.error(`  Failed to fetch ${id}: ${error}`);
@@ -1132,15 +1117,6 @@ export async function fetchAllCapabilitySources(
 	// Save lock file if changed
 	if (lockUpdated) {
 		await saveLockFile(lockFile);
-	}
-
-	if (!options?.silent && results.length > 0) {
-		const updated = results.filter((r) => r.updated).length;
-		if (updated > 0) {
-			console.log(`  Updated ${updated} capability source(s)`);
-		} else {
-			console.log(`  All ${results.length} source(s) up to date`);
-		}
 	}
 
 	return results;

@@ -137,7 +137,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).toHaveProperty("context7");
@@ -153,7 +153,7 @@ describe("mcp-json manager", () => {
 					createMockCapability("context7", { command: "npx", args: ["context7-mcp"] }),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).not.toHaveProperty("tasks");
@@ -169,7 +169,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["my-cap"] as McpServerStdioConfig;
@@ -204,7 +204,7 @@ describe("mcp-json manager", () => {
 					createMockCapability("context7", { command: "npx", args: ["context7-mcp"] }),
 				];
 
-				await syncMcpJson(capabilities, previousManifest, { silent: true });
+				await syncMcpJson(capabilities, previousManifest);
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).not.toHaveProperty("oldcap"); // Removed (was managed)
@@ -226,7 +226,7 @@ describe("mcp-json manager", () => {
 					createMockCapability("context7", { command: "npx", args: ["context7-mcp"] }),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).toHaveProperty("myserver");
@@ -239,7 +239,7 @@ describe("mcp-json manager", () => {
 					createMockCapability("ralph"), // No MCP
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).not.toHaveProperty("tasks");
@@ -251,7 +251,7 @@ describe("mcp-json manager", () => {
 			test("enabling MCP capability adds its entry", async () => {
 				// Start with no MCP capabilities
 				let manifest = createEmptyManifest();
-				await syncMcpJson([createMockCapability("tasks")], manifest, { silent: true });
+				await syncMcpJson([createMockCapability("tasks")], manifest);
 
 				let config = await readMcpJson();
 				expect(Object.keys(config.mcpServers)).toHaveLength(0);
@@ -297,7 +297,7 @@ describe("mcp-json manager", () => {
 						context7: { skills: [], rules: [], commands: [], subagents: [], mcps: ["context7"] },
 					},
 				};
-				await syncMcpJson([createMockCapability("tasks")], manifest, { silent: true });
+				await syncMcpJson([createMockCapability("tasks")], manifest);
 
 				config = await readMcpJson();
 				expect(config.mcpServers).not.toHaveProperty("context7");
@@ -312,7 +312,7 @@ describe("mcp-json manager", () => {
 					createMockCapability("tasks"), // No MCP
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				expect(config.mcpServers).toHaveProperty("context7");
@@ -331,7 +331,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["filesystem"] as McpServerStdioConfig;
@@ -352,7 +352,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["local-server"] as McpServerStdioConfig;
@@ -369,7 +369,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["notion"] as McpServerHttpConfig;
@@ -390,7 +390,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["secure-api"] as McpServerHttpConfig;
@@ -410,7 +410,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["asana"] as McpServerSseConfig;
@@ -430,7 +430,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 				const serverConfig = config.mcpServers["private-sse"] as McpServerSseConfig;
@@ -459,7 +459,7 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await syncMcpJson(capabilities, createEmptyManifest(), { silent: true });
+				await syncMcpJson(capabilities, createEmptyManifest());
 
 				const config = await readMcpJson();
 
@@ -488,9 +488,9 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await expect(
-					syncMcpJson(capabilities, createEmptyManifest(), { silent: true }),
-				).rejects.toThrow("HTTP transport requires a URL");
+				await expect(syncMcpJson(capabilities, createEmptyManifest())).rejects.toThrow(
+					"HTTP transport requires a URL",
+				);
 			});
 
 			test("throws error for sse transport without url", async () => {
@@ -501,9 +501,9 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await expect(
-					syncMcpJson(capabilities, createEmptyManifest(), { silent: true }),
-				).rejects.toThrow("SSE transport requires a URL");
+				await expect(syncMcpJson(capabilities, createEmptyManifest())).rejects.toThrow(
+					"SSE transport requires a URL",
+				);
 			});
 
 			test("throws error for stdio transport without command", async () => {
@@ -514,9 +514,9 @@ describe("mcp-json manager", () => {
 					}),
 				];
 
-				await expect(
-					syncMcpJson(capabilities, createEmptyManifest(), { silent: true }),
-				).rejects.toThrow("stdio transport requires a command");
+				await expect(syncMcpJson(capabilities, createEmptyManifest())).rejects.toThrow(
+					"stdio transport requires a command",
+				);
 			});
 		});
 	});

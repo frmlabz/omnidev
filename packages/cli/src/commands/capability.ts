@@ -127,10 +127,81 @@ function toTitleCase(kebabCase: string): string {
 }
 
 /**
+ * Generate package.json for programmatic capability.
+ */
+function generatePackageJson(id: string): string {
+	const pkg = {
+		name: `@capability/${id}`,
+		version: "0.1.0",
+		type: "module",
+		main: "dist/index.js",
+		scripts: {
+			build: "esbuild index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
+			clean: "rm -rf dist",
+		},
+		dependencies: {
+			"@omnidev-ai/core": "latest",
+		},
+		devDependencies: {
+			esbuild: "^0.20.0",
+		},
+	};
+	return JSON.stringify(pkg, null, "\t");
+}
+
+/**
+ * Generate index.ts for programmatic capability.
+ */
+function generateIndexTs(id: string, name: string): string {
+	return `/**
+ * ${name} Capability
+ *
+ * A programmatic capability with CLI commands.
+ */
+
+import type { CapabilityExport } from "@omnidev-ai/core";
+import { buildCommand } from "@stricli/core";
+
+// Example command implementation
+async function run${id.replace(/-/g, "").replace(/^./, (c) => c.toUpperCase())}(): Promise<void> {
+	console.log("Hello from ${name}!");
+	console.log("");
+	console.log("This is a programmatic capability.");
+	console.log("Edit index.ts to customize this command.");
+}
+
+// Build the main command
+const ${id.replace(/-/g, "")}Command = buildCommand({
+	docs: {
+		brief: "${name} command",
+	},
+	parameters: {},
+	func: run${id.replace(/-/g, "").replace(/^./, (c) => c.toUpperCase())},
+});
+
+// Default export: Structured capability export
+export default {
+	cliCommands: {
+		"${id}": ${id.replace(/-/g, "")}Command,
+	},
+} satisfies CapabilityExport;
+`;
+}
+
+/**
+ * Generate .gitignore for programmatic capability.
+ */
+function generateGitignore(): string {
+	return `dist/
+node_modules/
+`;
+}
+
+/**
  * Run the capability new command to bootstrap a new capability.
  */
 export async function runCapabilityNew(
-	flags: { path?: string },
+	flags: { path?: string; programmatic?: boolean },
 	capabilityId: string,
 ): Promise<void> {
 	try {
@@ -204,6 +275,13 @@ export async function runCapabilityNew(
 		await writeFile(join(hooksDir, "hooks.toml"), generateHooksTemplate(), "utf-8");
 		await writeFile(join(hooksDir, "example-hook.sh"), generateHookScript(), "utf-8");
 
+		// Create programmatic files if --programmatic flag is set
+		if (flags.programmatic) {
+			await writeFile(join(capabilityDir, "package.json"), generatePackageJson(id), "utf-8");
+			await writeFile(join(capabilityDir, "index.ts"), generateIndexTs(id, name), "utf-8");
+			await writeFile(join(capabilityDir, ".gitignore"), generateGitignore(), "utf-8");
+		}
+
 		console.log(`✓ Created capability: ${name}`);
 		console.log(`  Location: ${capabilityDir}`);
 		console.log("");
@@ -213,10 +291,27 @@ export async function runCapabilityNew(
 		console.log("    - rules/coding-standards.md");
 		console.log("    - hooks/hooks.toml");
 		console.log("    - hooks/example-hook.sh");
+		if (flags.programmatic) {
+			console.log("    - package.json");
+			console.log("    - index.ts");
+			console.log("    - .gitignore");
+		}
 		console.log("");
-		console.log("💡 To add this capability as a local source, run:");
-		console.log(`   omnidev add cap --local ./${capabilityDir}`);
+		if (flags.programmatic) {
+			console.log("💡 To build and use this capability:");
+			console.log(`   cd ${capabilityDir}`);
+			console.log("   npm install && npm run build");
+			console.log(`   cd -`);
+			console.log(`   omnidev add cap --local ./${capabilityDir}`);
+		} else {
+			console.log("💡 To add this capability as a local source, run:");
+			console.log(`   omnidev add cap --local ./${capabilityDir}`);
+		}
 	} catch (error) {
+		// Handle user cancellation (Ctrl+C) gracefully
+		if (error instanceof Error && error.name === "ExitPromptError") {
+			process.exit(0);
+		}
 		console.error("Error creating capability:", error);
 		process.exit(1);
 	}
@@ -229,9 +324,12 @@ const newCommand = buildCommand({
 
 By default, creates the capability at capabilities/<id>. You can specify a custom path using the --path flag or interactively.
 
+Use --programmatic to create a TypeScript capability with CLI commands, package.json, and esbuild setup.
+
 Examples:
-  omnidev capability new my-cap                    # Prompts for path, defaults to capabilities/my-cap
-  omnidev capability new my-cap --path ./caps/my   # Uses ./caps/my directly`,
+  omnidev capability new my-cap                         # Prompts for path, defaults to capabilities/my-cap
+  omnidev capability new my-cap --path ./caps/my        # Uses ./caps/my directly
+  omnidev capability new my-cap --programmatic          # Creates with TypeScript + CLI support`,
 	},
 	parameters: {
 		flags: {
@@ -239,6 +337,11 @@ Examples:
 				kind: "parsed" as const,
 				brief: "Output path for the capability (skips interactive prompt)",
 				parse: String,
+				optional: true,
+			},
+			programmatic: {
+				kind: "boolean" as const,
+				brief: "Create a TypeScript capability with CLI commands and esbuild setup",
 				optional: true,
 			},
 		},
