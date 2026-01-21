@@ -10,6 +10,7 @@ import { doctorCommand } from "../commands/doctor";
 import { initCommand } from "../commands/init";
 import { profileRoutes } from "../commands/profile";
 import { providerRoutes } from "../commands/provider";
+import { securityRoutes } from "../commands/security";
 import { syncCommand } from "../commands/sync";
 import { debug } from "@omnidev-ai/core";
 
@@ -41,6 +42,7 @@ export async function buildDynamicApp() {
 		capability: capabilityRoutes,
 		profile: profileRoutes,
 		provider: providerRoutes,
+		security: securityRoutes,
 	};
 
 	debug("Core routes registered", Object.keys(routes));
