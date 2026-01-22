@@ -35,8 +35,7 @@ export async function runCapabilityList(flags: { verbose?: boolean } = {}): Prom
 		if (capabilityPaths.length === 0) {
 			console.log("No capabilities found.");
 			console.log("");
-			console.log("To add capabilities, create directories in omni/capabilities/");
-			console.log("Each capability must have a capability.toml file.");
+			console.log("To add capabilities, use the 'omnidev add cap' command.");
 			return;
 		}
 

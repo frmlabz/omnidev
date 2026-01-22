@@ -46,9 +46,7 @@ capabilities = []
 		console.log = originalLog;
 
 		expect(consoleLogs.some((log) => log.includes("No capabilities found"))).toBe(true);
-		expect(
-			consoleLogs.some((log) => log.includes("create directories in omni/capabilities/")),
-		).toBe(true);
+		expect(consoleLogs.some((log) => log.includes("omnidev add cap"))).toBe(true);
 	});
 
 	test("lists all discovered capabilities with enabled status", async () => {

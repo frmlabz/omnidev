@@ -16,9 +16,10 @@
 		}
 	},
 	"bin": {
-		"capability": "./dist/cli/index.js"
+		"capability": "./bin/capability.js"
 	},
 	"files": [
+		"bin",
 		"dist",
 		"src",
 		"!src/**/*.test.ts",
