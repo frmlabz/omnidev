@@ -11,5 +11,8 @@
 // Export builder functions
 export { command, routes } from "./builders.js";
 
+// Export debug utility
+export { debug } from "./debug.js";
+
 // Export all types
 export * from "./types/index.js";
