@@ -4,11 +4,6 @@
 	"private": true,
 	"type": "module",
 	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/frmlabz/omnidev.git",
-		"directory": "packages/core"
-	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -22,13 +17,9 @@
 		}
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit",
-		"build": "bunup"
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"smol-toml": "^1.6.0"
-	},
-	"devDependencies": {
-		"bunup": "^0.16.20"
 	}
 }

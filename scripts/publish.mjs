@@ -133,7 +133,7 @@ for (const pkgDir of PACKAGES) {
 	rmSync(extractDir, { recursive: true, force: true });
 
 	if (!CHECK_ONLY) {
-		exec(`npm publish ${tarball} --access public --provenance`, { cwd: pkgDir });
+		exec(`npm publish ${tarball} --access public`, { cwd: pkgDir });
 	}
 
 	rmSync(tarballPath);

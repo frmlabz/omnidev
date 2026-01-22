@@ -9,6 +9,4 @@ export default defineConfig({
 	external: ["smol-toml", /^node:/],
 	// Generate declaration files for TypeScript users
 	dts: true,
-	// Add node shebang for CLI entry (for npx @omnidev-ai/capability)
-	banner: "#!/usr/bin/env node",
 });

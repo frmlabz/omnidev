@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.13.1
+
+### Patch Changes
+
+- 0da8558: Redeploy
+  - @omnidev-ai/capability@0.13.1
+
 ## 0.13.0
 
 ### Minor Changes
