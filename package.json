@@ -19,7 +19,7 @@
 		"test:watch": "bun test --watch ./packages ./examples",
 		"test:integration": "bash tests/integration/run.sh dev",
 		"test:all": "bun run test:coverage && bun run test:integration",
-		"build": "bun run --filter '*' build",
+		"build": "bun run --filter '@omnidev-ai/{core,capability,adapters}' build && bun run --filter '@omnidev-ai/cli' build && bun run --filter '@omnidev-ai/docs' build",
 		"clean": "rm -rf packages/*/dist",
 		"prepare": "lefthook install",
 		"changeset": "changeset",

@@ -5,16 +5,8 @@
 	"type": "module",
 	"license": "MIT",
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"bun": "./src/index.ts",
-			"default": "./dist/index.js"
-		},
-		"./test-utils": {
-			"types": "./dist/test-utils/index.d.ts",
-			"bun": "./src/test-utils/index.ts",
-			"default": "./dist/test-utils/index.js"
-		}
+		".": "./src/index.ts",
+		"./test-utils": "./src/test-utils/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit"
