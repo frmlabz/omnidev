@@ -18,11 +18,11 @@ info "Running init with claude-code provider..."
 run_omnidev init claude-code
 
 info "Adding capability via CLI..."
-run_omnidev add cap standard --github Nikola-Milovic/omnidev --path examples/fixtures/standard
+run_omnidev add cap standard --github frmlabz/omnidev --path examples/fixtures/standard
 
 info "Validating omni.toml contains capability source..."
 assert_file_contains "omni.toml" "standard"
-assert_file_contains "omni.toml" "Nikola-Milovic/omnidev"
+assert_file_contains "omni.toml" "frmlabz/omnidev"
 
 info "Validating .omni/ structure..."
 assert_omni_structure

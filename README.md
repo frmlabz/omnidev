@@ -92,7 +92,7 @@ Check out the [examples/](examples/) directory for sample configurations:
 - [profiles.toml](examples/profiles.toml) — Multiple profiles for different contexts
 - [mcp.toml](examples/mcp.toml) — MCP server integration
 
-Explore community capabilities at [omnidev-capabilities](https://github.com/Nikola-Milovic/omnidev-capabilities).
+Explore community capabilities at [omnidev-capabilities](https://github.com/frmlabz/omnidev-capabilities).
 
 
 ## 🤝 Contributing
@@ -101,7 +101,7 @@ We wholeheartedly welcome contributions!
 With so many providers and configuration permutations, we rely on your feedback and help to ensure everything runs smoothly.
 
 - **Found a bug or issue?**  
-  [Open an issue](https://github.com/Nikola-Milovic/omnidev/issues) to let us know!
+  [Open an issue](https://github.com/frmlabz/omnidev/issues) to let us know!
 
 - **Want to submit a pull request?**  
   Awesome! Feel free to submit fixes and improvements.

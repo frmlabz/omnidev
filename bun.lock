@@ -33,7 +33,7 @@
     },
     "packages/adapters": {
       "name": "@omnidev-ai/adapters",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@omnidev-ai/core": "workspace:*",
       },
@@ -41,14 +41,28 @@
         "@types/bun": "^1.1.17",
       },
     },
+    "packages/capability": {
+      "name": "@omnidev-ai/capability",
+      "version": "0.12.0",
+      "bin": {
+        "capability": "./dist/cli/index.js",
+      },
+      "dependencies": {
+        "smol-toml": "^1.6.0",
+      },
+      "devDependencies": {
+        "bunup": "^0.16.20",
+      },
+    },
     "packages/cli": {
       "name": "@omnidev-ai/cli",
-      "version": "0.11.1",
+      "version": "0.12.0",
       "bin": {
         "omnidev": "./dist/index.js",
       },
       "dependencies": {
         "@inquirer/prompts": "^8.1.0",
+        "@omnidev-ai/capability": "workspace:*",
         "@omnidev-ai/core": "workspace:*",
         "@stricli/core": "^1.2.5",
       },
@@ -59,9 +73,8 @@
     },
     "packages/core": {
       "name": "@omnidev-ai/core",
-      "version": "0.11.1",
+      "version": "0.12.0",
       "dependencies": {
-        "@stricli/core": "^1.2.5",
         "smol-toml": "^1.6.0",
       },
       "devDependencies": {
@@ -379,6 +392,8 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@omnidev-ai/adapters": ["@omnidev-ai/adapters@workspace:packages/adapters"],
+
+    "@omnidev-ai/capability": ["@omnidev-ai/capability@workspace:packages/capability"],
 
     "@omnidev-ai/cli": ["@omnidev-ai/cli@workspace:packages/cli"],
 

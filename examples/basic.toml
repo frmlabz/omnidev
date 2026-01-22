@@ -2,7 +2,7 @@
 # Minimal setup with a single capability
 
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
 
 [profiles.default]
 capabilities = ["standard"]

@@ -344,7 +344,7 @@ EOF
 create_standard_fixture_toml() {
   cat > omni.toml << 'EOF'
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
 
 [profiles.default]
 capabilities = ["standard"]
@@ -356,8 +356,8 @@ EOF
 create_multi_profile_toml() {
   cat > omni.toml << 'EOF'
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
-claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/claude-plugin" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
+claude-plugin = { source = "github:frmlabz/omnidev", path = "examples/fixtures/claude-plugin" }
 
 [profiles.default]
 capabilities = ["standard"]

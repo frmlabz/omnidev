@@ -85,9 +85,7 @@ export default defineConfig({
 					},
 				},
 			],
-			social: [
-				{ icon: "github", label: "GitHub", href: "https://github.com/Nikola-Milovic/omnidev" },
-			],
+			social: [{ icon: "github", label: "GitHub", href: "https://github.com/frmlabz/omnidev" }],
 			sidebar: [
 				{
 					label: "Getting Started",

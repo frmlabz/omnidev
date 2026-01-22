@@ -20,6 +20,7 @@ import {
 	loadBaseConfig,
 } from "@omnidev-ai/core";
 import { buildCommand, buildRouteMap } from "@stricli/core";
+// Note: buildCommand and buildRouteMap are still used for the CLI commands in this file
 import { isValidCapabilityId } from "../prompts/capability.js";
 
 /**
@@ -196,14 +197,11 @@ function generatePackageJson(id: string): string {
 		type: "module",
 		main: "dist/index.js",
 		scripts: {
-			build: "esbuild index.ts --bundle --platform=node --format=esm --outfile=dist/index.js",
-			clean: "rm -rf dist",
+			build: "npx @omnidev-ai/capability build",
+			watch: "npx @omnidev-ai/capability build --watch",
 		},
 		dependencies: {
-			"@omnidev-ai/core": "latest",
-		},
-		devDependencies: {
-			esbuild: "^0.20.0",
+			"@omnidev-ai/capability": "latest",
 		},
 	};
 	return JSON.stringify(pkg, null, "\t");
@@ -213,36 +211,49 @@ function generatePackageJson(id: string): string {
  * Generate index.ts for programmatic capability.
  */
 function generateIndexTs(id: string, name: string): string {
+	const funcName = `run${id.replace(/-/g, "").replace(/^./, (c) => c.toUpperCase())}`;
+	const varName = `${id.replace(/-/g, "")}Command`;
+
 	return `/**
  * ${name} Capability
  *
  * A programmatic capability with CLI commands.
  */
 
-import type { CapabilityExport } from "@omnidev-ai/core";
-import { buildCommand } from "@stricli/core";
+import { command, type CapabilityExport } from "@omnidev-ai/capability";
 
 // Example command implementation
-async function run${id.replace(/-/g, "").replace(/^./, (c) => c.toUpperCase())}(): Promise<void> {
+async function ${funcName}(flags: { verbose?: boolean }): Promise<void> {
 	console.log("Hello from ${name}!");
 	console.log("");
 	console.log("This is a programmatic capability.");
 	console.log("Edit index.ts to customize this command.");
+
+	if (flags.verbose) {
+		console.log("");
+		console.log("Verbose mode enabled.");
+	}
 }
 
 // Build the main command
-const ${id.replace(/-/g, "")}Command = buildCommand({
-	docs: {
-		brief: "${name} command",
+const ${varName} = command({
+	brief: "${name} command",
+	parameters: {
+		flags: {
+			verbose: {
+				brief: "Show verbose output",
+				kind: "boolean",
+				optional: true,
+			},
+		},
 	},
-	parameters: {},
-	func: run${id.replace(/-/g, "").replace(/^./, (c) => c.toUpperCase())},
+	func: ${funcName},
 });
 
 // Default export: Structured capability export
 export default {
 	cliCommands: {
-		"${id}": ${id.replace(/-/g, "")}Command,
+		"${id}": ${varName},
 	},
 } satisfies CapabilityExport;
 `;

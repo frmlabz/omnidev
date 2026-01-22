@@ -248,9 +248,8 @@ capabilities = []
 		expect(pkg.version).toBe("0.1.0");
 		expect(pkg.type).toBe("module");
 		expect(pkg.main).toBe("dist/index.js");
-		expect(pkg.scripts.build).toContain("esbuild");
-		expect(pkg.dependencies["@omnidev-ai/core"]).toBe("latest");
-		expect(pkg.devDependencies.esbuild).toBeDefined();
+		expect(pkg.scripts.build).toContain("@omnidev-ai/capability");
+		expect(pkg.dependencies["@omnidev-ai/capability"]).toBe("latest");
 	});
 
 	test("generates correct index.ts for programmatic capability", async () => {
@@ -260,7 +259,8 @@ capabilities = []
 
 		const indexTs = readFileSync("capabilities/my-tool/index.ts", "utf-8");
 		expect(indexTs).toContain("CapabilityExport");
-		expect(indexTs).toContain("buildCommand");
+		expect(indexTs).toContain("command");
+		expect(indexTs).toContain("@omnidev-ai/capability");
 		expect(indexTs).toContain("cliCommands");
 		expect(indexTs).toContain('"my-tool"');
 		expect(indexTs).toContain("My Tool");

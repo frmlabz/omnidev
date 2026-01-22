@@ -9,7 +9,7 @@ import { runSync } from "../packages/cli/src/commands/sync.js";
 /**
  * Integration tests that validate each example configuration file works.
  *
- * These tests pull capabilities from the REAL GitHub repository (github:Nikola-Milovic/omnidev).
+ * These tests pull capabilities from the REAL GitHub repository (github:frmlabz/omnidev).
  * This ensures examples are 1:1 copies of what users will experience.
  *
  * NOTE: Tests will fail if:
@@ -194,7 +194,7 @@ describe("fixture markers validation", () => {
 		async () => {
 			const config = `
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
 
 [profiles.default]
 capabilities = ["standard"]
@@ -225,7 +225,7 @@ capabilities = ["standard"]
 		async () => {
 			const config = `
 [capabilities.sources]
-claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/claude-plugin" }
+claude-plugin = { source = "github:frmlabz/omnidev", path = "examples/fixtures/claude-plugin" }
 
 [profiles.default]
 capabilities = ["claude-plugin"]
@@ -252,7 +252,7 @@ capabilities = ["claude-plugin"]
 		async () => {
 			const config = `
 [capabilities.sources]
-bare-skills = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/bare-skills" }
+bare-skills = { source = "github:frmlabz/omnidev", path = "examples/fixtures/bare-skills" }
 
 [profiles.default]
 capabilities = ["bare-skills"]
@@ -280,7 +280,7 @@ describe("provider adapters", () => {
 
 	const standardConfig = `
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
 
 [profiles.default]
 capabilities = ["standard"]

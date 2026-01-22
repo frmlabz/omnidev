@@ -4,8 +4,8 @@
 [capabilities.sources]
 # Active fixtures from this repository
 # Using path parameter to load from monorepo subdirectory
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
-claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/claude-plugin" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
+claude-plugin = { source = "github:frmlabz/omnidev", path = "examples/fixtures/claude-plugin" }
 
 # Example: Version pinning with ref parameter (commented - replace with real repos)
 # Recommended: Pin to a specific version tag

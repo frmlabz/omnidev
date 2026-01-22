@@ -6,7 +6,7 @@
 	"private": true,
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Nikola-Milovic/omnidev.git",
+		"url": "https://github.com/frmlabz/omnidev.git",
 		"directory": "apps/docs"
 	},
 	"scripts": {

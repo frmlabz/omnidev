@@ -3,11 +3,10 @@
  *
  * This package contains shared types, utilities, and core logic
  * used across the CLI and capability tooling packages.
+ *
+ * NOTE: For capability development, use @omnidev-ai/capability instead.
+ * It provides command(), routes(), and CapabilityExport types.
  */
-
-// Re-export @stricli/core for capabilities to use
-// This ensures all capabilities use the same @stricli/core instance as the CLI
-export { buildCommand, buildRouteMap } from "@stricli/core";
 
 export const version = "0.1.0";
 

@@ -3,8 +3,8 @@
 
 [capabilities.sources]
 # Active fixtures from this repository
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
-bare-skills = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/bare-skills" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
+bare-skills = { source = "github:frmlabz/omnidev", path = "examples/fixtures/bare-skills" }
 
 # Example: External capabilities (commented - replace with real repos)
 # ralph = { source = "github:your-org/ralph-orchestrator", version = "v1.0.0" }

@@ -13,6 +13,7 @@ import { providerRoutes } from "../commands/provider";
 import { securityRoutes } from "../commands/security";
 import { syncCommand } from "../commands/sync";
 import { debug } from "@omnidev-ai/core";
+import { transformCapabilityCommands } from "./command-transformer";
 
 const require = createRequire(import.meta.url);
 
@@ -133,7 +134,10 @@ async function loadCapabilityCommands(): Promise<Record<string, unknown>> {
 
 			// Extract CLI commands from structured export
 			if (capabilityExport?.cliCommands) {
-				for (const [commandName, command] of Object.entries(capabilityExport.cliCommands)) {
+				// Transform OmniDev commands to Stricli commands
+				const transformedCommands = transformCapabilityCommands(capabilityExport.cliCommands);
+
+				for (const [commandName, command] of Object.entries(transformedCommands)) {
 					if (commands[commandName]) {
 						console.warn(
 							`Command '${commandName}' from capability '${capability.id}' conflicts with existing command. Using '${capability.id}' version.`,

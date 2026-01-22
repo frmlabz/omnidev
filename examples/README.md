@@ -2,7 +2,7 @@
 
 This directory contains example `omni.toml` configurations demonstrating different ways to load and organize capabilities.
 
-> **CI Tested**: All examples pull from real GitHub sources (`github:Nikola-Milovic/omnidev`) and are validated by `examples.test.ts` on every push/PR.
+> **CI Tested**: All examples pull from real GitHub sources (`github:frmlabz/omnidev`) and are validated by `examples.test.ts` on every push/PR.
 
 ## Example Files
 

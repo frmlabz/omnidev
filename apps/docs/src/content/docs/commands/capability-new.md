@@ -29,7 +29,7 @@ Or interactively choose the path when prompted.
 
 ### `--programmatic`
 
-Create a TypeScript capability with CLI commands and esbuild setup:
+Create a TypeScript capability with CLI commands:
 
 ```bash
 omnidev capability new my-cap --programmatic
@@ -37,7 +37,7 @@ omnidev capability new my-cap --programmatic
 
 This adds the following files for building a programmatic capability:
 
-- `package.json` - Node.js package with esbuild build script
+- `package.json` - Node.js package with build script
 - `index.ts` - TypeScript entry point with CLI command template
 - `.gitignore` - Ignores `dist/` and `node_modules/`
 
@@ -170,6 +170,22 @@ Output:
    omnidev sync
    omnidev my-cli  # Run your new command!
    ```
+
+## Standalone CLI
+
+You can also use the `@omnidev-ai/capability` package directly to create capabilities anywhere (not just in OmniDev projects):
+
+```bash
+npx @omnidev-ai/capability new my-cap --programmatic
+```
+
+And build them with:
+
+```bash
+cd my-cap
+npm install
+npx @omnidev-ai/capability build
+```
 
 ---
 

@@ -2,10 +2,10 @@
 	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
 	"changelog": "@changesets/cli/changelog",
 	"commit": false,
-	"fixed": [["@omnidev-ai/core", "@omnidev-ai/cli"]],
+	"fixed": [["@omnidev-ai/cli", "@omnidev-ai/capability"]],
 	"linked": [],
 	"access": "public",
 	"baseBranch": "main",
 	"updateInternalDependencies": "patch",
-	"ignore": []
+	"ignore": ["@omnidev-ai/core", "@omnidev-ai/adapters"]
 }

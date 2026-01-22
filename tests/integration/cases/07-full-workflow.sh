@@ -24,8 +24,8 @@ info "CLI version: $version_output"
 info "Step 2: Creating initial omni.toml..."
 cat > omni.toml << 'EOF'
 [capabilities.sources]
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
-claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/claude-plugin" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
+claude-plugin = { source = "github:frmlabz/omnidev", path = "examples/fixtures/claude-plugin" }
 
 [profiles.default]
 capabilities = ["standard"]
@@ -65,7 +65,7 @@ assert_capability_synced "standard"
 # Step 6: Add third capability via CLI
 # ============================================================================
 info "Step 6: Adding third capability via CLI..."
-run_omnidev add cap bare-skills --github Nikola-Milovic/omnidev --path examples/fixtures/bare-skills
+run_omnidev add cap bare-skills --github frmlabz/omnidev --path examples/fixtures/bare-skills
 
 # ============================================================================
 # Step 7: Capability list - verify 3 capabilities
@@ -169,7 +169,7 @@ run_omnidev sync
 info "Step 22: Adding fourth capability (demo-mcp)..."
 # Note: demo-mcp may not have a capability.toml, so we use a known fixture
 # For this test, we'll verify omni.toml is updated
-run_omnidev add cap extra-cap --github Nikola-Milovic/omnidev --path examples/fixtures/standard
+run_omnidev add cap extra-cap --github frmlabz/omnidev --path examples/fixtures/standard
 # This will fail if same name, so we use a unique name
 
 # ============================================================================

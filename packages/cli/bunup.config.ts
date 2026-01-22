@@ -8,11 +8,11 @@ export default defineConfig({
 	external: [
 		"@inquirer/prompts",
 		"@stricli/core",
-		"@omnidev-ai/core",
 		// Node built-ins
 		/^node:/,
 	],
-	noExternal: ["@omnidev-ai/adapters"],
+	// Bundle these workspace packages into the CLI
+	noExternal: ["@omnidev-ai/adapters", "@omnidev-ai/core", "@omnidev-ai/capability"],
 	// Add node shebang to the CLI entry
 	banner: "#!/usr/bin/env node",
 });

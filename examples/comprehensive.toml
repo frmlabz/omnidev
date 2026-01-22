@@ -3,9 +3,9 @@
 
 [capabilities.sources]
 # Active fixtures from this repository
-standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/standard" }
-claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/claude-plugin" }
-bare-skills = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/bare-skills" }
+standard = { source = "github:frmlabz/omnidev", path = "examples/fixtures/standard" }
+claude-plugin = { source = "github:frmlabz/omnidev", path = "examples/fixtures/claude-plugin" }
+bare-skills = { source = "github:frmlabz/omnidev", path = "examples/fixtures/bare-skills" }
 
 # Example: External GitHub sources (commented - replace with real repos)
 # tasks = { source = "github:your-org/tasks-capability", version = "v2.1.0" }
