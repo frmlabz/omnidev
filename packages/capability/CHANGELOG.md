@@ -1,5 +1,11 @@
 # @omnidev-ai/capability
 
+## 0.13.2
+
+### Patch Changes
+
+- a7eddd9: Fixes v2
+
 ## 0.13.1
 
 ## 0.13.0

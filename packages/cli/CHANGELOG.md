@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.13.2
+
+### Patch Changes
+
+- a7eddd9: Fixes v2
+- 56225e4: Fixing
+
 ## 0.13.1
 
 ### Patch Changes
