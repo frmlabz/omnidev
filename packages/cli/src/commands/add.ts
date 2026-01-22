@@ -9,6 +9,7 @@ import {
 	patchAddToProfile,
 	syncAgentConfiguration,
 	readCapabilityIdFromPath,
+	detectPinVersion,
 	type McpConfig,
 	type McpTransport,
 } from "@omnidev-ai/core";
@@ -18,6 +19,7 @@ interface AddCapFlags {
 	github?: string | undefined;
 	local?: string | undefined;
 	path?: string | undefined;
+	pin?: boolean | undefined;
 }
 
 /**
@@ -135,10 +137,28 @@ export async function runAddCap(flags: AddCapFlags, name?: string): Promise<void
 			process.exit(1);
 		}
 
+		// Determine version for the source
+		let version: string | undefined;
+		if (sourceType === "github" && flags.pin) {
+			// Detect version from repo (capability.toml or commit hash)
+			console.log(`  Detecting version to pin...`);
+			version = await detectPinVersion(source, flags.path);
+			console.log(`  Detected version: ${version}`);
+		}
+		// Note: version defaults to "latest" in formatCapabilitySource if not specified
+
 		// Create source config and patch the TOML file (preserves comments)
-		if (flags.path && sourceType === "github") {
-			await patchAddCapabilitySource(capabilityId, { source, path: flags.path });
+		if (sourceType === "github") {
+			const sourceConfig: { source: string; version?: string; path?: string } = { source };
+			if (version) {
+				sourceConfig.version = version;
+			}
+			if (flags.path) {
+				sourceConfig.path = flags.path;
+			}
+			await patchAddCapabilitySource(capabilityId, sourceConfig);
 		} else {
+			// Local sources don't have version
 			await patchAddCapabilitySource(capabilityId, source);
 		}
 
@@ -147,6 +167,11 @@ export async function runAddCap(flags: AddCapFlags, name?: string): Promise<void
 
 		console.log(`✓ Added capability source: ${capabilityId}`);
 		console.log(`  Source: ${source}`);
+		if (version) {
+			console.log(`  Version: ${version}`);
+		} else if (sourceType === "github") {
+			console.log(`  Version: latest`);
+		}
 		if (flags.path) {
 			console.log(`  Path: ${flags.path}`);
 		}
@@ -327,10 +352,18 @@ function parseArgs(argsString: string): string[] {
 }
 
 async function runAddCapWrapper(
-	flags: { github: string | undefined; local: string | undefined; path: string | undefined },
+	flags: {
+		github: string | undefined;
+		local: string | undefined;
+		path: string | undefined;
+		pin: boolean | undefined;
+	},
 	name: string | undefined,
 ): Promise<void> {
-	await runAddCap({ github: flags.github, local: flags.local, path: flags.path }, name);
+	await runAddCap(
+		{ github: flags.github, local: flags.local, path: flags.path, pin: flags.pin },
+		name,
+	);
 }
 
 const addCapCommand = buildCommand({
@@ -339,18 +372,21 @@ const addCapCommand = buildCommand({
 		fullDescription: `Add a capability source from a GitHub repository or local path. The capability will be auto-enabled in the active profile.
 
 GitHub source:
-  omnidev add cap [name] --github user/repo [--path subdir]
+  omnidev add cap [name] --github user/repo [--path subdir] [--pin]
 
 Local source:
   omnidev add cap [name] --local ./path/to/capability
+
+By default, GitHub sources use version = "latest". Use --pin to detect and pin to the current version (from capability.toml) or commit hash.
 
 If the capability name is omitted, it will be inferred from:
 - For local sources: the ID in capability.toml or directory name
 - For GitHub sources: the repository name or last path segment
 
 Examples:
-  omnidev add cap my-cap --github expo/skills
+  omnidev add cap my-cap --github expo/skills              # Uses version = "latest"
   omnidev add cap --github expo/skills                     # Infers name as "skills"
+  omnidev add cap --github expo/skills --pin               # Pins to detected version
   omnidev add cap --local ./capabilities/my-cap            # Infers name from capability.toml
   omnidev add cap custom-name --local ./capabilities/my-cap`,
 	},
@@ -372,6 +408,11 @@ Examples:
 				kind: "parsed" as const,
 				brief: "Subdirectory within the repo containing the capability (GitHub only)",
 				parse: String,
+				optional: true,
+			},
+			pin: {
+				kind: "boolean" as const,
+				brief: "Pin to detected version (git hash or capability.toml version)",
 				optional: true,
 			},
 		},

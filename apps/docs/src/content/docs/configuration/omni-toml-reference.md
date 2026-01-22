@@ -112,8 +112,8 @@ obsidian = "github:kepano/obsidian-skills"
 **Full syntax with options:**
 ```toml
 [capabilities.sources]
-tools = { source = "github:user/repo", ref = "v1.0.0" }
-ralph = { source = "github:user/repo", path = "packages/capability" }
+tools = { source = "github:user/repo", version = "v1.0.0" }
+ralph = { source = "github:user/repo", version = "latest", path = "packages/capability" }
 ```
 
 **Supported Git URLs:**
@@ -125,7 +125,7 @@ ralph = { source = "github:user/repo", path = "packages/capability" }
 
 **Options:**
 - `source` (string, required): Git URL or shorthand
-- `ref` (string, optional): Git ref to checkout (tag, branch, or commit hash)
+- `version` (string, optional): Version to pin (tag, commit hash, or `"latest"`)
 - `path` (string, optional): Subdirectory containing the capability
 
 #### Local Sources
@@ -326,9 +326,9 @@ always_enabled = ["git-tools", "linting"]
 
 [capabilities.sources]
 # GitHub sources
-obsidian = "github:kepano/obsidian-skills"
-ralph = { source = "github:user/ralph", ref = "v2.0.0" }
-tools = { source = "github:org/monorepo", path = "packages/tools" }
+obsidian = { source = "github:kepano/obsidian-skills", version = "latest" }
+ralph = { source = "github:user/ralph", version = "v2.0.0" }
+tools = { source = "github:org/monorepo", version = "latest", path = "packages/tools" }
 
 # Local sources
 my-cap = "file://./capabilities/my-cap"

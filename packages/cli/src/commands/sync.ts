@@ -58,6 +58,14 @@ export async function runSync(): Promise<void> {
 			console.log(`  ✓ ${capId}`);
 		}
 
+		// Show warnings if any
+		if (result.warnings && result.warnings.length > 0) {
+			console.log("");
+			for (const warning of result.warnings) {
+				console.log(`  ! ${warning.id}: ${warning.message}`);
+			}
+		}
+
 		// Show total
 		console.log("");
 		console.log(`Total: ${result.capabilities.length} synced`);

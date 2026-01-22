@@ -192,8 +192,8 @@ export type CapabilitySourceType = "local" | "git";
 export interface GitCapabilitySourceConfig {
 	/** Source URL or shorthand (e.g., "github:user/repo", "git@github.com:...") */
 	source: string;
-	/** Git ref to checkout: tag, branch, or commit hash */
-	ref?: string;
+	/** Version to checkout: "latest", tag, branch, or commit hash */
+	version?: string;
 	/** Subdirectory within the repo containing the capability */
 	path?: string;
 }
@@ -243,8 +243,8 @@ export interface CapabilityLockEntry {
 	version_source?: VersionSource;
 	/** For git sources: exact commit hash */
 	commit?: string;
-	/** Pinned ref if specified */
-	ref?: string;
+	/** Pinned version if specified (from omni.toml version field) */
+	pinned_version?: string;
 	/** For file sources: SHA-256 hash of content for reproducibility */
 	content_hash?: string;
 	/** Last update timestamp (ISO 8601) */
@@ -341,8 +341,8 @@ export interface CapabilitySource {
 	type: CapabilitySourceType;
 	/** For git-sourced capabilities: the source URL/shorthand */
 	gitSource?: string;
-	/** For git-sourced capabilities: the pinned ref if any */
-	ref?: string;
+	/** For git-sourced capabilities: the pinned version if any */
+	pinnedVersion?: string;
 	/** For git-sourced capabilities: the current commit hash */
 	commit?: string;
 	/** Version from capability.toml or package.json */

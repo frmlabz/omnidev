@@ -9,13 +9,13 @@ claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fix
 
 # Example: Version pinning with ref parameter (commented - replace with real repos)
 # Recommended: Pin to a specific version tag
-# my-capability = { source = "github:your-org/capability", ref = "v1.0.0" }
+# my-capability = { source = "github:your-org/capability", version = "v1.0.0" }
 
 # Most precise: Pin to a specific commit hash
-# stable-tool = { source = "github:your-org/tool", ref = "abc123def456" }
+# stable-tool = { source = "github:your-org/tool", version = "abc123def456" }
 
 # Latest from a branch (not recommended for production)
-# experimental = { source = "github:your-org/experimental", ref = "main" }
+# experimental = { source = "github:your-org/experimental", version = "main" }
 
 # Simple format (latest from default branch)
 # community-tool = "github:community/awesome-tool"

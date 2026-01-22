@@ -23,6 +23,28 @@ With a subdirectory:
 omnidev add cap my-cap --github user/repo --path plugins/subdir
 ```
 
+### Pinning to a version
+
+Use `--pin` to automatically detect and pin to the current version:
+
+```bash
+omnidev add cap my-cap --github user/repo --pin
+```
+
+This will:
+1. Clone the repository to detect the version
+2. Check `capability.toml` for a version field
+3. Fall back to the current commit hash if no version is found
+
+The resulting entry in `omni.toml` will look like:
+
+```toml
+[capabilities.sources]
+my-cap = { source = "github:user/repo", version = "v1.0.0" }
+```
+
+Without `--pin`, the default `version = "latest"` is used.
+
 ### Local Sources
 
 Add a capability from a local directory:

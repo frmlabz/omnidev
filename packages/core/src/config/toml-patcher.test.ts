@@ -36,7 +36,8 @@ existing = "github:org/existing"
 			const content = await readFile("omni.toml", "utf-8");
 			expect(content).toContain("# My custom comment");
 			expect(content).toContain('existing = "github:org/existing"');
-			expect(content).toContain('new-cap = "github:org/new-cap"');
+			// version is always included now
+			expect(content).toContain('new-cap = { source = "github:org/new-cap", version = "latest" }');
 		});
 
 		test("adds capability source with path option", async () => {
@@ -49,7 +50,10 @@ existing = "github:org/existing"
 			await patchAddCapabilitySource("my-cap", { source: "github:org/repo", path: "subfolder" });
 
 			const content = await readFile("omni.toml", "utf-8");
-			expect(content).toContain('my-cap = { source = "github:org/repo", path = "subfolder" }');
+			// version defaults to "latest" when not specified
+			expect(content).toContain(
+				'my-cap = { source = "github:org/repo", version = "latest", path = "subfolder" }',
+			);
 		});
 
 		test("creates capabilities.sources section if missing", async () => {
@@ -66,7 +70,8 @@ capabilities = []
 			const content = await readFile("omni.toml", "utf-8");
 			expect(content).toContain("# My project config");
 			expect(content).toContain("[capabilities.sources]");
-			expect(content).toContain('my-cap = "github:org/my-cap"');
+			// version is now always included, defaulting to "latest"
+			expect(content).toContain('my-cap = { source = "github:org/my-cap", version = "latest" }');
 		});
 
 		test("preserves all existing comments", async () => {
@@ -318,8 +323,10 @@ capabilities = ["tasks", "debug"]
 			expect(content).toContain("# Use these for different workflows");
 			expect(content).toContain("# Development profile with extra tools");
 
-			// New entries should be present
-			expect(content).toContain('new-tasks = "github:company/new-tasks"');
+			// New entries should be present (version is always included now)
+			expect(content).toContain(
+				'new-tasks = { source = "github:company/new-tasks", version = "latest" }',
+			);
 			expect(content).toContain("[mcps.database]");
 			expect(content).toContain('capabilities = ["tasks", "new-tasks"]');
 			expect(content).toContain('capabilities = ["tasks", "debug", "database"]');
@@ -335,7 +342,8 @@ capabilities = ["tasks", "debug"]
 			const content = await readFile("omni.toml", "utf-8");
 
 			expect(content).toContain("[capabilities.sources]");
-			expect(content).toContain('my-cap = "github:org/cap"');
+			// version is always included now
+			expect(content).toContain('my-cap = { source = "github:org/cap", version = "latest" }');
 			expect(content).toContain("[mcps.my-mcp]");
 			expect(content).toContain("[profiles.default]");
 		});

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { buildCapabilityRegistry } from "./capability/registry";
-import { fetchAllCapabilitySources } from "./capability/sources";
+import { fetchAllCapabilitySources, type SyncWarning } from "./capability/sources";
 import { loadConfig } from "./config/config";
 import { hasAnyHooks } from "./hooks/merger.js";
 import { syncMcpJson } from "./mcp-json/manager";
@@ -18,6 +18,8 @@ export interface SyncResult {
 	skillCount: number;
 	ruleCount: number;
 	docCount: number;
+	/** Warnings about version mismatches, missing versions, etc. */
+	warnings?: SyncWarning[];
 }
 
 export interface SyncOptions {
@@ -161,12 +163,13 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
  */
 export async function buildSyncBundle(options?: {
 	silent?: boolean;
-}): Promise<{ bundle: SyncBundle }> {
+}): Promise<{ bundle: SyncBundle; warnings: SyncWarning[] }> {
 	const silent = options?.silent ?? false;
 
 	// Fetch capability sources from git repos FIRST (before discovery)
 	const config = await loadConfig();
-	await fetchAllCapabilitySources(config, { silent });
+	const fetchResult = await fetchAllCapabilitySources(config, { silent });
+	const warnings = fetchResult.warnings;
 
 	// Install capability dependencies before building registry
 	await installCapabilityDependencies(silent);
@@ -201,7 +204,7 @@ export async function buildSyncBundle(options?: {
 		bundle.hooks = mergedHooks;
 	}
 
-	return { bundle };
+	return { bundle, warnings };
 }
 
 /**
@@ -214,7 +217,7 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	const silent = options?.silent ?? false;
 	const adapters = options?.adapters ?? [];
 
-	const { bundle } = await buildSyncBundle({ silent });
+	const { bundle, warnings } = await buildSyncBundle({ silent });
 	const capabilities = bundle.capabilities;
 
 	// Load previous manifest and cleanup stale resources from disabled capabilities
@@ -277,12 +280,19 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 		}
 	}
 
-	return {
+	const result: SyncResult = {
 		capabilities: capabilities.map((c) => c.id),
 		skillCount: bundle.skills.length,
 		ruleCount: bundle.rules.length,
 		docCount: bundle.docs.length,
 	};
+
+	// Only include warnings if there are any
+	if (warnings.length > 0) {
+		result.warnings = warnings;
+	}
+
+	return result;
 }
 
 /**

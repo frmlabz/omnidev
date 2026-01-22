@@ -57,7 +57,7 @@ omnidev sync
 
 Capabilities can come from:
 
-- **GitHub**: `github:owner/repo` or `{ source = "github:owner/repo", ref = "v1.0.0" }`
+- **GitHub**: `github:owner/repo` or `{ source = "github:owner/repo", version = "v1.0.0" }`
 - **File paths**: `file:///absolute/path` or `file://./relative/path`
 
 ### Loading from Monorepos
@@ -97,10 +97,10 @@ For production, always pin versions:
 ```toml
 [capabilities.sources]
 # Recommended: Pin to a version tag
-my-cap = { source = "github:owner/repo", ref = "v1.0.0" }
+my-cap = { source = "github:owner/repo", version = "v1.0.0" }
 
 # Most precise: Pin to a commit hash
-my-cap = { source = "github:owner/repo", ref = "abc123def456" }
+my-cap = { source = "github:owner/repo", version = "abc123def456" }
 ```
 
 ### MCP Servers
@@ -139,7 +139,7 @@ Tests verify that:
 
 ## Best Practices
 
-1. **Pin versions** for production (`ref = "v1.0.0"`)
+1. **Pin versions** for production (`version = "v1.0.0"`)
 2. **Use profiles** to separate workflows
 3. **Commit `omni.toml`** to share with your team
 4. **Gitignore `omni.local.toml`** for personal overrides

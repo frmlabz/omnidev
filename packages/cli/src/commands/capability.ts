@@ -16,6 +16,8 @@ import {
 	loadCapabilityConfig,
 	loadLockFile,
 	syncAgentConfiguration,
+	checkForUpdates,
+	loadBaseConfig,
 } from "@omnidev-ai/core";
 import { buildCommand, buildRouteMap } from "@stricli/core";
 import { isValidCapabilityId } from "../prompts/capability.js";
@@ -37,6 +39,20 @@ export async function runCapabilityList(flags: { verbose?: boolean } = {}): Prom
 			return;
 		}
 
+		// Check for updates if verbose
+		let updates: Map<string, { hasUpdate: boolean; latestVersion: string }> | undefined;
+		if (flags.verbose) {
+			try {
+				const config = await loadBaseConfig();
+				const updateInfo = await checkForUpdates(config);
+				updates = new Map(
+					updateInfo.map((u) => [u.id, { hasUpdate: u.hasUpdate, latestVersion: u.latestVersion }]),
+				);
+			} catch {
+				// Silently ignore update check failures
+			}
+		}
+
 		console.log("Capabilities:");
 		console.log("");
 
@@ -50,9 +66,16 @@ export async function runCapabilityList(flags: { verbose?: boolean } = {}): Prom
 				// Get lock entry for additional info
 				const lockEntry = lockFile.capabilities[id];
 
+				// Check if update is available
+				const updateInfo = updates?.get(id);
+				let versionDisplay = version;
+				if (updateInfo?.hasUpdate) {
+					versionDisplay = `${version} → ${updateInfo.latestVersion} available`;
+				}
+
 				console.log(`  ${status}  ${name}`);
 				console.log(`           ID: ${id}`);
-				console.log(`           Version: ${version}`);
+				console.log(`           Version: ${versionDisplay}`);
 
 				if (flags.verbose && lockEntry) {
 					// Show source information
@@ -73,9 +96,9 @@ export async function runCapabilityList(flags: { verbose?: boolean } = {}): Prom
 						console.log(`           Content hash: ${lockEntry.content_hash.substring(0, 12)}`);
 					}
 
-					// Show ref if pinned
-					if (lockEntry.ref) {
-						console.log(`           Ref: ${lockEntry.ref}`);
+					// Show pinned version if specified
+					if (lockEntry.pinned_version) {
+						console.log(`           Pinned: ${lockEntry.pinned_version}`);
 					}
 
 					// Show last update

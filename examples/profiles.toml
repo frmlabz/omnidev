@@ -7,7 +7,7 @@ standard = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures
 bare-skills = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/bare-skills" }
 
 # Example: External capabilities (commented - replace with real repos)
-# ralph = { source = "github:your-org/ralph-orchestrator", ref = "v1.0.0" }
+# ralph = { source = "github:your-org/ralph-orchestrator", version = "v1.0.0" }
 # frontend-tools = { source = "github:your-org/frontend-capability" }
 
 [profiles.default]

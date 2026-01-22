@@ -26,3 +26,29 @@ Run `omnidev sync` after:
 - Enabling or disabling capabilities
 - Switching profiles
 - Updating capability sources
+
+## Version warnings
+
+During sync, you may see warnings about version issues:
+
+```
+Syncing...
+  ✓ my-cap
+  ✓ other-cap
+
+  ! third-cap: no version specified, defaulting to latest
+```
+
+| Warning | Meaning |
+|---------|---------|
+| `no version specified, defaulting to latest` | Source config missing `version` field |
+| `version unchanged but content changed` | Repository updated but capability version stayed same |
+
+To resolve, consider adding explicit versions to your capability sources:
+
+```toml
+[capabilities.sources]
+my-cap = { source = "github:user/repo", version = "v1.0.0" }
+```
+
+See [Capability Sources](../configuration/capability-sources) for more details.

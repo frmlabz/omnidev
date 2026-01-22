@@ -47,16 +47,45 @@ function findSectionEnd(lines: string[], startIndex: number): number {
 }
 
 /**
+ * Check if a source string represents a file/local source
+ */
+function isFileSourceString(source: string): boolean {
+	return source.startsWith("file://");
+}
+
+/**
  * Format a capability source for TOML
+ * For git sources: always includes version field, defaulting to "latest" if not specified
+ * For file sources: no version field (tracked by content hash)
  */
 function formatCapabilitySource(name: string, source: CapabilitySourceConfig): string {
 	if (typeof source === "string") {
-		return `${name} = "${source}"`;
+		// File sources use simple string format
+		if (isFileSourceString(source)) {
+			return `${name} = "${source}"`;
+		}
+		// Git sources: add version = "latest" in object format
+		return `${name} = { source = "${source}", version = "latest" }`;
 	}
+
+	// File sources use simple string format (no version)
+	if (isFileSourceString(source.source)) {
+		return `${name} = "${source.source}"`;
+	}
+
+	// Build parts array for git source object format
+	const parts: string[] = [`source = "${source.source}"`];
+
+	// Include version for git sources, defaulting to "latest"
+	const version = ("version" in source && source.version) || "latest";
+	parts.push(`version = "${version}"`);
+
+	// Add path if specified (for git sources with subdirectory)
 	if ("path" in source && source.path) {
-		return `${name} = { source = "${source.source}", path = "${source.path}" }`;
+		parts.push(`path = "${source.path}"`);
 	}
-	return `${name} = "${source.source}"`;
+
+	return `${name} = { ${parts.join(", ")} }`;
 }
 
 /**

@@ -163,23 +163,23 @@ export function parseSourceConfig(
 
 		// Git source shorthand formats:
 		// - "github:user/repo"
-		// - "github:user/repo#ref"
+		// - "github:user/repo#version"
 		// - "git@github.com:user/repo.git"
 		// - "https://github.com/user/repo.git"
 
 		let sourceUrl = source;
-		let ref: string | undefined;
+		let version: string | undefined;
 
-		// Check for ref in github shorthand
+		// Check for version in github shorthand
 		if (source.startsWith("github:") && source.includes("#")) {
 			const parts = source.split("#");
 			sourceUrl = parts[0] ?? source;
-			ref = parts[1];
+			version = parts[1];
 		}
 
 		const result: GitCapabilitySourceConfig = { source: sourceUrl };
-		if (ref) {
-			result.ref = ref;
+		if (version) {
+			result.version = version;
 		}
 		return result;
 	}
@@ -189,7 +189,18 @@ export function parseSourceConfig(
 		return source as FileCapabilitySourceConfig;
 	}
 
-	return source as GitCapabilitySourceConfig;
+	// Git source object format
+	const gitSource = source as GitCapabilitySourceConfig;
+	const result: GitCapabilitySourceConfig = {
+		source: gitSource.source,
+	};
+	if (gitSource.path) {
+		result.path = gitSource.path;
+	}
+	if (gitSource.version) {
+		result.version = gitSource.version;
+	}
+	return result;
 }
 
 /**
@@ -230,10 +241,37 @@ export async function loadLockFile(): Promise<CapabilitiesLockFile> {
 	try {
 		const content = await readFile(lockPath, "utf-8");
 		const parsed = parseToml(content) as Record<string, unknown>;
-		const capabilities = parsed["capabilities"] as Record<string, CapabilityLockEntry> | undefined;
-		return {
-			capabilities: capabilities || {},
-		};
+		const rawCapabilities = parsed["capabilities"] as
+			| Record<string, Record<string, unknown>>
+			| undefined;
+
+		if (!rawCapabilities) {
+			return { capabilities: {} };
+		}
+
+		const capabilities: Record<string, CapabilityLockEntry> = {};
+		for (const [id, entry] of Object.entries(rawCapabilities)) {
+			const lockEntry: CapabilityLockEntry = {
+				source: entry["source"] as string,
+				version: entry["version"] as string,
+				updated_at: entry["updated_at"] as string,
+			};
+			if (entry["version_source"]) {
+				lockEntry.version_source = entry["version_source"] as VersionSource;
+			}
+			if (entry["commit"]) {
+				lockEntry.commit = entry["commit"] as string;
+			}
+			if (entry["content_hash"]) {
+				lockEntry.content_hash = entry["content_hash"] as string;
+			}
+			if (entry["pinned_version"]) {
+				lockEntry.pinned_version = entry["pinned_version"] as string;
+			}
+			capabilities[id] = lockEntry;
+		}
+
+		return { capabilities };
 	} catch {
 		return { capabilities: {} };
 	}
@@ -255,8 +293,8 @@ function stringifyLockFile(lockFile: CapabilitiesLockFile): string {
 		if (entry.commit) {
 			lines.push(`commit = "${entry.commit}"`);
 		}
-		if (entry.ref) {
-			lines.push(`ref = "${entry.ref}"`);
+		if (entry.pinned_version) {
+			lines.push(`pinned_version = "${entry.pinned_version}"`);
 		}
 		if (entry.content_hash) {
 			lines.push(`content_hash = "${entry.content_hash}"`);
@@ -448,6 +486,73 @@ export async function detectDisplayVersion(
 
 	// 4. Fallback to commit hash (git) or content hash (file)
 	return { version: fallback, source: fallbackSource };
+}
+
+/**
+ * Detect a version to pin for a git repository.
+ * Clones the repo temporarily, checks for version in capability.toml,
+ * falls back to HEAD commit hash.
+ *
+ * @param sourceUrl - Git source URL or shorthand (e.g., "github:user/repo")
+ * @param subPath - Optional subdirectory within the repo
+ * @returns The detected version string (from capability.toml or commit hash)
+ */
+export async function detectPinVersion(sourceUrl: string, subPath?: string): Promise<string> {
+	const gitUrl = sourceToGitUrl(sourceUrl);
+	const tempPath = join(OMNI_LOCAL, "_temp", `_pin-detect-${Date.now()}`);
+
+	try {
+		// Clone to temp location
+		await mkdir(join(tempPath, ".."), { recursive: true });
+		const args = ["clone", "--depth", "1", gitUrl, tempPath];
+		const { exitCode, stderr } = await spawnCapture("git", args);
+		if (exitCode !== 0) {
+			throw new Error(`Failed to clone ${gitUrl}: ${stderr.trim()}`);
+		}
+
+		// Get commit hash
+		const commit = await getRepoCommit(tempPath);
+
+		// Determine which directory to check for capability.toml
+		const checkPath = subPath ? join(tempPath, subPath) : tempPath;
+
+		// Try to get version from capability.toml
+		const capTomlPath = join(checkPath, "capability.toml");
+		if (existsSync(capTomlPath)) {
+			try {
+				const content = await readFile(capTomlPath, "utf-8");
+				const parsed = parseToml(content) as Record<string, unknown>;
+				const capability = parsed["capability"] as Record<string, unknown> | undefined;
+				if (capability?.["version"] && typeof capability["version"] === "string") {
+					return capability["version"] as string;
+				}
+			} catch {
+				// Fall through to commit hash
+			}
+		}
+
+		// Try plugin.json
+		const pluginJsonPath = join(checkPath, ".claude-plugin", "plugin.json");
+		if (existsSync(pluginJsonPath)) {
+			try {
+				const content = await readFile(pluginJsonPath, "utf-8");
+				const parsed = JSON.parse(content);
+				if (parsed.version && typeof parsed.version === "string") {
+					return parsed.version;
+				}
+			} catch {
+				// Fall through to commit hash
+			}
+		}
+
+		// Fallback to commit hash
+		return commit;
+	} finally {
+		// Clean up temp directory
+		if (existsSync(tempPath)) {
+			await rm(tempPath, { recursive: true });
+		}
+	}
 }
 
 /**
@@ -878,17 +983,20 @@ async function fetchGitCapabilitySource(
 	let commit: string;
 	let repoPath: string;
 
+	// Resolve version: "latest" or undefined means fetch default branch (no ref)
+	const gitRef = config.version && config.version !== "latest" ? config.version : undefined;
+
 	// If path is specified, clone to temp location first
 	if (config.path) {
 		const tempPath = join(OMNI_LOCAL, "_temp", `${id}-repo`);
 
 		// Check if already cloned to temp
 		if (existsSync(join(tempPath, ".git"))) {
-			updated = await fetchRepo(tempPath, config.ref);
+			updated = await fetchRepo(tempPath, gitRef);
 			commit = await getRepoCommit(tempPath);
 		} else {
 			await mkdir(join(tempPath, ".."), { recursive: true });
-			await cloneRepo(gitUrl, tempPath, config.ref);
+			await cloneRepo(gitUrl, tempPath, gitRef);
 			commit = await getRepoCommit(tempPath);
 			updated = true;
 		}
@@ -916,13 +1024,13 @@ async function fetchGitCapabilitySource(
 			if (!options?.silent) {
 				console.log(`  Checking ${id}...`);
 			}
-			updated = await fetchRepo(targetPath, config.ref);
+			updated = await fetchRepo(targetPath, gitRef);
 			commit = await getRepoCommit(targetPath);
 		} else {
 			if (!options?.silent) {
 				console.log(`  Cloning ${id} from ${config.source}...`);
 			}
-			await cloneRepo(gitUrl, targetPath, config.ref);
+			await cloneRepo(gitUrl, targetPath, gitRef);
 			commit = await getRepoCommit(targetPath);
 			updated = true;
 		}
@@ -1314,12 +1422,20 @@ export async function generateMcpCapabilities(config: OmniConfig): Promise<void>
 }
 
 /**
+ * Result of fetching all capability sources
+ */
+export interface FetchAllResult {
+	results: FetchResult[];
+	warnings: SyncWarning[];
+}
+
+/**
  * Fetch all capability sources from config
  */
 export async function fetchAllCapabilitySources(
 	config: OmniConfig,
 	options?: { silent?: boolean; force?: boolean },
-): Promise<FetchResult[]> {
+): Promise<FetchAllResult> {
 	// Generate MCP capabilities FIRST
 	await generateMcpCapabilities(config);
 
@@ -1331,15 +1447,30 @@ export async function fetchAllCapabilitySources(
 
 	const sources = config.capabilities?.sources;
 	if (!sources || Object.keys(sources).length === 0) {
-		return [];
+		return { results: [], warnings: [] };
 	}
 
 	const results: FetchResult[] = [];
+	const warnings: SyncWarning[] = [];
 	const lockFile = await loadLockFile();
 	let lockUpdated = false;
 
 	for (const [id, source] of Object.entries(sources)) {
 		try {
+			// Parse source config to check for missing version
+			const parsedConfig = parseSourceConfig(source);
+
+			// Warn about missing version for git sources
+			if (!isFileSourceConfig(source) && !isFileSource(parsedConfig.source)) {
+				const gitConfig = parsedConfig as GitCapabilitySourceConfig;
+				if (!gitConfig.version) {
+					warnings.push({
+						id,
+						message: "no version specified, defaulting to latest",
+					});
+				}
+			}
+
 			const result = await fetchCapabilitySource(id, source, options);
 			results.push(result);
 
@@ -1351,7 +1482,7 @@ export async function fetchAllCapabilitySources(
 				updated_at: new Date().toISOString(),
 			};
 
-			// Git source: use commit and ref
+			// Git source: use commit and pinned version
 			if (result.commit) {
 				lockEntry.commit = result.commit;
 			}
@@ -1359,18 +1490,26 @@ export async function fetchAllCapabilitySources(
 			if (result.contentHash) {
 				lockEntry.content_hash = result.contentHash;
 			}
-			// Only access ref if it's a git source
+			// Only access version if it's a git source (store as pinned_version in lock)
 			if (!isFileSourceConfig(source)) {
 				const gitConfig = parseSourceConfig(source) as GitCapabilitySourceConfig;
-				if (gitConfig.ref) {
-					lockEntry.ref = gitConfig.ref;
+				if (gitConfig.version && gitConfig.version !== "latest") {
+					lockEntry.pinned_version = gitConfig.version;
+				}
+			}
+
+			// Check for version mismatch (commit changed but version unchanged)
+			const existing = lockFile.capabilities[id];
+			if (existing && result.commit) {
+				const mismatchWarning = checkVersionMismatch(existing, result.commit, result.version);
+				if (mismatchWarning) {
+					warnings.push({ id, message: mismatchWarning });
 				}
 			}
 
 			// Check if lock entry changed
 			// For git sources: compare commit hash
 			// For file sources: compare content hash
-			const existing = lockFile.capabilities[id];
 			const hasChanged =
 				!existing ||
 				(result.commit && existing.commit !== result.commit) ||
@@ -1390,7 +1529,7 @@ export async function fetchAllCapabilitySources(
 		await saveLockFile(lockFile);
 	}
 
-	return results;
+	return { results, warnings };
 }
 
 /**
@@ -1446,7 +1585,9 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 		}
 
 		// Get remote commit
-		const targetRef = gitConfig.ref || "HEAD";
+		// If version is "latest" or undefined, check HEAD; otherwise use the specified version
+		const targetRef =
+			gitConfig.version && gitConfig.version !== "latest" ? gitConfig.version : "HEAD";
 		const lsResult = await spawnCapture("git", ["ls-remote", "origin", targetRef], {
 			cwd: targetPath,
 		});
@@ -1467,4 +1608,88 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 	}
 
 	return updates;
+}
+
+/**
+ * Warning info for version/integrity issues detected during sync
+ */
+export interface SyncWarning {
+	id: string;
+	message: string;
+}
+
+/**
+ * Check for version mismatch: commit changed but version string unchanged.
+ * This can indicate a maintainer forgot to bump the version.
+ *
+ * @param lockEntry - Existing lock entry from previous sync
+ * @param currentCommit - Current commit hash after fetch
+ * @param currentVersion - Current detected version
+ * @returns Warning message if mismatch detected, null otherwise
+ */
+export function checkVersionMismatch(
+	lockEntry: CapabilityLockEntry,
+	currentCommit: string,
+	currentVersion: string,
+): string | null {
+	// Only warn if:
+	// 1. Commit changed
+	// 2. Version string is unchanged
+	// 3. Version was sourced from capability.toml (not commit hash)
+	if (
+		lockEntry.commit !== currentCommit &&
+		lockEntry.version === currentVersion &&
+		lockEntry.version_source === "capability.toml"
+	) {
+		return "version unchanged but content changed";
+	}
+	return null;
+}
+
+/**
+ * Verify integrity of a capability against its lock entry.
+ * Checks that the current state matches what was recorded in the lock file.
+ *
+ * @param id - Capability ID
+ * @param lockEntry - Lock entry to verify against
+ * @returns Warning message if integrity issue found, null otherwise
+ */
+export async function verifyIntegrity(
+	id: string,
+	lockEntry: CapabilityLockEntry,
+): Promise<string | null> {
+	const capabilityPath = getSourceCapabilityPath(id);
+
+	if (!existsSync(capabilityPath)) {
+		return "capability directory missing";
+	}
+
+	// For git sources: verify commit matches
+	if (lockEntry.commit) {
+		const gitDir = join(capabilityPath, ".git");
+		if (existsSync(gitDir)) {
+			try {
+				const currentCommit = await getRepoCommit(capabilityPath);
+				if (currentCommit !== lockEntry.commit) {
+					return "content modified locally";
+				}
+			} catch {
+				// Can't verify - skip
+			}
+		}
+	}
+
+	// For file sources: verify content hash matches
+	if (lockEntry.content_hash) {
+		try {
+			const currentHash = await computeContentHash(capabilityPath);
+			if (currentHash !== lockEntry.content_hash) {
+				return "content modified locally";
+			}
+		} catch {
+			// Can't verify - skip
+		}
+	}
+
+	return null;
 }

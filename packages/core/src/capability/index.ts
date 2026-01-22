@@ -19,6 +19,15 @@ export {
 	isFileSource,
 	parseFileSourcePath,
 	readCapabilityIdFromPath,
+	detectPinVersion,
+	checkVersionMismatch,
+	verifyIntegrity,
 } from "./sources";
-export type { FetchResult, SourceUpdateInfo, DiscoveredContent } from "./sources";
+export type {
+	FetchResult,
+	FetchAllResult,
+	SourceUpdateInfo,
+	DiscoveredContent,
+	SyncWarning,
+} from "./sources";
 export { loadSubagents } from "./subagents";

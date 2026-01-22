@@ -26,35 +26,35 @@ describe("parseSourceConfig", () => {
 		const config = parseSourceConfig("github:user/repo") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
-		expect(config.ref).toBeUndefined();
+		expect(config.version).toBeUndefined();
 	});
 
 	test("parses github shorthand with ref", () => {
 		const config = parseSourceConfig("github:user/repo#v1.0.0") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
-		expect(config.ref).toBe("v1.0.0");
+		expect(config.version).toBe("v1.0.0");
 	});
 
 	test("parses github shorthand with branch ref", () => {
 		const config = parseSourceConfig("github:user/repo#main") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
-		expect(config.ref).toBe("main");
+		expect(config.version).toBe("main");
 	});
 
 	test("parses github shorthand with commit ref", () => {
 		const config = parseSourceConfig("github:user/repo#abc123def") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
-		expect(config.ref).toBe("abc123def");
+		expect(config.version).toBe("abc123def");
 	});
 
 	test("parses git ssh URL", () => {
 		const config = parseSourceConfig("git@github.com:user/repo.git") as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("git@github.com:user/repo.git");
-		expect(config.ref).toBeUndefined();
+		expect(config.version).toBeUndefined();
 	});
 
 	test("parses https git URL", () => {
@@ -63,17 +63,17 @@ describe("parseSourceConfig", () => {
 		) as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("https://github.com/user/repo.git");
-		expect(config.ref).toBeUndefined();
+		expect(config.version).toBeUndefined();
 	});
 
 	test("passes through full config object", () => {
 		const config = parseSourceConfig({
 			source: "github:user/repo",
-			ref: "v2.0.0",
+			version: "v2.0.0",
 		}) as GitCapabilitySourceConfig;
 
 		expect(config.source).toBe("github:user/repo");
-		expect(config.ref).toBe("v2.0.0");
+		expect(config.version).toBe("v2.0.0");
 	});
 
 	test("passes through config with path", () => {
@@ -291,7 +291,7 @@ updated_at = "2026-01-01T00:00:00Z"
 source = "github:user/repo2"
 version = "2.0.0"
 commit = "def456"
-ref = "v2.0.0"
+pinned_version = "v2.0.0"
 updated_at = "2026-01-02T00:00:00Z"
 `,
 		);
@@ -301,7 +301,7 @@ updated_at = "2026-01-02T00:00:00Z"
 		expect(Object.keys(lockFile.capabilities)).toHaveLength(2);
 		expect(lockFile.capabilities["cap1"]?.version).toBe("1.0.0");
 		expect(lockFile.capabilities["cap2"]?.version).toBe("2.0.0");
-		expect(lockFile.capabilities["cap2"]?.ref).toBe("v2.0.0");
+		expect(lockFile.capabilities["cap2"]?.pinned_version).toBe("v2.0.0");
 	});
 
 	test("returns empty capabilities for invalid TOML", async () => {
@@ -338,14 +338,14 @@ describe("saveLockFile", () => {
 		expect(content).toContain('commit = "abc123"');
 	});
 
-	test("creates lock file with ref when present", async () => {
+	test("creates lock file with pinned_version when present", async () => {
 		const lockFile: CapabilitiesLockFile = {
 			capabilities: {
 				"pinned-cap": {
 					source: "github:user/repo",
 					version: "2.0.0",
 					commit: "def456",
-					ref: "v2.0.0",
+					pinned_version: "v2.0.0",
 					updated_at: "2026-01-01T00:00:00Z",
 				},
 			},
@@ -354,7 +354,7 @@ describe("saveLockFile", () => {
 		await saveLockFile(lockFile);
 
 		const content = await readFile("omni.lock.toml", "utf-8");
-		expect(content).toContain('ref = "v2.0.0"');
+		expect(content).toContain('pinned_version = "v2.0.0"');
 	});
 
 	test("creates capabilities directory if it does not exist", async () => {
@@ -401,7 +401,7 @@ describe("saveLockFile", () => {
 					source: "github:user/repo2",
 					version: "2.0.0",
 					commit: "def456",
-					ref: "v2.0.0",
+					pinned_version: "v2.0.0",
 					updated_at: "2026-01-02T00:00:00Z",
 				},
 			},
@@ -413,7 +413,9 @@ describe("saveLockFile", () => {
 		expect(loaded.capabilities["cap1"]?.source).toBe(original.capabilities["cap1"]?.source);
 		expect(loaded.capabilities["cap1"]?.version).toBe(original.capabilities["cap1"]?.version);
 		expect(loaded.capabilities["cap1"]?.commit).toBe(original.capabilities["cap1"]?.commit);
-		expect(loaded.capabilities["cap2"]?.ref).toBe(original.capabilities["cap2"]?.ref);
+		expect(loaded.capabilities["cap2"]?.pinned_version).toBe(
+			original.capabilities["cap2"]?.pinned_version,
+		);
 	});
 });
 

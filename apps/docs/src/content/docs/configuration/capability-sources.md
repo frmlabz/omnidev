@@ -13,15 +13,34 @@ Tip: you can either edit `omni.toml` directly, or use [`omnidev add cap`](../com
 
 ```toml
 [capabilities.sources]
+obsidian = { source = "github:kepano/obsidian-skills", version = "latest" }
+```
+
+Shorthand syntax is also supported—when omitted, `version` defaults to `"latest"`:
+
+```toml
+[capabilities.sources]
 obsidian = "github:kepano/obsidian-skills"
 ```
 
 ### Pinned version
 
+Pin to a specific version or commit hash:
+
 ```toml
 [capabilities.sources]
-tools = { source = "github:user/repo", ref = "v1.0.0" }
+tools = { source = "github:user/repo", version = "v1.0.0" }
 ```
+
+You can use the `--pin` flag when adding a capability to automatically detect and pin to the current version:
+
+```bash
+omnidev add cap tools --github user/repo --pin
+```
+
+This will:
+1. Check the capability's `capability.toml` for a version field
+2. Fall back to the current commit hash if no version is found
 
 ## Local development
 
@@ -61,6 +80,26 @@ This shows:
 - **Commit**: for git sources
 - **Content hash**: for file sources (SHA-256)
 - **Last update**: timestamp of last sync
+- **Update available**: when using `--verbose`, shows if a newer version exists
+
+## Version warnings
+
+During `omnidev sync`, you may see warnings about version issues:
+
+```
+Syncing...
+  ✓ my-cap
+  ✓ other-cap
+
+  ! third-cap: no version specified, defaulting to latest
+```
+
+| Warning | Meaning |
+|---------|---------|
+| `no version specified, defaulting to latest` | Source config missing `version` field—will use latest |
+| `version unchanged but content changed` | Commit changed but capability version stayed same |
+
+These warnings help detect potential issues with capability updates. Consider pinning versions for stability.
 
 ## Capability groups
 
@@ -112,7 +151,7 @@ omnidev sync
 
 Capabilities are effectively third-party code + prompts. Treat adding a new source like adding a dependency:
 
-- Prefer **pinned refs** (`ref = "v1.2.3"` or a commit hash) for important environments (CI, shared teams).
+- Prefer **pinned versions** (`version = "v1.2.3"` or a commit hash) for important environments (CI, shared teams).
 - Review `omni.lock.toml` changes in PRs (especially new sources or updated commits).
 - Be cautious with capabilities that include **sync hooks**, **hook scripts**, **MCP servers**, or **programmatic code** (`index.ts` + dependencies).
 - Prefer known orgs/repos, and avoid enabling capabilities you wouldn't trust to run locally.

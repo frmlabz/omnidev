@@ -90,7 +90,10 @@ capabilities = []
 
 			const configContent = await readFile("omni.toml", "utf-8");
 			expect(configContent).toContain("[capabilities.sources]");
-			expect(configContent).toContain('expo-design = "github:expo/skills"');
+			// Git sources now include version = "latest"
+			expect(configContent).toContain(
+				'expo-design = { source = "github:expo/skills", version = "latest" }',
+			);
 			expect(configContent).toContain('capabilities = ["expo-design"]');
 
 			const output = consoleOutput.join("\n");
@@ -114,8 +117,9 @@ capabilities = []
 
 			const configContent = await readFile("omni.toml", "utf-8");
 			expect(configContent).toContain("[capabilities.sources]");
+			// version is always included for git sources
 			expect(configContent).toContain(
-				'expo-design = { source = "github:expo/skills", path = "plugins/expo-app-design" }',
+				'expo-design = { source = "github:expo/skills", version = "latest", path = "plugins/expo-app-design" }',
 			);
 
 			const output = consoleOutput.join("\n");
@@ -282,7 +286,10 @@ capabilities = []
 			expect(exitCode).toBeUndefined();
 
 			const configContent = await readFile("omni.toml", "utf-8");
-			expect(configContent).toContain('skills = "github:expo/skills"');
+			// Git sources now include version = "latest"
+			expect(configContent).toContain(
+				'skills = { source = "github:expo/skills", version = "latest" }',
+			);
 
 			const output = consoleOutput.join("\n");
 			expect(output).toContain("Inferred capability ID: skills");
@@ -303,8 +310,9 @@ capabilities = []
 			expect(exitCode).toBeUndefined();
 
 			const configContent = await readFile("omni.toml", "utf-8");
+			// Git sources now include version = "latest"
 			expect(configContent).toContain(
-				'expo-app-design = { source = "github:expo/skills", path = "plugins/expo-app-design" }',
+				'expo-app-design = { source = "github:expo/skills", version = "latest", path = "plugins/expo-app-design" }',
 			);
 
 			const output = consoleOutput.join("\n");
@@ -326,8 +334,9 @@ capabilities = []
 			expect(exitCode).toBeUndefined();
 
 			const configContent = await readFile("omni.toml", "utf-8");
+			// Git sources now include version = "latest"
 			expect(configContent).toContain(
-				'my-cap = { source = "github:user/capabilities-repo", path = "my-cap" }',
+				'my-cap = { source = "github:user/capabilities-repo", version = "latest", path = "my-cap" }',
 			);
 
 			const output = consoleOutput.join("\n");
@@ -630,7 +639,10 @@ capabilities = ["existing"]
 			const configContent = await readFile("omni.toml", "utf-8");
 			expect(configContent).toContain("[capabilities.sources]");
 			expect(configContent).toContain('existing = "github:user/existing-repo"');
-			expect(configContent).toContain('new-cap = "github:user/new-repo"');
+			// New git sources include version = "latest"
+			expect(configContent).toContain(
+				'new-cap = { source = "github:user/new-repo", version = "latest" }',
+			);
 		});
 
 		test("should preserve existing MCPs when adding new ones", async () => {

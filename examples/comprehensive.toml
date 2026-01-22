@@ -8,8 +8,8 @@ claude-plugin = { source = "github:Nikola-Milovic/omnidev", path = "examples/fix
 bare-skills = { source = "github:Nikola-Milovic/omnidev", path = "examples/fixtures/bare-skills" }
 
 # Example: External GitHub sources (commented - replace with real repos)
-# tasks = { source = "github:your-org/tasks-capability", ref = "v2.1.0" }
-# ralph = { source = "github:your-org/ralph-orchestrator", ref = "v1.0.0" }
+# tasks = { source = "github:your-org/tasks-capability", version = "v2.1.0" }
+# ralph = { source = "github:your-org/ralph-orchestrator", version = "v1.0.0" }
 
 # Example: Local development sources (commented - requires local dirs)
 # ui-components = "file://./capabilities/ui-components"
