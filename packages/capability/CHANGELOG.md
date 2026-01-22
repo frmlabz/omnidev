@@ -1,5 +1,11 @@
 # @omnidev-ai/capability
 
+## 0.13.4
+
+### Patch Changes
+
+- 6ad2f66: Export debug func
+
 ## 0.13.3
 
 ### Patch Changes
