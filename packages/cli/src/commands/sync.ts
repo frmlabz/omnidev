@@ -49,12 +49,18 @@ export async function runSync(): Promise<void> {
 		const providerNames = adapters.map((a) => a.displayName).join(", ") || "none";
 		console.log(`Profile: ${activeProfile} | Providers: ${providerNames}`);
 		console.log("");
+		console.log("Syncing...");
 
-		const result = await syncAgentConfiguration({ silent: false, adapters });
+		const result = await syncAgentConfiguration({ silent: true, adapters });
 
-		// Final summary - just show capability IDs
-		const capList = result.capabilities.join(", ");
-		console.log(`✓ Synced - ${capList}`);
+		// Show each synced capability on its own line
+		for (const capId of result.capabilities) {
+			console.log(`  ✓ ${capId}`);
+		}
+
+		// Show total
+		console.log("");
+		console.log(`Total: ${result.capabilities.length} synced`);
 	} catch (error) {
 		console.error("");
 		console.error("✗ Sync failed:");
