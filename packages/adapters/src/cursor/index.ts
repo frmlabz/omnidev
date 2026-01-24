@@ -24,7 +24,7 @@ export const cursorAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] }
 
 	writers: [
 		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },
-		{ writer: SkillsWriter, outputPath: ".claude/skills/" },
+		{ writer: SkillsWriter, outputPath: ".cursor/skills/" },
 		{ writer: CursorRulesWriter, outputPath: ".cursor/rules/" },
 		{ writer: CursorAgentsWriter, outputPath: ".cursor/agents/" },
 		{ writer: CursorCommandsWriter, outputPath: ".cursor/commands/" },
