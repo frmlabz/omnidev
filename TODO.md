@@ -1,0 +1,4 @@
+- Check if repository exists and is valid capability to add before adding it to `omni.toml`
+- Add .env support and templating to skills, this will allow to substitute things in skills and customize them further for specific project needs. (`.omni/.env` can contain like `PROJECT_DESCRIPTION`, which can be injected into a skill with `${VAR:PROJECT_DESCRIPTION}` or something like this)
+- improve supply chain security
+- ever sync should rebuild capabilities that have a build step
