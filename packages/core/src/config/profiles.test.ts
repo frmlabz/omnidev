@@ -373,4 +373,116 @@ describe("resolveEnabledCapabilities", () => {
 		const result = resolveEnabledCapabilities(config, null);
 		expect(result).toEqual([]);
 	});
+
+	test("always_disabled removes capabilities from profile", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				always_disabled: ["debug", "telemetry"],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks", "debug", "logging"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["tasks", "logging"]);
+	});
+
+	test("always_disabled removes capabilities from always_enabled", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				always_enabled: ["logging", "telemetry", "debug"],
+				always_disabled: ["telemetry"],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["logging", "debug", "tasks"]);
+	});
+
+	test("always_disabled with group reference", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					noisy: ["telemetry", "analytics"],
+				},
+				always_disabled: ["group:noisy"],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks", "telemetry", "logging"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["tasks", "logging"]);
+	});
+
+	test("always_disabled removes capabilities from expanded groups in profile", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				groups: {
+					expo: ["expo-app-design", "expo-deployment", "upgrading-expo"],
+				},
+				always_disabled: ["expo-deployment"],
+			},
+			profiles: {
+				mobile: {
+					capabilities: ["group:expo"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "mobile");
+		expect(result).toEqual(["expo-app-design", "upgrading-expo"]);
+	});
+
+	test("always_disabled with empty array has no effect", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				always_disabled: [],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks", "debug"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["tasks", "debug"]);
+	});
+
+	test("always_disabled can remove all capabilities", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				always_disabled: ["tasks", "debug"],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks", "debug"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual([]);
+	});
+
+	test("always_disabled does not affect capabilities not in profile", () => {
+		const config: OmniConfig = {
+			capabilities: {
+				always_disabled: ["nonexistent-cap"],
+			},
+			profiles: {
+				dev: {
+					capabilities: ["tasks", "debug"],
+				},
+			},
+		};
+		const result = resolveEnabledCapabilities(config, "dev");
+		expect(result).toEqual(["tasks", "debug"]);
+	});
 });

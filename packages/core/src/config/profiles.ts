@@ -34,6 +34,7 @@ export function resolveEnabledCapabilities(
 
 	const profileCapabilities = profile?.capabilities ?? [];
 	const alwaysEnabled = config.capabilities?.always_enabled ?? [];
+	const alwaysDisabled = config.capabilities?.always_disabled ?? [];
 	const groups = config.capabilities?.groups ?? {};
 
 	// Expand group references (group:name -> constituent capabilities)
@@ -54,9 +55,12 @@ export function resolveEnabledCapabilities(
 
 	const expandedAlways = expandCapabilities(alwaysEnabled);
 	const expandedProfile = expandCapabilities(profileCapabilities);
+	const expandedDisabled = new Set(expandCapabilities(alwaysDisabled));
 
 	// Merge always-enabled capabilities with profile capabilities (deduplicated)
-	return [...new Set([...expandedAlways, ...expandedProfile])];
+	// Then filter out always_disabled capabilities
+	const allEnabled = [...new Set([...expandedAlways, ...expandedProfile])];
+	return allEnabled.filter((cap) => !expandedDisabled.has(cap));
 }
 
 /**

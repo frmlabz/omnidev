@@ -29,6 +29,39 @@ function mergeConfigs(base: OmniConfig, override: OmniConfig): OmniConfig {
 		merged.mcps = { ...base.mcps, ...override.mcps };
 	}
 
+	// Deep merge capabilities (sources, groups, always_enabled, always_disabled)
+	if (base.capabilities || override.capabilities) {
+		merged.capabilities = {
+			...base.capabilities,
+			...override.capabilities,
+			// Merge sources (override takes precedence for individual sources)
+			sources: { ...base.capabilities?.sources, ...override.capabilities?.sources },
+			// Merge groups (override takes precedence for individual groups)
+			groups: { ...base.capabilities?.groups, ...override.capabilities?.groups },
+			// Concatenate and dedupe always_enabled from both configs
+			always_enabled: [
+				...new Set([
+					...(base.capabilities?.always_enabled ?? []),
+					...(override.capabilities?.always_enabled ?? []),
+				]),
+			],
+			// Concatenate and dedupe always_disabled from both configs
+			always_disabled: [
+				...new Set([
+					...(base.capabilities?.always_disabled ?? []),
+					...(override.capabilities?.always_disabled ?? []),
+				]),
+			],
+		};
+		// Clean up empty arrays
+		if (merged.capabilities.always_enabled?.length === 0) {
+			delete merged.capabilities.always_enabled;
+		}
+		if (merged.capabilities.always_disabled?.length === 0) {
+			delete merged.capabilities.always_disabled;
+		}
+	}
+
 	return merged;
 }
 

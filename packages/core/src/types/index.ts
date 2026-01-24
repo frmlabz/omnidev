@@ -268,6 +268,8 @@ export interface CapabilitiesConfig {
 	groups?: Record<string, string[]>;
 	/** Capabilities that load in ALL profiles, regardless of profile config */
 	always_enabled?: string[];
+	/** Capabilities that are disabled in ALL profiles (typically in omni.local.toml) */
+	always_disabled?: string[];
 }
 
 // Config Types
