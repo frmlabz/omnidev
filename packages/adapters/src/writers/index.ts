@@ -10,10 +10,14 @@
 export type { AdapterWriterConfig, FileWriter, WriterContext, WriterResult } from "./types.js";
 
 // Writers
+export { ClaudeAgentsWriter } from "./claude-agents.js";
+export { ClaudeCommandsAsSkillsWriter } from "./claude-commands-as-skills.js";
 export { CodexTomlWriter } from "./codex-toml.js";
 export { CursorRulesWriter } from "./cursor-rules.js";
 export { HooksWriter } from "./hooks.js";
 export { InstructionsMdWriter } from "./instructions-md.js";
+export { OpenCodeAgentsWriter } from "./opencode-agents.js";
+export { OpenCodeCommandsWriter } from "./opencode-commands.js";
 export { SkillsWriter } from "./skills.js";
 
 // Execution

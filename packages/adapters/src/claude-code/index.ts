@@ -6,6 +6,8 @@ import type {
 	SyncBundle,
 } from "@omnidev-ai/core";
 import { executeWriters } from "../writers/index.js";
+import { ClaudeAgentsWriter } from "../writers/claude-agents.js";
+import { ClaudeCommandsAsSkillsWriter } from "../writers/claude-commands-as-skills.js";
 import { HooksWriter } from "../writers/hooks.js";
 import { InstructionsMdWriter } from "../writers/instructions-md.js";
 import { SkillsWriter } from "../writers/skills.js";
@@ -21,6 +23,8 @@ export const claudeCodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig
 	writers: [
 		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },
 		{ writer: SkillsWriter, outputPath: ".claude/skills/" },
+		{ writer: ClaudeAgentsWriter, outputPath: ".claude/agents/" },
+		{ writer: ClaudeCommandsAsSkillsWriter, outputPath: ".claude/skills/" },
 		{ writer: HooksWriter, outputPath: ".claude/settings.json" },
 	],
 

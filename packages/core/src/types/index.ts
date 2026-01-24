@@ -169,6 +169,26 @@ export interface Subagent {
 	hooks?: SubagentHooks;
 	/** Capability that provides this subagent */
 	capabilityId: string;
+
+	// OpenCode-specific fields (optional)
+	/** Mode: primary runs in main context, subagent is spawned (OpenCode) */
+	mode?: "primary" | "subagent";
+	/** Temperature for model sampling (OpenCode) */
+	temperature?: number;
+	/** Maximum steps/turns before stopping (OpenCode) */
+	maxSteps?: number;
+	/** Hide this agent from listings (OpenCode) */
+	hidden?: boolean;
+	/** Tool permission overrides as key-value pairs (OpenCode) */
+	toolPermissions?: Record<string, boolean>;
+	/** Granular permission config (OpenCode) */
+	permissions?: {
+		edit?: "allow" | "deny" | "ask";
+		bash?: Record<string, "allow" | "deny" | "ask">;
+		webfetch?: "allow" | "deny" | "ask";
+	};
+	/** Full model ID for OpenCode (e.g., "anthropic/claude-sonnet-4") */
+	modelId?: string;
 }
 
 export interface Command {
@@ -182,6 +202,12 @@ export interface Command {
 	prompt: string;
 	/** Capability that provides this command */
 	capabilityId: string;
+
+	// OpenCode-specific fields (optional)
+	/** Agent to delegate command execution to (OpenCode) */
+	agent?: string;
+	/** Full model ID for OpenCode (e.g., "anthropic/claude-sonnet-4") */
+	modelId?: string;
 }
 
 // Capability Source Types

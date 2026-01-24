@@ -9,6 +9,8 @@ import type {
 } from "@omnidev-ai/core";
 import { executeWriters } from "../writers/index.js";
 import { InstructionsMdWriter } from "../writers/instructions-md.js";
+import { OpenCodeAgentsWriter } from "../writers/opencode-agents.js";
+import { OpenCodeCommandsWriter } from "../writers/opencode-commands.js";
 import { SkillsWriter } from "../writers/skills.js";
 import type { AdapterWriterConfig } from "../writers/types.js";
 
@@ -22,6 +24,8 @@ export const opencodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[]
 	writers: [
 		{ writer: InstructionsMdWriter, outputPath: "AGENTS.md" },
 		{ writer: SkillsWriter, outputPath: ".opencode/skills/" },
+		{ writer: OpenCodeAgentsWriter, outputPath: ".opencode/agents/" },
+		{ writer: OpenCodeCommandsWriter, outputPath: ".opencode/commands/" },
 	],
 
 	async init(ctx: ProviderContext): Promise<ProviderInitResult> {

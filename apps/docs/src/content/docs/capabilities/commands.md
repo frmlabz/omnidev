@@ -37,6 +37,13 @@ Review PR #$1 with priority $2.
 | `description` | Yes | Brief description |
 | `allowed-tools` / `allowedTools` | No | Tool allowlist (Bash tool rules) |
 
+### OpenCode-specific fields
+
+| Field | Description |
+| --- | --- |
+| `agent` | Agent to delegate command execution to |
+| `modelId` | Full model ID (e.g., `anthropic/claude-sonnet-4`) |
+
 ### Placeholders
 
 - `$ARGUMENTS` for all arguments
@@ -56,6 +63,48 @@ Reference files with `@`:
 
 ```markdown
 Review @src/index.ts for correctness.
+```
+
+## Provider Output
+
+### Claude Code
+
+Claude Code does not have native command support. Commands are automatically transformed into skills and written to `.claude/skills/<command-name>/SKILL.md`:
+
+```markdown
+---
+name: review-pr
+description: "Review a pull request"
+allowed_tools: "Bash(git diff:*), Bash(git status:*)"
+---
+
+Review PR #$1 with priority $2.
+```
+
+Users can invoke commands using Claude's skill system with `/review-pr`.
+
+### OpenCode
+
+Commands are written to `.opencode/commands/<name>.md`:
+
+```markdown
+---
+description: "Review a pull request"
+---
+
+Review PR #$1 with priority $2.
+```
+
+If `agent` or `modelId` are specified, they will be included:
+
+```markdown
+---
+description: "Review a pull request"
+model: anthropic/claude-sonnet-4
+agent: code-reviewer
+---
+
+Review PR #$1 with priority $2.
 ```
 
 ## Programmatic commands

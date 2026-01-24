@@ -44,6 +44,64 @@ You are a senior code reviewer ensuring high standards.
 | `skills` | No | Skills to preload for this agent |
 | `hooks` | No | Lifecycle hooks scoped to this subagent |
 
+### OpenCode-specific fields
+
+These fields are only used when syncing to OpenCode:
+
+| Field | Description |
+| --- | --- |
+| `mode` | `primary` (runs in main context) or `subagent` (spawned) |
+| `temperature` | Model sampling temperature |
+| `maxSteps` | Maximum turns before stopping |
+| `hidden` | Hide this agent from listings |
+| `toolPermissions` | Object with tool names as keys and boolean values |
+| `permissions` | Granular permissions: `edit`, `bash`, `webfetch` |
+| `modelId` | Full model ID (e.g., `anthropic/claude-sonnet-4`) |
+
+## Provider Output
+
+### Claude Code
+
+Subagents are written to `.claude/agents/<name>.md`:
+
+```markdown
+---
+name: code-reviewer
+description: "Reviews code for quality and best practices"
+tools: Read, Glob, Grep
+model: sonnet
+---
+
+You are a senior code reviewer ensuring high standards.
+```
+
+### OpenCode
+
+Subagents are written to `.opencode/agents/<name>.md` with OpenCode-specific formatting:
+
+```markdown
+---
+description: "Reviews code for quality and best practices"
+model: anthropic/claude-sonnet-4
+tools:
+  read: true
+  glob: true
+  grep: true
+---
+
+You are a senior code reviewer ensuring high standards.
+```
+
+Model names are automatically mapped:
+- `sonnet` → `anthropic/claude-sonnet-4`
+- `opus` → `anthropic/claude-opus-4`
+- `haiku` → `anthropic/claude-haiku-3-5`
+
+Permission modes are also mapped:
+- `acceptEdits` → `{ edit: 'allow', bash: { '*': 'ask' } }`
+- `dontAsk` → `{ edit: 'allow', bash: { '*': 'allow' } }`
+- `plan` → `{ edit: 'deny', bash: { '*': 'deny' } }`
+
 ## Programmatic subagents
 
 ```typescript
