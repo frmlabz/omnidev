@@ -50,5 +50,5 @@ body:
     id: logs
     attributes:
       label: Logs / stack trace
-      description: Paste relevant logs. Use code blocks for readability.
+      description: Paste relevant logs. Use code blocks for readability. You can enable debug logging with `OMNIDEV_DEBUG=1 omnidev <command>`
       render: shell

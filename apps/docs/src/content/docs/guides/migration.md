@@ -46,6 +46,7 @@ omnidev init
 ```
 
 This creates:
+
 - `OMNI.md` - Your project instructions (source of truth)
 - `omni.toml` - Configuration file
 - `.omni/` - Runtime directory (automatically gitignored)
@@ -55,6 +56,7 @@ This creates:
 **Consolidate provider-specific instructions into `OMNI.md`:**
 
 If you have existing instruction files like:
+
 - `CLAUDE.md`
 - `AGENTS.md`
 - `.clodk/instructions.md`
@@ -80,6 +82,7 @@ A web application for managing tasks with real-time collaboration.
 ```
 
 **What NOT to migrate to OMNI.md:**
+
 - File tree structures (agents can discover this themselves)
 - Provider-specific tool configurations
 - Skills, commands, and agents (these become capabilities)
@@ -147,6 +150,7 @@ capabilities = ["my-project-tools"]
 If you have `.mcp.json` or MCP configurations in provider directories, move them to `omni.toml`:
 
 **Before** (`.mcp.json` or `.cursor/mcp.json`):
+
 ```json
 {
   "mcpServers": {
@@ -159,6 +163,7 @@ If you have `.mcp.json` or MCP configurations in provider directories, move them
 ```
 
 **After** (`omni.toml`):
+
 ```toml
 [mcp.filesystem]
 command = "npx"
@@ -218,6 +223,7 @@ omnidev sync
 ```
 
 This will:
+
 1. Fetch any external capabilities
 2. Process your local capabilities
 3. Generate `CLAUDE.md`, `AGENTS.md`, and other provider files from `OMNI.md`
@@ -231,6 +237,7 @@ omnidev doctor
 ```
 
 This checks:
+
 - Configuration validity
 - Capability availability
 - Provider file generation
@@ -239,6 +246,7 @@ This checks:
 ## Example migration
 
 **Before** - Old structure:
+
 ```
 my-project/
 ├── .clodk/
@@ -254,6 +262,7 @@ my-project/
 ```
 
 **After** - OmniDev structure:
+
 ```
 my-project/
 ├── capabilities/
@@ -306,10 +315,12 @@ For teams migrating together:
 1. One person performs the migration
 2. Commit `OMNI.md`, `omni.toml`, and updated `.gitignore`
 3. Team members run:
+
    ```bash
    npm install -g @omnidev-ai/cli
    omnidev sync
    ```
+
 4. Old provider files are regenerated automatically
 
 ## Troubleshooting
@@ -323,12 +334,13 @@ Run `omnidev doctor` to check configuration. Ensure your active profile has capa
 Verify MCP configuration in `omni.toml` matches your previous setup. Check logs with:
 
 ```bash
-omnidev sync --verbose
+OMNIDEV_DEBUG=1 omnidev sync
 ```
 
 ### Capabilities not loading
 
 Check that:
+
 1. Capability sources are registered in `omni.toml`
 2. Capabilities are enabled in your active profile
 3. File paths are correct (use absolute paths or `./` prefix for local files)
