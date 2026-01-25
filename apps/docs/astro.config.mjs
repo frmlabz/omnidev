@@ -134,6 +134,10 @@ export default defineConfig({
 						{ label: "Best Practices", link: "/advanced/best-practices" },
 					],
 				},
+				{
+					label: "Guides",
+					items: [{ label: "Migrating to OmniDev", link: "/guides/migration" }],
+				},
 			],
 		}),
 	],
