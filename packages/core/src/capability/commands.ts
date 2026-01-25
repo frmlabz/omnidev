@@ -1,38 +1,51 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Command } from "../types";
 import { parseFrontmatterWithMarkdown } from "./yaml-parser";
 
 interface CommandFrontmatter {
-	name: string;
+	name?: string;
 	description: string;
 	allowedTools?: string;
 }
 
 /**
- * Load commands from a commands/ directory of a capability.
- * Each command is a COMMAND.md file in its own subdirectory.
+ * Load commands from a capability directory.
+ * Checks multiple directory names: "commands", "command"
+ * Supports two formats:
+ * 1. Subdirectory format: <dir>/<name>/COMMAND.md
+ * 2. Flat file format: <dir>/<name>.md (for wrapped capabilities)
  */
 export async function loadCommands(
 	capabilityPath: string,
 	capabilityId: string,
 ): Promise<Command[]> {
-	const commandsDir = join(capabilityPath, "commands");
-
-	if (!existsSync(commandsDir)) {
-		return [];
-	}
-
 	const commands: Command[] = [];
-	const entries = readdirSync(commandsDir, { withFileTypes: true }).sort((a, b) =>
-		a.name.localeCompare(b.name),
-	);
+	const possibleDirNames = ["commands", "command"];
 
-	for (const entry of entries) {
-		if (entry.isDirectory()) {
-			const commandPath = join(commandsDir, entry.name, "COMMAND.md");
-			if (existsSync(commandPath)) {
+	for (const dirName of possibleDirNames) {
+		const dir = join(capabilityPath, dirName);
+
+		if (!existsSync(dir)) {
+			continue;
+		}
+
+		const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+
+		for (const entry of entries) {
+			if (entry.isDirectory()) {
+				// Subdirectory format: <dir>/<name>/COMMAND.md
+				const commandPath = join(dir, entry.name, "COMMAND.md");
+				if (existsSync(commandPath)) {
+					const command = await parseCommandFile(commandPath, capabilityId);
+					commands.push(command);
+				}
+			} else if (entry.isFile() && entry.name.endsWith(".md")) {
+				// Flat file format: <dir>/<name>.md (for wrapped capabilities)
+				const commandPath = join(dir, entry.name);
 				const command = await parseCommandFile(commandPath, capabilityId);
 				commands.push(command);
 			}
@@ -53,12 +66,16 @@ async function parseCommandFile(filePath: string, capabilityId: string): Promise
 	const frontmatter = parsed.frontmatter;
 	const prompt = parsed.markdown;
 
-	if (!frontmatter.name || !frontmatter.description) {
+	// Infer name from filename if not provided in frontmatter
+	const inferredName = basename(filePath, ".md").replace(/^COMMAND$/i, "");
+	const name = frontmatter.name || inferredName;
+
+	if (!name || !frontmatter.description) {
 		throw new Error(`Invalid COMMAND.md at ${filePath}: name and description required`);
 	}
 
 	const result: Command = {
-		name: frontmatter.name,
+		name,
 		description: frontmatter.description,
 		prompt: prompt.trim(),
 		capabilityId,

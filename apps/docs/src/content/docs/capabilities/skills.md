@@ -9,6 +9,8 @@ Skills are reusable task definitions that agents can invoke. Each skill lives in
 
 ## Structure
 
+Skills must be organized in subdirectories with a `SKILL.md` file. The `name` and `description` fields are required in the frontmatter.
+
 ```
 my-capability/
 └── skills/
@@ -35,6 +37,8 @@ description: Deploy application to production
 ```
 
 All files in the skill directory (besides `SKILL.md`) are included as references.
+
+**Note:** Unlike commands and subagents, skills cannot be flat files. They must always be in a subdirectory with `name` and `description` in the frontmatter.
 
 ## Programmatic skills
 

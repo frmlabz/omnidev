@@ -1,11 +1,11 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Subagent, SubagentHooks, SubagentModel, SubagentPermissionMode } from "../types";
 import { parseFrontmatterWithMarkdown } from "./yaml-parser";
 
 interface SubagentFrontmatter {
-	name: string;
+	name?: string;
 	description: string;
 	tools?: string;
 	disallowedTools?: string;
@@ -16,28 +16,44 @@ interface SubagentFrontmatter {
 }
 
 /**
- * Load subagents from the subagents/ directory of a capability.
- * Each subagent is a SUBAGENT.md file in its own subdirectory.
+ * Load subagents from a capability directory.
+ * Checks multiple directory names: "subagents", "agents", "agent", "subagent"
+ * Supports two formats:
+ * 1. Subdirectory format: <dir>/<name>/SUBAGENT.md or <dir>/<name>/AGENT.md
+ * 2. Flat file format: <dir>/<name>.md (for wrapped capabilities)
  */
 export async function loadSubagents(
 	capabilityPath: string,
 	capabilityId: string,
 ): Promise<Subagent[]> {
-	const subagentsDir = join(capabilityPath, "subagents");
-
-	if (!existsSync(subagentsDir)) {
-		return [];
-	}
-
 	const subagents: Subagent[] = [];
-	const entries = readdirSync(subagentsDir, { withFileTypes: true }).sort((a, b) =>
-		a.name.localeCompare(b.name),
-	);
+	const possibleDirNames = ["subagents", "agents", "agent", "subagent"];
 
-	for (const entry of entries) {
-		if (entry.isDirectory()) {
-			const subagentPath = join(subagentsDir, entry.name, "SUBAGENT.md");
-			if (existsSync(subagentPath)) {
+	for (const dirName of possibleDirNames) {
+		const dir = join(capabilityPath, dirName);
+
+		if (!existsSync(dir)) {
+			continue;
+		}
+
+		const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+
+		for (const entry of entries) {
+			if (entry.isDirectory()) {
+				// Subdirectory format: look for SUBAGENT.md or AGENT.md
+				let subagentPath = join(dir, entry.name, "SUBAGENT.md");
+				if (!existsSync(subagentPath)) {
+					subagentPath = join(dir, entry.name, "AGENT.md");
+				}
+				if (existsSync(subagentPath)) {
+					const subagent = await parseSubagentFile(subagentPath, capabilityId);
+					subagents.push(subagent);
+				}
+			} else if (entry.isFile() && entry.name.endsWith(".md")) {
+				// Flat file format: <dir>/<name>.md (for wrapped capabilities)
+				const subagentPath = join(dir, entry.name);
 				const subagent = await parseSubagentFile(subagentPath, capabilityId);
 				subagents.push(subagent);
 			}
@@ -59,12 +75,18 @@ async function parseSubagentFile(filePath: string, capabilityId: string): Promis
 	const frontmatter = parsed.frontmatter;
 	const systemPrompt = parsed.markdown;
 
-	if (!frontmatter.name || !frontmatter.description) {
+	// Infer name from filename if not provided in frontmatter
+	const inferredName = basename(filePath, ".md")
+		.replace(/^SUBAGENT$/i, "")
+		.replace(/^AGENT$/i, "");
+	const name = frontmatter.name || inferredName;
+
+	if (!name || !frontmatter.description) {
 		throw new Error(`Invalid SUBAGENT.md at ${filePath}: name and description required`);
 	}
 
 	const result: Subagent = {
-		name: frontmatter.name,
+		name,
 		description: frontmatter.description,
 		systemPrompt: systemPrompt.trim(),
 		capabilityId,

@@ -380,7 +380,7 @@ const code = "example";
 		expect(subagents[0]?.systemPrompt).toContain("```typescript");
 	});
 
-	test("ignores non-directory entries in subagents folder", async () => {
+	test("loads flat files in subagents folder", async () => {
 		const subagentsDir = join(capabilityPath, "subagents");
 		const validDir = join(subagentsDir, "valid-subagent");
 		mkdirSync(validDir, { recursive: true });
@@ -395,13 +395,22 @@ description: Valid subagent
 Valid prompt.`,
 		);
 
-		// Create a file directly in subagents/ directory (should be ignored)
-		writeFileSync(join(subagentsDir, "README.md"), "This should be ignored");
+		// Create a flat file directly in subagents/ directory
+		writeFileSync(
+			join(subagentsDir, "flat-subagent.md"),
+			`---
+name: flat-subagent
+description: Flat file subagent
+---
+
+Flat file prompt.`,
+		);
 
 		const subagents = await loadSubagents(capabilityPath, "test-cap");
 
-		expect(subagents).toHaveLength(1);
-		expect(subagents[0]?.name).toBe("valid-subagent");
+		expect(subagents).toHaveLength(2);
+		expect(subagents.find((s) => s.name === "valid-subagent")).toBeDefined();
+		expect(subagents.find((s) => s.name === "flat-subagent")).toBeDefined();
 	});
 
 	test("associates subagents with correct capability ID", async () => {

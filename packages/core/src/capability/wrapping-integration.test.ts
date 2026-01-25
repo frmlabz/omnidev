@@ -306,7 +306,7 @@ description: Test command
 		expect(existsSync(join(pluginDir, "rules", "example.md"))).toBe(true);
 	});
 
-	test("renames 'agent' to 'agents' for consistency", async () => {
+	test("does NOT rename 'agent' folder (to avoid breaking internal references)", async () => {
 		const pluginDir = join(testDir.path, "plugins", "agent-plugin");
 		mkdirSync(join(pluginDir, "agent"), { recursive: true });
 
@@ -319,13 +319,13 @@ description: Test command
 		// Run normalization
 		await normalizeFolderNames(pluginDir);
 
-		// 'agent' should be renamed to 'agents'
-		expect(existsSync(join(pluginDir, "agent"))).toBe(false);
-		expect(existsSync(join(pluginDir, "agents"))).toBe(true);
-		expect(existsSync(join(pluginDir, "agents", "researcher.md"))).toBe(true);
+		// 'agent' should NOT be renamed (loaders check multiple directory names instead)
+		expect(existsSync(join(pluginDir, "agent"))).toBe(true);
+		expect(existsSync(join(pluginDir, "agents"))).toBe(false);
+		expect(existsSync(join(pluginDir, "agent", "researcher.md"))).toBe(true);
 	});
 
-	test("renames 'subagent' to 'subagents'", async () => {
+	test("does NOT rename 'subagent' folder (to avoid breaking internal references)", async () => {
 		const pluginDir = join(testDir.path, "plugins", "subagent-plugin");
 		mkdirSync(join(pluginDir, "subagent"), { recursive: true });
 
@@ -338,10 +338,10 @@ description: Test command
 		// Run normalization
 		await normalizeFolderNames(pluginDir);
 
-		// 'subagent' should be renamed to 'subagents'
-		expect(existsSync(join(pluginDir, "subagent"))).toBe(false);
-		expect(existsSync(join(pluginDir, "subagents"))).toBe(true);
-		expect(existsSync(join(pluginDir, "subagents", "helper.md"))).toBe(true);
+		// 'subagent' should NOT be renamed (loaders check multiple directory names instead)
+		expect(existsSync(join(pluginDir, "subagent"))).toBe(true);
+		expect(existsSync(join(pluginDir, "subagents"))).toBe(false);
+		expect(existsSync(join(pluginDir, "subagent", "helper.md"))).toBe(true);
 	});
 
 	test("leaves 'docs' and 'documentation' as is", async () => {

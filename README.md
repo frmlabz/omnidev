@@ -35,14 +35,14 @@ This creates an `omni.toml` configuration file and `.omni/` directory with your 
 |---------|:-----------:|:------:|:-----:|:--------:|
 | **Skills** | ✅ | ✅ | ✅ | ✅ |
 | **Agents** | ✅ | ✅ | ❌ | ✅ |
-| **Commands** | ✅* | ✅ | ❌ | ✅ |
+| **Commands** | ✅* | ✅ | ✅* | ✅ |
 | **Hooks** | ✅ | ❌ | ❌ | ❌ |
 | **Rules** | ✅ | ✅ | ✅ | ✅ |
 | **MCP Servers** | ✅ | ✅ | ✅ | ✅ |
 
 **Notes:**
 
-- **Claude Code Commands**: Merged into skills (Claude Code doesn't have a native commands concept)
+- **Claude Code & Codex Commands**: Merged into skills (these providers don't have native commands concept)
 - **Codex MCP**: Supports `stdio` and `http` transports only (SSE skipped with warning)
 
 ## What Can OmniDev Do?

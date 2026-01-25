@@ -11,6 +11,7 @@ import {
 	executeWriters,
 	InstructionsMdWriter,
 	SkillsWriter,
+	CommandsAsSkillsWriter,
 	type AdapterWriterConfig,
 } from "#writers/generic/index";
 import { CodexTomlWriter } from "#writers/codex/index";
@@ -25,6 +26,7 @@ export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } 
 	writers: [
 		{ writer: InstructionsMdWriter, outputPath: "AGENTS.md" },
 		{ writer: SkillsWriter, outputPath: ".codex/skills/" },
+		{ writer: CommandsAsSkillsWriter, outputPath: ".codex/skills/" },
 		{ writer: CodexTomlWriter, outputPath: ".codex/config.toml" },
 	],
 

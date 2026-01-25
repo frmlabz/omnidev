@@ -10,9 +10,10 @@ import {
 	HooksWriter,
 	InstructionsMdWriter,
 	SkillsWriter,
+	CommandsAsSkillsWriter,
 	type AdapterWriterConfig,
 } from "#writers/generic/index";
-import { ClaudeAgentsWriter, ClaudeCommandsAsSkillsWriter } from "#writers/claude/index";
+import { ClaudeAgentsWriter } from "#writers/claude/index";
 
 /**
  * Claude Code adapter - writes CLAUDE.md, skills, and hooks.
@@ -25,7 +26,7 @@ export const claudeCodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig
 		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },
 		{ writer: SkillsWriter, outputPath: ".claude/skills/" },
 		{ writer: ClaudeAgentsWriter, outputPath: ".claude/agents/" },
-		{ writer: ClaudeCommandsAsSkillsWriter, outputPath: ".claude/skills/" },
+		{ writer: CommandsAsSkillsWriter, outputPath: ".claude/skills/" },
 		{ writer: HooksWriter, outputPath: ".claude/settings.json" },
 	],
 

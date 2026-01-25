@@ -83,6 +83,22 @@ Review PR #$1 with priority $2.
 
 Users can invoke commands using Claude's skill system with `/review-pr`.
 
+### Codex
+
+Codex does not have native command support. Commands are automatically transformed into skills and written to `.codex/skills/<command-name>/SKILL.md`:
+
+```markdown
+---
+name: review-pr
+description: "Review a pull request"
+allowed_tools: "Bash(git diff:*), Bash(git status:*)"
+---
+
+Review PR #$1 with priority $2.
+```
+
+Users can invoke commands using Codex's skill system with `/review-pr`.
+
 ### OpenCode
 
 Commands are written to `.opencode/commands/<name>.md`:

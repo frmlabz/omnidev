@@ -294,7 +294,7 @@ Reference files with @src/file.js.`;
 		expect(commands[0]?.prompt).toContain("@src/file.js");
 	});
 
-	test("ignores non-directory entries in commands folder", async () => {
+	test("loads flat files in commands folder", async () => {
 		const commandsDir = join(capabilityPath, "commands");
 		const validDir = join(commandsDir, "valid-command");
 		mkdirSync(validDir, { recursive: true });
@@ -309,13 +309,22 @@ description: Valid command
 Valid prompt.`,
 		);
 
-		// Create a file directly in commands/ directory (should be ignored)
-		writeFileSync(join(commandsDir, "README.md"), "This should be ignored");
+		// Create a flat file directly in commands/ directory
+		writeFileSync(
+			join(commandsDir, "flat-command.md"),
+			`---
+name: flat-command
+description: Flat file command
+---
+
+Flat file prompt.`,
+		);
 
 		const commands = await loadCommands(capabilityPath, "test-cap");
 
-		expect(commands).toHaveLength(1);
-		expect(commands[0]?.name).toBe("valid-command");
+		expect(commands).toHaveLength(2);
+		expect(commands.find((c) => c.name === "valid-command")).toBeDefined();
+		expect(commands.find((c) => c.name === "flat-command")).toBeDefined();
 	});
 
 	test("associates commands with correct capability ID", async () => {

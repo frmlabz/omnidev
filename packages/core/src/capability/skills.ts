@@ -9,24 +9,34 @@ interface SkillFrontmatter {
 	description: string;
 }
 
+/**
+ * Load skills from a capability directory.
+ * Checks multiple directory names: "skills", "skill"
+ * Skills must be in subdirectory format: <dir>/<name>/SKILL.md
+ */
 export async function loadSkills(capabilityPath: string, capabilityId: string): Promise<Skill[]> {
-	const skillsDir = join(capabilityPath, "skills");
-
-	if (!existsSync(skillsDir)) {
-		return [];
-	}
-
 	const skills: Skill[] = [];
-	const entries = readdirSync(skillsDir, { withFileTypes: true }).sort((a, b) =>
-		a.name.localeCompare(b.name),
-	);
+	const possibleDirNames = ["skills", "skill"];
 
-	for (const entry of entries) {
-		if (entry.isDirectory()) {
-			const skillPath = join(skillsDir, entry.name, "SKILL.md");
-			if (existsSync(skillPath)) {
-				const skill = await parseSkillFile(skillPath, capabilityId);
-				skills.push(skill);
+	for (const dirName of possibleDirNames) {
+		const dir = join(capabilityPath, dirName);
+
+		if (!existsSync(dir)) {
+			continue;
+		}
+
+		const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+			a.name.localeCompare(b.name),
+		);
+
+		for (const entry of entries) {
+			if (entry.isDirectory()) {
+				// Subdirectory format: <dir>/<name>/SKILL.md
+				const skillPath = join(dir, entry.name, "SKILL.md");
+				if (existsSync(skillPath)) {
+					const skill = await parseSkillFile(skillPath, capabilityId);
+					skills.push(skill);
+				}
 			}
 		}
 	}
@@ -47,7 +57,9 @@ async function parseSkillFile(filePath: string, capabilityId: string): Promise<S
 	const instructions = parsed.markdown;
 
 	if (!frontmatter.name || !frontmatter.description) {
-		throw new Error(`Invalid SKILL.md at ${filePath}: name and description required`);
+		throw new Error(
+			`Invalid SKILL.md at ${filePath}: name and description required in frontmatter`,
+		);
 	}
 
 	return {

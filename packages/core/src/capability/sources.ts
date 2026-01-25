@@ -990,23 +990,25 @@ export interface DiscoveredContent {
 }
 
 /**
- * Rename singular folder names to plural for consistency
- * skill -> skills, command -> commands, rule -> rules, agent -> agents
+ * Normalize folder names to plural form for consistency.
+ * Note: We intentionally do NOT rename agents/agent to subagents to avoid breaking
+ * internal references. The loaders handle multiple directory names.
+ * - skill -> skills
+ * - command -> commands
+ * - rule -> rules
  */
 export async function normalizeFolderNames(repoPath: string): Promise<void> {
 	const renameMappings = [
 		{ from: "skill", to: "skills" },
 		{ from: "command", to: "commands" },
 		{ from: "rule", to: "rules" },
-		{ from: "agent", to: "agents" },
-		{ from: "subagent", to: "subagents" },
 	];
 
 	for (const { from, to } of renameMappings) {
 		const fromPath = join(repoPath, from);
 		const toPath = join(repoPath, to);
 
-		// Only rename if singular exists and plural doesn't
+		// Only rename if source exists and target doesn't
 		if (existsSync(fromPath) && !existsSync(toPath)) {
 			try {
 				const stats = await stat(fromPath);
@@ -1215,7 +1217,8 @@ async function fetchGitCapabilitySource(
 	}
 
 	if (needsWrap) {
-		// Normalize folder names (singular -> plural)
+		// Normalize folder names (singular -> plural for skill/command/rule)
+		// Note: We don't rename agents to avoid breaking internal references
 		await normalizeFolderNames(repoPath);
 
 		// Discover content and generate capability.toml

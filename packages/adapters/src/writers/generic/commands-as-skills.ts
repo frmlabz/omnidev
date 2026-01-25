@@ -22,14 +22,14 @@ function generateSkillFrontmatter(command: Command): string {
 }
 
 /**
- * Writer that transforms commands into skills for Claude Code.
+ * Writer that transforms commands into skills.
  *
- * Since Claude Code doesn't have native command support, commands are
- * materialized as skills in `.claude/skills/<command-name>/SKILL.md`.
- * Users can then invoke `/command-name` using Claude's skill system.
+ * For providers that don't have native command support (like Claude Code and Codex),
+ * commands are materialized as skills in `<provider>/skills/<command-name>/SKILL.md`.
+ * Users can then invoke `/command-name` using the provider's skill system.
  */
-export const ClaudeCommandsAsSkillsWriter: FileWriter = {
-	id: "claude-commands-as-skills",
+export const CommandsAsSkillsWriter: FileWriter = {
+	id: "commands-as-skills",
 
 	async write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult> {
 		const skillsDir = join(ctx.projectRoot, ctx.outputPath);
