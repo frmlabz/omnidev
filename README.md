@@ -29,6 +29,8 @@ This creates an `omni.toml` configuration file and `.omni/` directory with your 
 
 **📚 [Read the getting started guide →](https://omnidev.frmtools.com/getting-started/)**
 
+**🔄 Coming from an existing setup?** Check out the [migration guide](https://omnidev.frmtools.com/guides/migration/) and [migration skill](./migration/SKILL.md)
+
 ## Provider Support
 
 | Feature | Claude Code | Cursor | Codex | OpenCode |

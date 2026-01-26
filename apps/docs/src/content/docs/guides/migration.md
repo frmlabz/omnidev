@@ -5,12 +5,12 @@ sidebar:
   order: 2
 ---
 
-This guide walks you through migrating an existing repository that uses provider-specific configuration files (`.clodk`, `.opencode`, `AGENTS.md`, `.mcp.json`, etc.) to OmniDev's unified approach.
+This guide walks you through migrating an existing repository that uses provider-specific configuration files (`.claude`, `.opencode`, `AGENTS.md`, `.mcp.json`, etc.) to OmniDev's unified approach.
 
 ## Prerequisites
 
 - An existing repository with provider-specific files like:
-  - `.clodk/` - Clodk configuration
+  - `.claude/` - claude configuration
   - `.opencode/` - OpenCode configuration
   - `AGENTS.md`, `CLAUDE.md`, or similar instruction files
   - `.cursor/` - Cursor AI configuration
@@ -59,7 +59,6 @@ If you have existing instruction files like:
 
 - `CLAUDE.md`
 - `AGENTS.md`
-- `.clodk/instructions.md`
 - `.cursor/rules`
 
 Move the **project-level** content (not provider-specific details) to `OMNI.md`:
@@ -99,36 +98,21 @@ mkdir -p capabilities
 
 #### Move skills/commands to capabilities
 
-For example, if you have custom skills in `.clodk/skills/`:
+For example, if you have custom skills in `.claude/skills/`:
 
 ```bash
 # Create a capability for your custom tools
 mkdir -p capabilities/my-project-tools
 ```
 
-Create `capabilities/my-project-tools/index.ts`:
+Create `capabilities/my-project-tools/capability.toml`:
 
-```typescript
-import type { CapabilityExport } from "@omnidev-ai/core";
-
-export default {
-  skills: [
-    {
-      id: "deploy",
-      name: "deploy",
-      description: "Deploy the application",
-      // ... skill definition
-    }
-  ],
-  commands: [
-    {
-      id: "status",
-      name: "status",
-      description: "Check deployment status",
-      // ... command definition
-    }
-  ]
-} satisfies CapabilityExport;
+```toml
+[capability]
+id = "my-project-tools"
+name = "My Project Tools"
+version = "1.0.0"
+description = "Tools for my project"
 ```
 
 See [Creating Capabilities](/advanced/creating-capabilities) for detailed documentation on capability structure.
@@ -190,7 +174,7 @@ AGENTS.md
 .mcp.json
 
 # Old provider directories (if migrating away)
-.clodk/
+.claude/
 .opencode/
 ```
 
@@ -202,16 +186,16 @@ After verifying your migration, clean up old files:
 
 ```bash
 # Remove old instruction files (these will be regenerated)
-rm -f CLAUDE.md AGENTS.md
+git rm --cached CLAUDE.md AGENTS.md
 
 # Remove old MCP configs (now in omni.toml)
-rm -f .mcp.json
-rm -f .cursor/mcp.json
+git rm --cached .mcp.json
+git rm --cached .cursor/mcp.json
 
 # Optional: Remove old provider directories entirely
 # (Only do this after moving all custom capabilities)
-# rm -rf .clodk/
-# rm -rf .opencode/
+# git rm --cached .claude/
+# git rm --cached .opencode/
 ```
 
 ### 8) Run your first sync
@@ -249,7 +233,7 @@ This checks:
 
 ```
 my-project/
-├── .clodk/
+├── .claude/
 │   ├── skills/
 │   │   └── deploy.ts
 │   └── instructions.md
@@ -267,7 +251,7 @@ my-project/
 my-project/
 ├── capabilities/
 │   └── my-project-tools/
-│       └── index.ts
+│       └── capability.toml
 ├── .omni/              # gitignored
 ├── OMNI.md             # source of truth
 ├── omni.toml           # configuration
@@ -344,6 +328,14 @@ Check that:
 1. Capability sources are registered in `omni.toml`
 2. Capabilities are enabled in your active profile
 3. File paths are correct (use absolute paths or `./` prefix for local files)
+
+## Migration Skill
+
+You can use this skill definition to help AI agents guide users through the migration process:
+
+See migration [SKILL.md](https://github.com/frmlabz/omnidev/blob/main/migration/SKILL.md) for the skill definition.
+
+Copy this skill to your `.claude/skills/`, `.cursor/`, or other provider directory to enable migration assistance.
 
 ## Next steps
 
