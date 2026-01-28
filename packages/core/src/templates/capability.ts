@@ -9,15 +9,28 @@ export interface CapabilityTemplateOptions {
 }
 
 /**
+ * Escape a string for use as a TOML basic string value.
+ * Escapes backslashes, double quotes, and control characters.
+ */
+function escapeTomlString(value: string): string {
+	return value
+		.replace(/\\/g, "\\\\") // Escape backslashes first
+		.replace(/"/g, '\\"') // Escape double quotes
+		.replace(/\n/g, "\\n") // Escape newlines
+		.replace(/\r/g, "\\r") // Escape carriage returns
+		.replace(/\t/g, "\\t"); // Escape tabs
+}
+
+/**
  * Generate a capability.toml file for a new capability.
  */
 export function generateCapabilityToml(options: CapabilityTemplateOptions): string {
 	const description = options.description || "TODO: Add a description for your capability";
 	return `[capability]
-id = "${options.id}"
-name = "${options.name}"
+id = "${escapeTomlString(options.id)}"
+name = "${escapeTomlString(options.name)}"
 version = "0.1.0"
-description = "${description}"
+description = "${escapeTomlString(description)}"
 
 # Optional author information
 # [capability.author]
