@@ -1,5 +1,17 @@
 # @omnidev-ai/core
 
+## 0.13.1
+
+### Patch Changes
+
+- d2b0f36: Fix sync failing when local and remote capability branches have diverged
+
+  Replaces `git pull --ff-only` with `git reset --hard` when fetching capability sources, ensuring the sync always matches the remote state regardless of local changes or divergent history.
+
+- 3014846: Fix TOML parsing error when capability README contains HTML with double quotes
+
+  Adds `escapeTomlString` helper to properly escape special characters (backslashes, double quotes, newlines, tabs) when generating capability.toml files from wrapped repositories.
+
 ## 0.13.0
 
 ### Minor Changes
