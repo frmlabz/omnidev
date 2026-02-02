@@ -45,12 +45,25 @@ All files in the skill directory (besides `SKILL.md`) are included as references
 You can also export skills from `index.ts`:
 
 ```typescript
-import type { CapabilityExport } from "@omnidev-ai/core";
+import type { CapabilityExport } from "@omnidev-ai/capability";
 
 export default {
   skills: [
     {
-      skillMd: "---\nname: deploy\ndescription: Deploy\n---\n\n# Deploy\n...",
+      // name and description go in the YAML frontmatter
+      skillMd: `---
+name: deploy
+description: Deploy application to production
+---
+
+# Deploy
+
+## Steps
+
+1. Run pre-deployment checks
+2. Build production bundle
+3. Deploy to server
+`,
       references: [
         { name: "deploy.sh", content: "#!/bin/bash\necho Deploy" }
       ]

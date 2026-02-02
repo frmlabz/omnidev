@@ -378,38 +378,50 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 	const exports = await importCapabilityExports(capabilityPath);
 
 	// Check if exports contains programmatic skills/rules/docs
+	// Support both named exports (export const skills = [...]) and default export (export default { skills: [...] })
 	// biome-ignore lint/suspicious/noExplicitAny: Dynamic module exports need runtime type checking
 	const exportsAny = exports as any;
+	const defaultExport = exportsAny.default ?? {};
 
-	const skills =
-		"skills" in exports && Array.isArray(exportsAny.skills)
-			? convertSkillExports(exportsAny.skills, id)
-			: await loadSkills(capabilityPath, id);
+	// Helper to get value from either named export or default export
+	const getExportValue = (key: string) => {
+		if (key in exports && exports[key] !== undefined) {
+			return exportsAny[key];
+		}
+		if (key in defaultExport && defaultExport[key] !== undefined) {
+			return defaultExport[key];
+		}
+		return undefined;
+	};
 
-	const rules =
-		"rules" in exports && Array.isArray(exportsAny.rules)
-			? convertRuleExports(exportsAny.rules, id)
-			: await loadRules(capabilityPath, id);
+	const skillsExport = getExportValue("skills");
+	const skills = Array.isArray(skillsExport)
+		? convertSkillExports(skillsExport, id)
+		: await loadSkills(capabilityPath, id);
 
-	const docs =
-		"docs" in exports && Array.isArray(exportsAny.docs)
-			? convertDocExports(exportsAny.docs, id)
-			: await loadDocs(capabilityPath, id);
+	const rulesExport = getExportValue("rules");
+	const rules = Array.isArray(rulesExport)
+		? convertRuleExports(rulesExport, id)
+		: await loadRules(capabilityPath, id);
 
-	const subagents =
-		"subagents" in exports && Array.isArray(exportsAny.subagents)
-			? convertSubagentExports(exportsAny.subagents, id)
-			: await loadSubagents(capabilityPath, id);
+	const docsExport = getExportValue("docs");
+	const docs = Array.isArray(docsExport)
+		? convertDocExports(docsExport, id)
+		: await loadDocs(capabilityPath, id);
 
-	const commands =
-		"commands" in exports && Array.isArray(exportsAny.commands)
-			? convertCommandExports(exportsAny.commands, id)
-			: await loadCommands(capabilityPath, id);
+	const subagentsExport = getExportValue("subagents");
+	const subagents = Array.isArray(subagentsExport)
+		? convertSubagentExports(subagentsExport, id)
+		: await loadSubagents(capabilityPath, id);
 
+	const commandsExport = getExportValue("commands");
+	const commands = Array.isArray(commandsExport)
+		? convertCommandExports(commandsExport, id)
+		: await loadCommands(capabilityPath, id);
+
+	const typeDefinitionsExport = getExportValue("typeDefinitions");
 	const typeDefinitionsFromExports =
-		"typeDefinitions" in exports && typeof exportsAny.typeDefinitions === "string"
-			? (exportsAny.typeDefinitions as string)
-			: undefined;
+		typeof typeDefinitionsExport === "string" ? typeDefinitionsExport : undefined;
 
 	const typeDefinitions =
 		typeDefinitionsFromExports !== undefined
@@ -417,10 +429,8 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 			: await loadTypeDefinitions(capabilityPath);
 
 	// Extract gitignore patterns from exports
-	const gitignore =
-		"gitignore" in exports && Array.isArray(exportsAny.gitignore)
-			? (exportsAny.gitignore as string[])
-			: undefined;
+	const gitignoreExport = getExportValue("gitignore");
+	const gitignore = Array.isArray(gitignoreExport) ? (gitignoreExport as string[]) : undefined;
 
 	// Load hooks from hooks/hooks.toml or hooks.json if present
 	// Resolve capability root variables to absolute paths during loading
