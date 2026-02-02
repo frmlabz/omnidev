@@ -1,5 +1,23 @@
 # @omnidev-ai/core
 
+## 0.14.0
+
+### Minor Changes
+
+- 1e84ae2: Support programmatic skills, rules, docs, and subagents from default exports
+
+  Capability loader now correctly reads programmatic content from both named exports (`export const skills = [...]`) and default exports (`export default { skills: [...] }`). Previously, only named exports worked, causing capabilities using the recommended `export default` pattern to have their programmatic skills ignored.
+
+### Patch Changes
+
+- d2b0f36: Fix sync failing when local and remote capability branches have diverged
+
+  Replaces `git pull --ff-only` with `git reset --hard` when fetching capability sources, ensuring the sync always matches the remote state regardless of local changes or divergent history.
+
+- 3014846: Fix TOML parsing error when capability README contains HTML with double quotes
+
+  Adds `escapeTomlString` helper to properly escape special characters (backslashes, double quotes, newlines, tabs) when generating capability.toml files from wrapped repositories.
+
 ## 0.13.0
 
 ### Minor Changes
