@@ -1,5 +1,11 @@
 # @omnidev-ai/capability
 
+## 0.16.0
+
+### Minor Changes
+
+- 1f73762: Do a minor bump
+
 ## 0.14.0
 
 ### Patch Changes
