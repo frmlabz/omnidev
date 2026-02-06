@@ -393,7 +393,7 @@ description = "Has exports"`,
 		expect(typeof capability.exports.myFunction).toBe("function");
 	});
 
-	test("programmatic skills take precedence over filesystem", async () => {
+	test("merges programmatic and filesystem skills", async () => {
 		const capPath = join(".omni", "capabilities", "programmatic-skills");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
@@ -433,13 +433,60 @@ From code\`
 
 		const capability = await loadCapability(capPath);
 
-		// Should have programmatic skills, not filesystem ones
+		// Should have both filesystem and programmatic skills
+		expect(capability.skills).toHaveLength(2);
+		expect(capability.skills.find((s) => s.name === "fs-skill")).toBeDefined();
+		expect(capability.skills.find((s) => s.name === "programmatic-skill")).toBeDefined();
+	});
+
+	test("programmatic skills override filesystem skills with same name", async () => {
+		const capPath = join(".omni", "capabilities", "skill-override");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "skill-override"
+name = "Skill Override"
+version = "1.0.0"
+description = "Tests name conflict resolution"`,
+		);
+
+		// Create filesystem skill
+		const skillPath = join(capPath, "skills", "shared-skill");
+		mkdirSync(skillPath, { recursive: true });
+		writeFileSync(
+			join(skillPath, "SKILL.md"),
+			`---
+name: shared-skill
+description: Filesystem version
+---
+From filesystem`,
+		);
+
+		// Create index.ts with programmatic skill using the same name
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const skills = [
+  {
+    skillMd: \`---
+name: shared-skill
+description: Programmatic version
+---
+From code\`
+  }
+];`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		// Should have one skill, with programmatic version winning
 		expect(capability.skills).toHaveLength(1);
-		expect(capability.skills[0]?.name).toBe("programmatic-skill");
+		expect(capability.skills[0]?.name).toBe("shared-skill");
+		expect(capability.skills[0]?.description).toBe("Programmatic version");
 		expect(capability.skills[0]?.instructions).toBe("From code");
 	});
 
-	test("programmatic rules take precedence over filesystem", async () => {
+	test("merges programmatic and filesystem rules", async () => {
 		const capPath = join(".omni", "capabilities", "programmatic-rules");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
@@ -466,13 +513,13 @@ description = "Has programmatic rules"`,
 
 		const capability = await loadCapability(capPath);
 
-		// Should have programmatic rules, not filesystem ones
-		expect(capability.rules).toHaveLength(1);
-		expect(capability.rules[0]?.name).toBe("rule-1");
-		expect(capability.rules[0]?.content).toBe("From code");
+		// Should have both filesystem and programmatic rules
+		expect(capability.rules).toHaveLength(2);
+		expect(capability.rules.find((r) => r.name === "fs-rule")).toBeDefined();
+		expect(capability.rules.find((r) => r.name === "rule-1")).toBeDefined();
 	});
 
-	test("programmatic docs take precedence over filesystem", async () => {
+	test("merges programmatic and filesystem docs", async () => {
 		const capPath = join(".omni", "capabilities", "programmatic-docs");
 		mkdirSync(capPath, { recursive: true });
 		writeFileSync(
@@ -500,10 +547,10 @@ description = "Has programmatic docs"`,
 
 		const capability = await loadCapability(capPath);
 
-		// Should have programmatic docs, not filesystem ones
-		expect(capability.docs).toHaveLength(1);
-		expect(capability.docs[0]?.name).toBe("programmatic-doc");
-		expect(capability.docs[0]?.content).toBe("From code");
+		// Should have both filesystem and programmatic docs
+		expect(capability.docs).toHaveLength(2);
+		expect(capability.docs.find((d) => d.name === "definition")).toBeDefined();
+		expect(capability.docs.find((d) => d.name === "programmatic-doc")).toBeDefined();
 	});
 
 	test("programmatic type definitions take precedence over filesystem", async () => {

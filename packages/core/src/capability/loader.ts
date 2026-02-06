@@ -365,6 +365,21 @@ function convertCommandExports(commandExports: unknown[], capabilityId: string):
 }
 
 /**
+ * Merge file-based and programmatic entries by name.
+ * Programmatic entries take precedence on name conflicts.
+ */
+function mergeByName<T extends { name: string }>(fileBased: T[], programmatic: T[]): T[] {
+	const byName = new Map<string, T>();
+	for (const item of fileBased) {
+		byName.set(item.name, item);
+	}
+	for (const item of programmatic) {
+		byName.set(item.name, item);
+	}
+	return Array.from(byName.values());
+}
+
+/**
  * Loads a complete capability including config, skills, rules, docs, and exports.
  * @param capabilityPath - Path to the capability directory
  * @returns Fully loaded capability
@@ -374,7 +389,7 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 	const config = await loadCapabilityConfig(capabilityPath);
 	const id = config.capability.id;
 
-	// Load content - programmatic takes precedence
+	// Load content from both programmatic exports and filesystem, then merge
 	const exports = await importCapabilityExports(capabilityPath);
 
 	// Check if exports contains programmatic skills/rules/docs
@@ -394,30 +409,37 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 		return undefined;
 	};
 
+	// Load from both sources and merge (programmatic wins on name conflicts)
 	const skillsExport = getExportValue("skills");
-	const skills = Array.isArray(skillsExport)
+	const programmaticSkills = Array.isArray(skillsExport)
 		? convertSkillExports(skillsExport, id)
-		: await loadSkills(capabilityPath, id);
+		: [];
+	const fileSkills = await loadSkills(capabilityPath, id);
+	const skills = mergeByName(fileSkills, programmaticSkills);
 
 	const rulesExport = getExportValue("rules");
-	const rules = Array.isArray(rulesExport)
-		? convertRuleExports(rulesExport, id)
-		: await loadRules(capabilityPath, id);
+	const programmaticRules = Array.isArray(rulesExport) ? convertRuleExports(rulesExport, id) : [];
+	const fileRules = await loadRules(capabilityPath, id);
+	const rules = mergeByName(fileRules, programmaticRules);
 
 	const docsExport = getExportValue("docs");
-	const docs = Array.isArray(docsExport)
-		? convertDocExports(docsExport, id)
-		: await loadDocs(capabilityPath, id);
+	const programmaticDocs = Array.isArray(docsExport) ? convertDocExports(docsExport, id) : [];
+	const fileDocs = await loadDocs(capabilityPath, id);
+	const docs = mergeByName(fileDocs, programmaticDocs);
 
 	const subagentsExport = getExportValue("subagents");
-	const subagents = Array.isArray(subagentsExport)
+	const programmaticSubagents = Array.isArray(subagentsExport)
 		? convertSubagentExports(subagentsExport, id)
-		: await loadSubagents(capabilityPath, id);
+		: [];
+	const fileSubagents = await loadSubagents(capabilityPath, id);
+	const subagents = mergeByName(fileSubagents, programmaticSubagents);
 
 	const commandsExport = getExportValue("commands");
-	const commands = Array.isArray(commandsExport)
+	const programmaticCommands = Array.isArray(commandsExport)
 		? convertCommandExports(commandsExport, id)
-		: await loadCommands(capabilityPath, id);
+		: [];
+	const fileCommands = await loadCommands(capabilityPath, id);
+	const commands = mergeByName(fileCommands, programmaticCommands);
 
 	const typeDefinitionsExport = getExportValue("typeDefinitions");
 	const typeDefinitionsFromExports =
