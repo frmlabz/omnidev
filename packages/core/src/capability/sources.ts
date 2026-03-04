@@ -34,6 +34,23 @@ const AGENT_DIRS = ["agents", "agent", "subagents", "subagent"];
 const COMMAND_DIRS = ["commands", "command"];
 const RULE_DIRS = ["rules", "rule"];
 const DOC_DIRS = ["docs", "doc", "documentation"];
+const WRAPPED_CONTENT_DIRS = new Set([
+	...SKILL_DIRS,
+	...AGENT_DIRS,
+	...COMMAND_DIRS,
+	...RULE_DIRS,
+	...DOC_DIRS,
+	"hooks",
+	".claude-plugin",
+]);
+const WRAPPED_ROOT_FILES_EXACT = new Set([".gitignore", "hooks.json"]);
+const WRAPPED_ROOT_FILE_PATTERNS = [
+	/^readme(?:\..+)?$/i,
+	/^license(?:\..+)?$/i,
+	/^licence(?:\..+)?$/i,
+	/^notice(?:\..+)?$/i,
+	/^copying(?:\..+)?$/i,
+];
 
 // File patterns for each content type
 const SKILL_FILES = ["SKILL.md", "skill.md", "Skill.md"];
@@ -858,6 +875,74 @@ async function shouldWrapDirectory(dirPath: string): Promise<boolean> {
 	return false;
 }
 
+function isRecognizedWrappedDirectory(dirName: string, keepGitDir = false): boolean {
+	if (keepGitDir && dirName === ".git") {
+		return true;
+	}
+	return WRAPPED_CONTENT_DIRS.has(dirName);
+}
+
+function isMandatoryWrappedRootFile(fileName: string): boolean {
+	if (WRAPPED_ROOT_FILES_EXACT.has(fileName)) {
+		return true;
+	}
+	return WRAPPED_ROOT_FILE_PATTERNS.some((pattern) => pattern.test(fileName));
+}
+
+/**
+ * Copy only recognized capability directories and mandatory root files when wrapping.
+ */
+async function copyWrappedContentOnly(sourcePath: string, targetPath: string): Promise<void> {
+	await mkdir(targetPath, { recursive: true });
+	const entries = await readdir(sourcePath, { withFileTypes: true });
+
+	for (const entry of entries) {
+		if (entry.isDirectory() && !isRecognizedWrappedDirectory(entry.name)) {
+			continue;
+		}
+		if (entry.isFile() && !isMandatoryWrappedRootFile(entry.name)) {
+			continue;
+		}
+		if (!entry.isDirectory() && !entry.isFile()) {
+			continue;
+		}
+
+		const sourceEntryPath = join(sourcePath, entry.name);
+		const targetEntryPath = join(targetPath, entry.name);
+		if (entry.isDirectory()) {
+			await cp(sourceEntryPath, targetEntryPath, { recursive: true });
+		} else {
+			await cp(sourceEntryPath, targetEntryPath);
+		}
+	}
+}
+
+/**
+ * Remove unknown top-level entries from a wrapped repository.
+ * This keeps wrapped capabilities lean and avoids storing unrelated source trees.
+ */
+async function pruneUnknownWrappedEntries(repoPath: string, keepGitDir = false): Promise<void> {
+	const entries = await readdir(repoPath, { withFileTypes: true });
+
+	for (const entry of entries) {
+		if (entry.isDirectory()) {
+			if (isRecognizedWrappedDirectory(entry.name, keepGitDir)) {
+				continue;
+			}
+			await rm(join(repoPath, entry.name), { recursive: true, force: true });
+			continue;
+		}
+		if (entry.isFile()) {
+			if (isMandatoryWrappedRootFile(entry.name)) {
+				continue;
+			}
+			await rm(join(repoPath, entry.name), { force: true });
+			continue;
+		}
+		await rm(join(repoPath, entry.name), { recursive: true, force: true });
+	}
+}
+
 /**
  * Find directories matching any of the given names
  */
@@ -1195,6 +1280,7 @@ async function fetchGitCapabilitySource(
 	let updated = false;
 	let commit: string;
 	let repoPath: string;
+	let needsWrap = false;
 
 	// Resolve version: "latest" or undefined means fetch default branch (no ref)
 	const gitRef = config.version && config.version !== "latest" ? config.version : undefined;
@@ -1220,12 +1306,21 @@ async function fetchGitCapabilitySource(
 			throw new Error(`Path not found in repository: ${config.path}`);
 		}
 
+		const sourceHasCapabilityToml = hasCapabilityToml(sourcePath);
+		if (!sourceHasCapabilityToml) {
+			needsWrap = await shouldWrapDirectory(sourcePath);
+		}
+
 		// Remove old target and copy new content
 		if (existsSync(targetPath)) {
 			await rm(targetPath, { recursive: true });
 		}
 		await mkdir(join(targetPath, ".."), { recursive: true });
-		await cp(sourcePath, targetPath, { recursive: true });
+		if (needsWrap) {
+			await copyWrappedContentOnly(sourcePath, targetPath);
+		} else {
+			await cp(sourcePath, targetPath, { recursive: true });
+		}
 
 		// Clean up temp directory after successful copy
 		await rm(tempPath, { recursive: true });
@@ -1252,12 +1347,15 @@ async function fetchGitCapabilitySource(
 	}
 
 	// Auto-detect if we need to wrap
-	let needsWrap = false;
-	if (!hasCapabilityToml(repoPath)) {
+	if (!config.path && !hasCapabilityToml(repoPath)) {
 		needsWrap = await shouldWrapDirectory(repoPath);
 	}
 
 	if (needsWrap) {
+		// Keep only recognized top-level capability directories.
+		// Preserve .git for direct-cloned repos so future syncs can fetch updates.
+		await pruneUnknownWrappedEntries(repoPath, true);
+
 		// Normalize folder names (singular -> plural for skill/command/rule)
 		// Note: We don't rename agents to avoid breaking internal references
 		await normalizeFolderNames(repoPath);
@@ -1344,7 +1442,13 @@ async function fetchFileCapabilitySource(
 	await mkdir(join(targetPath, ".."), { recursive: true });
 
 	// Copy directory contents
-	await cp(sourcePath, targetPath, { recursive: true });
+	// - If capability.toml exists: full copy
+	// - If wrapping is needed: only recognized content + mandatory root files
+	if (needsWrap) {
+		await copyWrappedContentOnly(sourcePath, targetPath);
+	} else {
+		await cp(sourcePath, targetPath, { recursive: true });
+	}
 
 	// If needs wrapping, generate capability.toml in target (not source)
 	if (needsWrap) {
