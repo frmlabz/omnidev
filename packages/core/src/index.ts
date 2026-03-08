@@ -32,6 +32,9 @@ export * from "./sync";
 // Export security scanning
 export * from "./security";
 
+// Export provider helpers
+export * from "./providers";
+
 // Export templates
 export * from "./templates/agents";
 export * from "./templates/capability";

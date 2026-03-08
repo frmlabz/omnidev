@@ -3,6 +3,7 @@ export * from "./capability-export";
 
 // Hooks Types - import for use in this file
 import type { HooksConfig, CapabilityHooks } from "#hooks/types";
+import type { CanonicalProviderId, ProviderApplicability } from "#providers";
 
 // Re-export all hooks types
 export type {
@@ -24,6 +25,8 @@ export interface CapabilityMetadata {
 	name: string;
 	version: string;
 	description: string;
+	/** Optional provider applicability for this capability */
+	providers?: ProviderApplicability;
 	/** Optional author information */
 	author?: {
 		name?: string;
@@ -351,7 +354,7 @@ export interface OmniConfig {
 }
 
 // Provider Types
-export type Provider = "claude" | "codex" | "claude-code" | "cursor" | "opencode";
+export type Provider = "claude" | CanonicalProviderId;
 
 export interface ProviderConfig {
 	provider?: Provider;

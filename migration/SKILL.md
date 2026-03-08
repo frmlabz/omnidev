@@ -89,9 +89,9 @@ name = "My Project Tools"
 version = "1.0.0"
 description = "Project-specific tools and workflows"
 
-[capability.adapters]
+[capability.providers]
 # Enable for specific providers
-claude = true
+claude = true  # alias for claude-code
 cursor = true
 windsurf = true
 ```

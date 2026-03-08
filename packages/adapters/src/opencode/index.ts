@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
+	CanonicalProviderId,
 	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
@@ -13,6 +14,7 @@ import {
 	SkillsWriter,
 	type AdapterWriterConfig,
 } from "#writers/generic/index";
+import { createProviderScopedBundle } from "#provider-bundle";
 import { OpenCodeAgentsWriter, OpenCodeCommandsWriter } from "#writers/opencode/index";
 
 /**
@@ -40,7 +42,9 @@ export const opencodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[]
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
+		const providerId: CanonicalProviderId = "opencode";
+		const providerBundle = createProviderScopedBundle(bundle, providerId);
+		const result = await executeWriters(this.writers, providerBundle, ctx.projectRoot, providerId);
 
 		return {
 			filesWritten: result.filesWritten,

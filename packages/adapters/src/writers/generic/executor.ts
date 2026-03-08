@@ -1,4 +1,4 @@
-import type { SyncBundle } from "@omnidev-ai/core";
+import type { CanonicalProviderId, SyncBundle } from "@omnidev-ai/core";
 import type { AdapterWriterConfig, WriterResult } from "./types";
 
 /**
@@ -26,6 +26,7 @@ export async function executeWriters(
 	writerConfigs: AdapterWriterConfig[],
 	bundle: SyncBundle,
 	projectRoot: string,
+	providerId?: CanonicalProviderId,
 ): Promise<ExecuteWritersResult> {
 	// Dedupe by (writer.id + outputPath)
 	const seen = new Set<string>();
@@ -49,6 +50,7 @@ export async function executeWriters(
 		const result: WriterResult = await config.writer.write(bundle, {
 			outputPath: config.outputPath,
 			projectRoot,
+			...(providerId ? { providerId } : {}),
 		});
 		allFilesWritten.push(...result.filesWritten);
 	}

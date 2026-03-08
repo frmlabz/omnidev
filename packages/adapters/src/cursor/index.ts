@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
+	CanonicalProviderId,
 	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
@@ -19,6 +20,7 @@ import {
 	CursorMcpJsonWriter,
 	CursorRulesWriter,
 } from "#writers/cursor/index";
+import { createProviderScopedBundle } from "#provider-bundle";
 
 /**
  * Cursor adapter - writes CLAUDE.md, skills, rules, agents, and commands.
@@ -47,10 +49,32 @@ export const cursorAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] }
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
+		const cursorProviderId: CanonicalProviderId = "cursor";
+		const instructionsProviderId: CanonicalProviderId = "claude-code";
+		const instructionsWriters = this.writers.filter(
+			(config) => config.writer.id === "instructions-md",
+		);
+		const cursorWriters = this.writers.filter((config) => config.writer.id !== "instructions-md");
+		const instructionsBundle = createProviderScopedBundle(bundle, instructionsProviderId);
+		const cursorBundle = createProviderScopedBundle(bundle, cursorProviderId);
+
+		const instructionsResult = await executeWriters(
+			instructionsWriters,
+			instructionsBundle,
+			ctx.projectRoot,
+			instructionsProviderId,
+		);
+		const cursorResult = await executeWriters(
+			cursorWriters,
+			cursorBundle,
+			ctx.projectRoot,
+			cursorProviderId,
+		);
 
 		return {
-			filesWritten: result.filesWritten,
+			filesWritten: [
+				...new Set([...instructionsResult.filesWritten, ...cursorResult.filesWritten]),
+			],
 			filesDeleted: [],
 		};
 	},

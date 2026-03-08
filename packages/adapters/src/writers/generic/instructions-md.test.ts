@@ -108,6 +108,54 @@ describe("InstructionsMdWriter", () => {
 		expect(content).toContain("Codex instructions");
 	});
 
+	test("renders provider-scoped OMNI.md blocks for provider aliases", async () => {
+		writeFileSync(
+			`${testDir}/OMNI.md`,
+			`# Project Instructions
+
+Shared content.
+
+<provider.claude>
+Claude only content.
+</provider.claude>
+
+<provider.codex>
+Codex only content.
+</provider.codex>`,
+		);
+		const bundle = createBundle("Additional instructions");
+
+		await InstructionsMdWriter.write(bundle, {
+			outputPath: "CLAUDE.md",
+			projectRoot: testDir,
+			providerId: "claude-code",
+		});
+
+		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		expect(content).toContain("Shared content.");
+		expect(content).toContain("Claude only content.");
+		expect(content).not.toContain("Codex only content.");
+	});
+
+	test("throws on unknown provider tags in OMNI.md", async () => {
+		writeFileSync(
+			`${testDir}/OMNI.md`,
+			`# Project Instructions
+
+<provider.windsurf>
+Unknown provider content.
+</provider.windsurf>`,
+		);
+
+		await expect(
+			InstructionsMdWriter.write(createBundle(""), {
+				outputPath: "CLAUDE.md",
+				projectRoot: testDir,
+				providerId: "claude-code",
+			}),
+		).rejects.toThrow(/Unknown provider: windsurf/);
+	});
+
 	test("has correct id", () => {
 		expect(InstructionsMdWriter.id).toBe("instructions-md");
 	});

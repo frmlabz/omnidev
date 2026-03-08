@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "./types";
+import { renderOmniMdForProvider } from "./omni-md";
 
 /**
  * Writer for instructions markdown files (CLAUDE.md, AGENTS.md, etc.)
@@ -27,7 +28,7 @@ export const InstructionsMdWriter: FileWriter = {
 		let omniMdContent = "";
 
 		if (existsSync(omniMdPath)) {
-			omniMdContent = await readFile(omniMdPath, "utf-8");
+			omniMdContent = renderOmniMdForProvider(await readFile(omniMdPath, "utf-8"), ctx.providerId);
 		}
 
 		// Combine OMNI.md content with instructions

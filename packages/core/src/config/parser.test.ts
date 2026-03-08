@@ -142,6 +142,42 @@ module = "index.ts"
 		expect(config.exports?.module).toBe("index.ts");
 	});
 
+	test("normalizes provider aliases in capability providers", () => {
+		const toml = `
+[capability]
+id = "tasks"
+name = "Task Management"
+version = "1.0.0"
+description = "Manage tasks"
+
+[capability.providers]
+claude = true
+codex = true
+		`;
+
+		const config = parseCapabilityConfig(toml);
+
+		expect(config.capability.providers).toEqual({
+			"claude-code": true,
+			codex: true,
+		});
+	});
+
+	test("throws error for unknown provider aliases in capability providers", () => {
+		const toml = `
+[capability]
+id = "tasks"
+name = "Task Management"
+version = "1.0.0"
+description = "Manage tasks"
+
+[capability.providers]
+windsurf = true
+		`;
+
+		expect(() => parseCapabilityConfig(toml)).toThrow(/Unknown provider: windsurf/);
+	});
+
 	test("throws error when capability.id is missing", () => {
 		const toml = `
 [capability]

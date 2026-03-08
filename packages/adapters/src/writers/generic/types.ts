@@ -1,4 +1,4 @@
-import type { SyncBundle } from "@omnidev-ai/core";
+import type { CanonicalProviderId, SyncBundle } from "@omnidev-ai/core";
 
 /**
  * Context passed to file writers during sync execution.
@@ -8,6 +8,8 @@ export interface WriterContext {
 	outputPath: string;
 	/** The project root directory */
 	projectRoot: string;
+	/** Canonical provider ID for this write pass */
+	providerId?: CanonicalProviderId;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { parse } from "smol-toml";
+import { normalizeProviderApplicability } from "#providers";
 import type { CapabilityConfig, OmniConfig } from "../types";
 
 /**
@@ -33,6 +34,13 @@ function validateCapabilityConfig(parsed: Record<string, unknown>): void {
 	}
 	if (typeof capability["version"] !== "string") {
 		throw new Error("capability.version is required in capability.toml");
+	}
+
+	if (capability["providers"] !== undefined) {
+		capability["providers"] = normalizeProviderApplicability(
+			capability["providers"],
+			"capability.providers",
+		);
 	}
 }
 

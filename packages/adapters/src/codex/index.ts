@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
+	CanonicalProviderId,
 	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
@@ -14,6 +15,7 @@ import {
 	CommandsAsSkillsWriter,
 	type AdapterWriterConfig,
 } from "#writers/generic/index";
+import { createProviderScopedBundle } from "#provider-bundle";
 import { CodexTomlWriter } from "#writers/codex/index";
 
 /**
@@ -41,7 +43,9 @@ export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } 
 	},
 
 	async sync(bundle: SyncBundle, ctx: ProviderContext): Promise<ProviderSyncResult> {
-		const result = await executeWriters(this.writers, bundle, ctx.projectRoot);
+		const providerId: CanonicalProviderId = "codex";
+		const providerBundle = createProviderScopedBundle(bundle, providerId);
+		const result = await executeWriters(this.writers, providerBundle, ctx.projectRoot, providerId);
 
 		return {
 			filesWritten: result.filesWritten,
