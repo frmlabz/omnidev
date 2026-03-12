@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Subagent, SyncBundle } from "@omnidev-ai/core";
 import { OpenCodeAgentsWriter } from "./agents";
 
 describe("OpenCodeAgentsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("opencode-agents-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("opencode-agents-writer-", { chdir: true });
 
 	function createBundle(subagents: Subagent[]): SyncBundle {
 		return {
@@ -50,13 +36,13 @@ describe("OpenCodeAgentsWriter", () => {
 
 		const result = await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".opencode/agents/code-reviewer.md"]);
-		expect(existsSync(`${testDir}/.opencode/agents/code-reviewer.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.opencode/agents/code-reviewer.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.opencode/agents/code-reviewer.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/code-reviewer.md`, "utf-8");
 		expect(content).toContain('description: "Reviews code for quality"');
 		expect(content).toContain("You are a code reviewer.");
 	});
@@ -75,10 +61,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/sonnet-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/sonnet-agent.md`, "utf-8");
 		expect(content).toContain("model: anthropic/claude-sonnet-4");
 	});
 
@@ -96,10 +82,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/opus-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/opus-agent.md`, "utf-8");
 		expect(content).toContain("model: anthropic/claude-opus-4");
 	});
 
@@ -117,10 +103,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/haiku-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/haiku-agent.md`, "utf-8");
 		expect(content).toContain("model: anthropic/claude-haiku-3-5");
 	});
 
@@ -139,10 +125,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/custom-model.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/custom-model.md`, "utf-8");
 		expect(content).toContain("model: openai/gpt-4o");
 		expect(content).not.toContain("anthropic/claude-sonnet-4");
 	});
@@ -161,10 +147,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/tools-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/tools-agent.md`, "utf-8");
 		expect(content).toContain("tools:");
 		expect(content).toContain("  read: true");
 		expect(content).toContain("  glob: true");
@@ -186,10 +172,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/custom-tools.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/custom-tools.md`, "utf-8");
 		expect(content).toContain("  bash: true");
 		expect(content).toContain("  write: false");
 		expect(content).not.toContain("  read: true"); // toolPermissions takes precedence
@@ -209,10 +195,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/accept-edits.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/accept-edits.md`, "utf-8");
 		expect(content).toContain("permissions:");
 		expect(content).toContain("  edit: allow");
 		expect(content).toContain("  bash:");
@@ -233,10 +219,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/dont-ask.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/dont-ask.md`, "utf-8");
 		expect(content).toContain("  edit: allow");
 		expect(content).toContain("    *: allow");
 	});
@@ -255,10 +241,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/plan-mode.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/plan-mode.md`, "utf-8");
 		expect(content).toContain("  edit: deny");
 		expect(content).toContain("    *: deny");
 	});
@@ -280,10 +266,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/opencode-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/opencode-agent.md`, "utf-8");
 		expect(content).toContain("mode: primary");
 		expect(content).toContain("temperature: 0.7");
 		expect(content).toContain("maxSteps: 50");
@@ -309,10 +295,10 @@ describe("OpenCodeAgentsWriter", () => {
 
 		await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/agents/custom-perms.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/agents/custom-perms.md`, "utf-8");
 		expect(content).toContain("  edit: deny");
 		expect(content).toContain("  webfetch: ask");
 		expect(content).toContain("    git *: allow");
@@ -323,7 +309,7 @@ describe("OpenCodeAgentsWriter", () => {
 
 		const result = await OpenCodeAgentsWriter.write(bundle, {
 			outputPath: ".opencode/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);

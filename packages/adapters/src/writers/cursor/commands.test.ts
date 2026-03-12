@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Command, SyncBundle } from "@omnidev-ai/core";
 import { CursorCommandsWriter } from "./commands";
 
 describe("CursorCommandsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("cursor-commands-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("cursor-commands-writer-", { chdir: true });
 
 	function createBundle(commands: Command[]): SyncBundle {
 		return {
@@ -50,13 +36,13 @@ describe("CursorCommandsWriter", () => {
 
 		const result = await CursorCommandsWriter.write(bundle, {
 			outputPath: ".cursor/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/commands/review-pr.md"]);
-		expect(existsSync(`${testDir}/.cursor/commands/review-pr.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/commands/review-pr.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.cursor/commands/review-pr.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/commands/review-pr.md`, "utf-8");
 		// Cursor commands are plain markdown with heading
 		expect(content).toContain("# review-pr");
 		expect(content).toContain("Review a pull request");
@@ -82,12 +68,12 @@ describe("CursorCommandsWriter", () => {
 
 		const result = await CursorCommandsWriter.write(bundle, {
 			outputPath: ".cursor/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toHaveLength(2);
-		expect(existsSync(`${testDir}/.cursor/commands/cmd-one.md`)).toBe(true);
-		expect(existsSync(`${testDir}/.cursor/commands/cmd-two.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/commands/cmd-one.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/commands/cmd-two.md`)).toBe(true);
 	});
 
 	test("returns empty array when no commands", async () => {
@@ -95,7 +81,7 @@ describe("CursorCommandsWriter", () => {
 
 		const result = await CursorCommandsWriter.write(bundle, {
 			outputPath: ".cursor/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -114,10 +100,13 @@ describe("CursorCommandsWriter", () => {
 
 		await CursorCommandsWriter.write(bundle, {
 			outputPath: ".cursor/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/commands/code-review-checklist.md`, "utf-8");
+		const content = readFileSync(
+			`${testDir.path}/.cursor/commands/code-review-checklist.md`,
+			"utf-8",
+		);
 		expect(content).toContain("# code-review-checklist");
 		expect(content).toContain("Comprehensive checklist for conducting thorough code reviews");
 		expect(content).toContain("## Review Categories");

@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { SyncBundle } from "@omnidev-ai/core";
 import { InstructionsMdWriter } from "./instructions-md";
 
 describe("InstructionsMdWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("instructions-md-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("instructions-md-writer-", { chdir: true });
 
 	function createBundle(instructionsContent: string): SyncBundle {
 		return {
@@ -38,43 +24,43 @@ describe("InstructionsMdWriter", () => {
 
 		const result = await InstructionsMdWriter.write(bundle, {
 			outputPath: "CLAUDE.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual(["CLAUDE.md"]);
-		expect(existsSync(`${testDir}/CLAUDE.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/CLAUDE.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/CLAUDE.md`, "utf-8");
 		expect(content).toContain("Test instructions content");
 	});
 
 	test("combines OMNI.md with instructions content", async () => {
-		writeFileSync(`${testDir}/OMNI.md`, "# Project Instructions\n\nBase content here.");
+		writeFileSync(`${testDir.path}/OMNI.md`, "# Project Instructions\n\nBase content here.");
 		const bundle = createBundle("Additional instructions");
 
 		const result = await InstructionsMdWriter.write(bundle, {
 			outputPath: "CLAUDE.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual(["CLAUDE.md"]);
 
-		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/CLAUDE.md`, "utf-8");
 		expect(content).toContain("# Project Instructions");
 		expect(content).toContain("Base content here.");
 		expect(content).toContain("Additional instructions");
 	});
 
 	test("does not append anything when instructionsContent is empty", async () => {
-		writeFileSync(`${testDir}/OMNI.md`, "# Project Instructions\n\nBase content here.");
+		writeFileSync(`${testDir.path}/OMNI.md`, "# Project Instructions\n\nBase content here.");
 		const bundle = createBundle("");
 
 		await InstructionsMdWriter.write(bundle, {
 			outputPath: "CLAUDE.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/CLAUDE.md`, "utf-8");
 		expect(content).toBe("# Project Instructions\n\nBase content here.");
 	});
 
@@ -83,13 +69,13 @@ describe("InstructionsMdWriter", () => {
 
 		const result = await InstructionsMdWriter.write(bundle, {
 			outputPath: ".opencode/instructions.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".opencode/instructions.md"]);
-		expect(existsSync(`${testDir}/.opencode/instructions.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.opencode/instructions.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.opencode/instructions.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/instructions.md`, "utf-8");
 		expect(content).toContain("Nested content");
 	});
 
@@ -98,19 +84,19 @@ describe("InstructionsMdWriter", () => {
 
 		const result = await InstructionsMdWriter.write(bundle, {
 			outputPath: "AGENTS.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual(["AGENTS.md"]);
-		expect(existsSync(`${testDir}/AGENTS.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/AGENTS.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/AGENTS.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/AGENTS.md`, "utf-8");
 		expect(content).toContain("Codex instructions");
 	});
 
 	test("renders provider-scoped OMNI.md blocks for provider aliases", async () => {
 		writeFileSync(
-			`${testDir}/OMNI.md`,
+			`${testDir.path}/OMNI.md`,
 			`# Project Instructions
 
 Shared content.
@@ -127,11 +113,11 @@ Codex only content.
 
 		await InstructionsMdWriter.write(bundle, {
 			outputPath: "CLAUDE.md",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 			providerId: "claude-code",
 		});
 
-		const content = readFileSync(`${testDir}/CLAUDE.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/CLAUDE.md`, "utf-8");
 		expect(content).toContain("Shared content.");
 		expect(content).toContain("Claude only content.");
 		expect(content).not.toContain("Codex only content.");
@@ -139,7 +125,7 @@ Codex only content.
 
 	test("throws on unknown provider tags in OMNI.md", async () => {
 		writeFileSync(
-			`${testDir}/OMNI.md`,
+			`${testDir.path}/OMNI.md`,
 			`# Project Instructions
 
 <provider.windsurf>
@@ -150,7 +136,7 @@ Unknown provider content.
 		await expect(
 			InstructionsMdWriter.write(createBundle(""), {
 				outputPath: "CLAUDE.md",
-				projectRoot: testDir,
+				projectRoot: testDir.path,
 				providerId: "claude-code",
 			}),
 		).rejects.toThrow(/Unknown provider: windsurf/);

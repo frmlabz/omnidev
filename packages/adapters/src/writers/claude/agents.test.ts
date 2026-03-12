@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Subagent, SyncBundle } from "@omnidev-ai/core";
 import { ClaudeAgentsWriter } from "./agents";
 
 describe("ClaudeAgentsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("claude-agents-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("claude-agents-writer-", { chdir: true });
 
 	function createBundle(subagents: Subagent[]): SyncBundle {
 		return {
@@ -50,13 +36,13 @@ describe("ClaudeAgentsWriter", () => {
 
 		const result = await ClaudeAgentsWriter.write(bundle, {
 			outputPath: ".claude/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".claude/agents/code-reviewer.md"]);
-		expect(existsSync(`${testDir}/.claude/agents/code-reviewer.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/agents/code-reviewer.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.claude/agents/code-reviewer.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.claude/agents/code-reviewer.md`, "utf-8");
 		expect(content).toContain("name: code-reviewer");
 		expect(content).toContain('description: "Reviews code for quality"');
 		expect(content).toContain("You are a code reviewer.");
@@ -80,12 +66,12 @@ describe("ClaudeAgentsWriter", () => {
 
 		const result = await ClaudeAgentsWriter.write(bundle, {
 			outputPath: ".claude/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toHaveLength(1);
 
-		const content = readFileSync(`${testDir}/.claude/agents/full-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.claude/agents/full-agent.md`, "utf-8");
 		expect(content).toContain("name: full-agent");
 		expect(content).toContain("tools: Read, Glob, Grep");
 		expect(content).toContain("disallowedTools: Bash");
@@ -108,10 +94,10 @@ describe("ClaudeAgentsWriter", () => {
 
 		await ClaudeAgentsWriter.write(bundle, {
 			outputPath: ".claude/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.claude/agents/inherit-model.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.claude/agents/inherit-model.md`, "utf-8");
 		expect(content).not.toContain("model:");
 	});
 
@@ -120,7 +106,7 @@ describe("ClaudeAgentsWriter", () => {
 
 		const result = await ClaudeAgentsWriter.write(bundle, {
 			outputPath: ".claude/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -139,10 +125,10 @@ describe("ClaudeAgentsWriter", () => {
 
 		await ClaudeAgentsWriter.write(bundle, {
 			outputPath: ".claude/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.claude/agents/quoted-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.claude/agents/quoted-agent.md`, "utf-8");
 		expect(content).toContain('description: "Agent with \\"quotes\\" in description"');
 	});
 });

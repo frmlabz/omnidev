@@ -1,24 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { setupTestDir } from "../../../../core/src/test-utils";
 import { runNew, isValidCapabilityId } from "./new";
 
 describe("capability new command", () => {
-	let testDir: string;
-	let originalCwd: string;
+	setupTestDir("capability-new-test-", { chdir: true });
 	let originalExit: typeof process.exit;
 	let exitCode: number | undefined;
 
 	beforeEach(() => {
-		// Create a temp directory for tests
-		testDir = join(tmpdir(), `capability-new-test-${Date.now()}`);
-		mkdirSync(testDir, { recursive: true });
-
-		// Change to test directory
-		originalCwd = process.cwd();
-		process.chdir(testDir);
-
 		// Mock process.exit
 		exitCode = undefined;
 		originalExit = process.exit;
@@ -29,14 +19,7 @@ describe("capability new command", () => {
 	});
 
 	afterEach(() => {
-		// Restore original state
-		process.chdir(originalCwd);
 		process.exit = originalExit;
-
-		// Clean up test directory
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
 	});
 
 	describe("isValidCapabilityId", () => {

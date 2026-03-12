@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { tmpdir } from "#test-utils/index";
+import { setupTestDir } from "#test-utils/index";
 import { patchAddCapabilitySource, patchAddMcp, patchAddToProfile } from "./toml-patcher";
 
 describe("toml-patcher", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("toml-patcher-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	setupTestDir("toml-patcher-", { chdir: true });
 
 	describe("patchAddCapabilitySource", () => {
 		test("adds capability source to existing section", async () => {

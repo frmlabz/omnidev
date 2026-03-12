@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Skill, SyncBundle } from "@omnidev-ai/core";
 import { SkillsWriter } from "./skills";
 
 describe("SkillsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("skills-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("skills-writer-", { chdir: true });
 
 	function createBundle(skills: Skill[]): SyncBundle {
 		return {
@@ -46,13 +32,13 @@ describe("SkillsWriter", () => {
 
 		const result = await SkillsWriter.write(bundle, {
 			outputPath: ".claude/skills/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".claude/skills/test-skill/SKILL.md"]);
-		expect(existsSync(`${testDir}/.claude/skills/test-skill/SKILL.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.claude/skills/test-skill/SKILL.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`, "utf-8");
 		expect(content).toContain("name: test-skill");
 		expect(content).toContain('description: "A test skill"');
 		expect(content).toContain("Do the test thing");
@@ -77,15 +63,15 @@ describe("SkillsWriter", () => {
 
 		const result = await SkillsWriter.write(bundle, {
 			outputPath: ".claude/skills/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toHaveLength(2);
 		expect(result.filesWritten).toContain(".claude/skills/skill-one/SKILL.md");
 		expect(result.filesWritten).toContain(".claude/skills/skill-two/SKILL.md");
 
-		expect(existsSync(`${testDir}/.claude/skills/skill-one/SKILL.md`)).toBe(true);
-		expect(existsSync(`${testDir}/.claude/skills/skill-two/SKILL.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/skills/skill-one/SKILL.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/skills/skill-two/SKILL.md`)).toBe(true);
 	});
 
 	test("returns empty array when no skills", async () => {
@@ -93,7 +79,7 @@ describe("SkillsWriter", () => {
 
 		const result = await SkillsWriter.write(bundle, {
 			outputPath: ".claude/skills/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);

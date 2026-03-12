@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import { captureConsole, tmpdir } from "@omnidev-ai/core/test-utils";
+import { captureConsole, setupTestDir } from "@omnidev-ai/core/test-utils";
 import { runProviderList, runProviderEnable, runProviderDisable } from "./provider";
 
 // Import the functions we need to test
@@ -11,24 +11,12 @@ async function getProviderFunctions() {
 }
 
 describe("provider commands", () => {
-	let testDir: string;
-	let originalCwd: string;
+	setupTestDir("provider-test-", { chdir: true });
 
 	beforeEach(async () => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("provider-test-");
-		process.chdir(testDir);
-
 		// Create basic OmniDev structure
 		mkdirSync(".omni/state", { recursive: true });
 		await writeFile("omni.toml", "", "utf-8");
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
 	});
 
 	describe("runProviderList", () => {

@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Command, SyncBundle } from "@omnidev-ai/core";
 import { OpenCodeCommandsWriter } from "./commands";
 
 describe("OpenCodeCommandsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("opencode-commands-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("opencode-commands-writer-", { chdir: true });
 
 	function createBundle(commands: Command[]): SyncBundle {
 		return {
@@ -50,13 +36,13 @@ describe("OpenCodeCommandsWriter", () => {
 
 		const result = await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".opencode/commands/review-pr.md"]);
-		expect(existsSync(`${testDir}/.opencode/commands/review-pr.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.opencode/commands/review-pr.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.opencode/commands/review-pr.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/commands/review-pr.md`, "utf-8");
 		expect(content).toContain('description: "Review a pull request"');
 		expect(content).toContain("Review the PR at $1");
 	});
@@ -75,10 +61,10 @@ describe("OpenCodeCommandsWriter", () => {
 
 		await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/commands/fast-cmd.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/commands/fast-cmd.md`, "utf-8");
 		expect(content).toContain("model: anthropic/claude-haiku-3-5");
 	});
 
@@ -96,10 +82,10 @@ describe("OpenCodeCommandsWriter", () => {
 
 		await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/commands/delegate-cmd.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/commands/delegate-cmd.md`, "utf-8");
 		expect(content).toContain("agent: code-reviewer");
 	});
 
@@ -118,10 +104,10 @@ describe("OpenCodeCommandsWriter", () => {
 
 		await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/commands/full-cmd.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/commands/full-cmd.md`, "utf-8");
 		expect(content).toContain("model: anthropic/claude-sonnet-4");
 		expect(content).toContain("agent: my-agent");
 	});
@@ -145,12 +131,12 @@ describe("OpenCodeCommandsWriter", () => {
 
 		const result = await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toHaveLength(2);
-		expect(existsSync(`${testDir}/.opencode/commands/cmd-one.md`)).toBe(true);
-		expect(existsSync(`${testDir}/.opencode/commands/cmd-two.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.opencode/commands/cmd-one.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.opencode/commands/cmd-two.md`)).toBe(true);
 	});
 
 	test("returns empty array when no commands", async () => {
@@ -158,7 +144,7 @@ describe("OpenCodeCommandsWriter", () => {
 
 		const result = await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -177,10 +163,10 @@ describe("OpenCodeCommandsWriter", () => {
 
 		await OpenCodeCommandsWriter.write(bundle, {
 			outputPath: ".opencode/commands/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.opencode/commands/quoted-cmd.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.opencode/commands/quoted-cmd.md`, "utf-8");
 		expect(content).toContain('description: "Command with \\"quotes\\""');
 	});
 });

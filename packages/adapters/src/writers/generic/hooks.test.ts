@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { HooksConfig, SyncBundle } from "@omnidev-ai/core";
 import { HooksWriter } from "./hooks";
 
 describe("HooksWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("hooks-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("hooks-writer-", { chdir: true });
 
 	function createBundle(hooks?: HooksConfig): SyncBundle {
 		const bundle: SyncBundle = {
@@ -55,13 +41,13 @@ describe("HooksWriter", () => {
 
 		const result = await HooksWriter.write(bundle, {
 			outputPath: ".claude/settings.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".claude/settings.json"]);
-		expect(existsSync(`${testDir}/.claude/settings.json`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/settings.json`)).toBe(true);
 
-		const content = JSON.parse(readFileSync(`${testDir}/.claude/settings.json`, "utf-8"));
+		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
 		expect(content.hooks).toBeDefined();
 		expect(content.hooks.PreToolUse).toBeDefined();
 	});
@@ -72,8 +58,11 @@ describe("HooksWriter", () => {
 			someOtherSetting: "value",
 			anotherSetting: 123,
 		};
-		require("node:fs").mkdirSync(`${testDir}/.claude`, { recursive: true });
-		writeFileSync(`${testDir}/.claude/settings.json`, JSON.stringify(existingSettings, null, 2));
+		require("node:fs").mkdirSync(`${testDir.path}/.claude`, { recursive: true });
+		writeFileSync(
+			`${testDir.path}/.claude/settings.json`,
+			JSON.stringify(existingSettings, null, 2),
+		);
 
 		const hooks: HooksConfig = {
 			PostToolUse: [
@@ -87,10 +76,10 @@ describe("HooksWriter", () => {
 
 		await HooksWriter.write(bundle, {
 			outputPath: ".claude/settings.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = JSON.parse(readFileSync(`${testDir}/.claude/settings.json`, "utf-8"));
+		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
 		expect(content.someOtherSetting).toBe("value");
 		expect(content.anotherSetting).toBe(123);
 		expect(content.hooks).toBeDefined();
@@ -101,7 +90,7 @@ describe("HooksWriter", () => {
 
 		const result = await HooksWriter.write(bundle, {
 			outputPath: ".claude/settings.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -120,10 +109,10 @@ describe("HooksWriter", () => {
 
 		await HooksWriter.write(bundle, {
 			outputPath: ".claude/settings.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		expect(existsSync(`${testDir}/.claude/settings.json`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.claude/settings.json`)).toBe(true);
 	});
 
 	test("has correct id", () => {

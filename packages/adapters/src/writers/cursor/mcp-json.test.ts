@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { LoadedCapability, McpConfig, SyncBundle } from "@omnidev-ai/core";
 import { buildCursorMcpConfig, CursorMcpJsonWriter } from "./mcp-json";
 
 describe("CursorMcpJsonWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("cursor-mcp-json-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("cursor-mcp-json-writer-", { chdir: true });
 
 	function createCapability(id: string, mcp?: McpConfig): LoadedCapability {
 		const config: LoadedCapability["config"] = {
@@ -71,13 +57,13 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
-		expect(existsSync(`${testDir}/.cursor/mcp.json`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/mcp.json`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -97,12 +83,12 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -126,12 +112,12 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -155,13 +141,13 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		// Cursor supports SSE (unlike Codex)
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -190,12 +176,12 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -213,11 +199,11 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
-		expect(existsSync(`${testDir}/.cursor/mcp.json`)).toBe(false);
+		expect(existsSync(`${testDir.path}/.cursor/mcp.json`)).toBe(false);
 	});
 
 	test("returns empty array when bundle has no capabilities", async () => {
@@ -225,7 +211,7 @@ describe("CursorMcpJsonWriter", () => {
 
 		const result = await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -239,15 +225,15 @@ describe("CursorMcpJsonWriter", () => {
 		const bundle = createBundle([createCapability("test-mcp", mcp)]);
 
 		// .cursor directory doesn't exist yet
-		expect(existsSync(`${testDir}/.cursor`)).toBe(false);
+		expect(existsSync(`${testDir.path}/.cursor`)).toBe(false);
 
 		await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		expect(existsSync(`${testDir}/.cursor`)).toBe(true);
-		expect(existsSync(`${testDir}/.cursor/mcp.json`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/mcp.json`)).toBe(true);
 	});
 
 	test("regenerates file on re-sync (replaces previous content)", async () => {
@@ -261,10 +247,10 @@ describe("CursorMcpJsonWriter", () => {
 
 		await CursorMcpJsonWriter.write(bundle1, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content1 = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content1 = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		expect(content1).toContain("old-mcp");
 		expect(content1).toContain("old-command");
 
@@ -278,10 +264,10 @@ describe("CursorMcpJsonWriter", () => {
 
 		await CursorMcpJsonWriter.write(bundle2, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content2 = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content2 = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		// Old content should be gone
 		expect(content2).not.toContain("old-mcp");
 		expect(content2).not.toContain("old-command");
@@ -300,10 +286,10 @@ describe("CursorMcpJsonWriter", () => {
 
 		await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 		const parsed = JSON.parse(content) as {
 			mcpServers: Record<string, Record<string, unknown>>;
 		};
@@ -323,10 +309,10 @@ describe("CursorMcpJsonWriter", () => {
 
 		await CursorMcpJsonWriter.write(bundle, {
 			outputPath: ".cursor/mcp.json",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/mcp.json`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
 
 		// Should be valid JSON
 		expect(() => JSON.parse(content)).not.toThrow();

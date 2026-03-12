@@ -1,25 +1,11 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Subagent, SyncBundle } from "@omnidev-ai/core";
 import { CursorAgentsWriter } from "./agents";
 
 describe("CursorAgentsWriter", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("cursor-agents-writer-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	const testDir = setupTestDir("cursor-agents-writer-", { chdir: true });
 
 	function createBundle(subagents: Subagent[]): SyncBundle {
 		return {
@@ -50,13 +36,13 @@ describe("CursorAgentsWriter", () => {
 
 		const result = await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/agents/code-reviewer.md"]);
-		expect(existsSync(`${testDir}/.cursor/agents/code-reviewer.md`)).toBe(true);
+		expect(existsSync(`${testDir.path}/.cursor/agents/code-reviewer.md`)).toBe(true);
 
-		const content = readFileSync(`${testDir}/.cursor/agents/code-reviewer.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/code-reviewer.md`, "utf-8");
 		expect(content).toContain("name: code-reviewer");
 		expect(content).toContain('description: "Reviews code for quality"');
 		expect(content).toContain("model: inherit");
@@ -77,10 +63,10 @@ describe("CursorAgentsWriter", () => {
 
 		await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/agents/fast-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/fast-agent.md`, "utf-8");
 		expect(content).toContain("model: fast");
 	});
 
@@ -98,10 +84,10 @@ describe("CursorAgentsWriter", () => {
 
 		await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/agents/sonnet-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/sonnet-agent.md`, "utf-8");
 		expect(content).toContain("model: inherit");
 	});
 
@@ -119,10 +105,10 @@ describe("CursorAgentsWriter", () => {
 
 		await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/agents/readonly-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/readonly-agent.md`, "utf-8");
 		expect(content).toContain("readonly: true");
 	});
 
@@ -140,10 +126,10 @@ describe("CursorAgentsWriter", () => {
 
 		await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/agents/normal-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/normal-agent.md`, "utf-8");
 		expect(content).not.toContain("readonly:");
 	});
 
@@ -152,7 +138,7 @@ describe("CursorAgentsWriter", () => {
 
 		const result = await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
 		expect(result.filesWritten).toEqual([]);
@@ -171,10 +157,10 @@ describe("CursorAgentsWriter", () => {
 
 		await CursorAgentsWriter.write(bundle, {
 			outputPath: ".cursor/agents/",
-			projectRoot: testDir,
+			projectRoot: testDir.path,
 		});
 
-		const content = readFileSync(`${testDir}/.cursor/agents/quoted-agent.md`, "utf-8");
+		const content = readFileSync(`${testDir.path}/.cursor/agents/quoted-agent.md`, "utf-8");
 		expect(content).toContain('description: "Agent with \\"quotes\\""');
 	});
 });

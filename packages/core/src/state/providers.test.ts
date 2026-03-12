@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
-import { tmpdir } from "@omnidev-ai/core/test-utils";
+import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import {
 	disableProvider,
 	enableProvider,
@@ -10,21 +10,7 @@ import {
 } from "./providers";
 
 describe("providers state", () => {
-	let testDir: string;
-	let originalCwd: string;
-
-	beforeEach(() => {
-		originalCwd = process.cwd();
-		testDir = tmpdir("providers-test-");
-		process.chdir(testDir);
-	});
-
-	afterEach(() => {
-		process.chdir(originalCwd);
-		if (existsSync(testDir)) {
-			rmSync(testDir, { recursive: true, force: true });
-		}
-	});
+	setupTestDir("providers-test-", { chdir: true });
 
 	describe("readEnabledProviders", () => {
 		test("returns default providers when state file does not exist", async () => {
