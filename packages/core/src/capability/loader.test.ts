@@ -386,8 +386,9 @@ command = "node"`,
 		writeFileSync(join(capPath, ".env"), "NON_MCP_TOKEN=resolved\n");
 
 		const capability = await loadCapability(capPath);
+		const placeholder = "$" + "{NON_MCP_TOKEN}";
 
-		expect(capability.config.capability.description).toBe("Literal ${NON_MCP_TOKEN}");
+		expect(capability.config.capability.description).toBe(`Literal ${placeholder}`);
 	});
 
 	test("loads capability with skills from filesystem", async () => {

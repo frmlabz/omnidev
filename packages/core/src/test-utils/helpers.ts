@@ -7,6 +7,18 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir as osTmpdir } from "node:os";
 import { join } from "node:path";
 
+let cwdLock = Promise.resolve();
+
+async function acquireCwdLock(): Promise<() => void> {
+	let release!: () => void;
+	const previous = cwdLock;
+	cwdLock = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	await previous;
+	return release;
+}
+
 /**
  * Expects an async function to throw an error
  * @param fn - Async function that should throw
@@ -227,6 +239,7 @@ export function setupTestDir(
 	let originalCwd = "";
 	let shouldChdir = options.chdir ?? false;
 	let shouldCreateOmniDir = options.createOmniDir ?? false;
+	let releaseCwdLock: (() => void) | null = null;
 
 	const applyOptions = (dir: string, nextOptions?: TestDirOptions) => {
 		if (nextOptions) {
@@ -247,15 +260,20 @@ export function setupTestDir(
 		}
 	};
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		originalCwd = process.cwd();
 		currentDir = tmpdir(prefix);
+		if (shouldChdir) {
+			releaseCwdLock = await acquireCwdLock();
+		}
 		applyOptions(currentDir);
 	});
 
 	afterEach(() => {
 		if (shouldChdir) {
 			process.chdir(originalCwd);
+			releaseCwdLock?.();
+			releaseCwdLock = null;
 		}
 		if (currentDir && existsSync(currentDir)) {
 			rmSync(currentDir, { recursive: true, force: true });
