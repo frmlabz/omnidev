@@ -1,12 +1,7 @@
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
-
-// Mock adapters to prevent network calls
-mock.module("@omnidev-ai/adapters", () => ({
-	getEnabledAdapters: mock(async () => []),
-}));
 
 // Import the sync module to spy on syncAgentConfiguration
 import * as syncModule from "@omnidev-ai/core";
