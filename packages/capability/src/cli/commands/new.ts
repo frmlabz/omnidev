@@ -232,12 +232,14 @@ export default {
 }
 
 /**
- * Generate .gitignore for programmatic capability.
+ * Generate .gitignore for a capability scaffold.
  */
-function generateGitignore(): string {
-	return `dist/
-node_modules/
-`;
+function generateGitignore(programmatic: boolean): string {
+	const lines = [".env"];
+	if (programmatic) {
+		lines.push("dist/", "node_modules/");
+	}
+	return `${lines.join("\n")}\n`;
 }
 
 /**
@@ -300,12 +302,16 @@ export async function runNew(capabilityId: string, options: NewCommandOptions): 
 	mkdirSync(hooksDir, { recursive: true });
 	await writeFile(join(hooksDir, "hooks.toml"), generateHooksTemplate(), "utf-8");
 	await writeFile(join(hooksDir, "example-hook.sh"), generateHookScript(), "utf-8");
+	await writeFile(
+		join(capabilityDir, ".gitignore"),
+		generateGitignore(Boolean(options.programmatic)),
+		"utf-8",
+	);
 
 	// Create programmatic files if --programmatic flag is set
 	if (options.programmatic) {
 		await writeFile(join(capabilityDir, "package.json"), generatePackageJson(id), "utf-8");
 		await writeFile(join(capabilityDir, "index.ts"), generateIndexTs(id, name), "utf-8");
-		await writeFile(join(capabilityDir, ".gitignore"), generateGitignore(), "utf-8");
 	}
 
 	console.log(`Created capability: ${name}`);
@@ -317,10 +323,10 @@ export async function runNew(capabilityId: string, options: NewCommandOptions): 
 	console.log("    - rules/coding-standards.md");
 	console.log("    - hooks/hooks.toml");
 	console.log("    - hooks/example-hook.sh");
+	console.log("    - .gitignore");
 	if (options.programmatic) {
 		console.log("    - package.json");
 		console.log("    - index.ts");
-		console.log("    - .gitignore");
 	}
 	console.log("");
 	if (options.programmatic) {

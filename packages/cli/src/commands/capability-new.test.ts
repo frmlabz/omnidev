@@ -272,22 +272,28 @@ capabilities = []
 		await runCapabilityNew({ path: "capabilities/test-cap", programmatic: true }, "test-cap");
 
 		const gitignore = readFileSync("capabilities/test-cap/.gitignore", "utf-8");
+		expect(gitignore).toContain(".env");
 		expect(gitignore).toContain("dist/");
 		expect(gitignore).toContain("node_modules/");
 	});
 
-	test("does not create programmatic files without --programmatic flag", async () => {
+	test("creates .gitignore with .env without --programmatic flag", async () => {
 		await setupOmniDevProject();
 
 		await runCapabilityNew({ path: "capabilities/plain-cap" }, "plain-cap");
 
 		// Standard files should exist
 		expect(existsSync("capabilities/plain-cap/capability.toml")).toBe(true);
+		expect(existsSync("capabilities/plain-cap/.gitignore")).toBe(true);
 
 		// Programmatic files should NOT exist
 		expect(existsSync("capabilities/plain-cap/package.json")).toBe(false);
 		expect(existsSync("capabilities/plain-cap/index.ts")).toBe(false);
-		expect(existsSync("capabilities/plain-cap/.gitignore")).toBe(false);
+
+		const gitignore = readFileSync("capabilities/plain-cap/.gitignore", "utf-8");
+		expect(gitignore).toContain(".env");
+		expect(gitignore).not.toContain("dist/");
+		expect(gitignore).not.toContain("node_modules/");
 	});
 
 	test("programmatic capability handles kebab-case in variable names", async () => {

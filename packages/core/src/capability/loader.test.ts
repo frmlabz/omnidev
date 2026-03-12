@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
@@ -236,11 +236,18 @@ functions = ["fn1", "fn2"]
 describe("loadCapability", () => {
 	const testDir = setupTestDir("test-load-capability-", { chdir: true });
 	let capabilitiesDir: string;
+	const envKeys = ["OMNIDEV_TEST_SHELL_TOKEN"];
 
 	beforeEach(() => {
 		// Create test directory in os temp dir
 		capabilitiesDir = join(testDir.path, "omni", "capabilities");
 		mkdirSync(capabilitiesDir, { recursive: true });
+	});
+
+	afterEach(() => {
+		for (const key of envKeys) {
+			delete process.env[key];
+		}
 	});
 
 	test("loads capability with minimal config (no optional fields)", async () => {
@@ -265,6 +272,122 @@ description = "A minimal capability"`,
 		expect(capability.docs).toEqual([]);
 		expect(capability.typeDefinitions).toBeUndefined();
 		expect(capability.exports).toEqual({});
+	});
+
+	test("resolves MCP placeholders from capability-local .env", async () => {
+		const capPath = join(".omni", "capabilities", "with-mcp-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "with-mcp-env"
+name = "With MCP Env"
+version = "1.0.0"
+description = "Uses env interpolation"
+
+[mcp]
+command = "\${MCP_COMMAND}"
+args = ["--header", "Authorization: Basic \${BASIC_AUTH}", "\${TARGET_RESOURCE}"]
+cwd = "\${CAP_WORKDIR}"
+url = "https://api.example.com/\${TARGET_RESOURCE}"
+
+[mcp.env]
+API_KEY = "\${API_KEY}"
+
+[mcp.headers]
+Authorization = "Bearer \${HEADER_TOKEN}"`,
+		);
+		writeFileSync(
+			join(capPath, ".env"),
+			`MCP_COMMAND=npx
+BASIC_AUTH=abc123
+TARGET_RESOURCE=tooling
+CAP_WORKDIR=./server
+API_KEY=secret-key
+HEADER_TOKEN=header-secret
+`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.config.mcp?.command).toBe("npx");
+		expect(capability.config.mcp?.args).toEqual([
+			"--header",
+			"Authorization: Basic abc123",
+			"tooling",
+		]);
+		expect(capability.config.mcp?.cwd).toBe("./server");
+		expect(capability.config.mcp?.url).toBe("https://api.example.com/tooling");
+		expect(capability.config.mcp?.env).toEqual({ API_KEY: "secret-key" });
+		expect(capability.config.mcp?.headers).toEqual({
+			Authorization: "Bearer header-secret",
+		});
+	});
+
+	test("prefers shell environment over capability-local .env", async () => {
+		const capPath = join(".omni", "capabilities", "shell-wins");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "shell-wins"
+name = "Shell Wins"
+version = "1.0.0"
+description = "Tests shell precedence"
+
+[mcp]
+command = "node"
+
+[mcp.env]
+TOKEN = "\${OMNIDEV_TEST_SHELL_TOKEN}"`,
+		);
+		writeFileSync(join(capPath, ".env"), "OMNIDEV_TEST_SHELL_TOKEN=local-value\n");
+		process.env.OMNIDEV_TEST_SHELL_TOKEN = "shell-value";
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.config.mcp?.env).toEqual({ TOKEN: "shell-value" });
+	});
+
+	test("throws when MCP placeholders are unresolved", async () => {
+		const capPath = join(".omni", "capabilities", "missing-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "missing-env"
+name = "Missing Env"
+version = "1.0.0"
+description = "Missing env variable"
+
+[mcp]
+command = "\${MISSING_COMMAND}"`,
+		);
+
+		expect(async () => await loadCapability(capPath)).toThrow(
+			'Missing environment variable "MISSING_COMMAND" required by capability "missing-env" in mcp.command',
+		);
+	});
+
+	test("does not resolve placeholders outside MCP config", async () => {
+		const capPath = join(".omni", "capabilities", "raw-non-mcp");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "raw-non-mcp"
+name = "Raw Non MCP"
+version = "1.0.0"
+description = "Literal \${NON_MCP_TOKEN}"
+
+[mcp]
+command = "node"`,
+		);
+		writeFileSync(join(capPath, ".env"), "NON_MCP_TOKEN=resolved\n");
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.config.capability.description).toBe("Literal ${NON_MCP_TOKEN}");
 	});
 
 	test("loads capability with skills from filesystem", async () => {

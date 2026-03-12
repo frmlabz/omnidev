@@ -23,7 +23,7 @@ command = "node"
 args = ["./servers/database.js"]
 cwd = "./mcp-servers"
 transport = "stdio"
-env = { DB_URL = "${DATABASE_URL}" }
+env = { DB_URL = "postgres://localhost/mydb" }
 
 # ============================================================================
 # OPTION 2: http transport - Remote HTTP server (recommended for remote)
@@ -40,14 +40,14 @@ url = "https://mcp.notion.com/mcp"
 transport = "http"
 url = "https://api.example.com/mcp"
 [mcps.secure-api.headers]
-Authorization = "Bearer ${API_TOKEN}"
+Authorization = "Bearer your-token-here"
 
 # With custom headers
 [mcps.custom-api]
 transport = "http"
 url = "https://internal.company.com/mcp"
 [mcps.custom-api.headers]
-"X-API-Key" = "${INTERNAL_API_KEY}"
+"X-API-Key" = "your-api-key"
 "X-Team-ID" = "engineering"
 
 # ============================================================================
@@ -65,7 +65,7 @@ url = "https://mcp.asana.com/sse"
 transport = "sse"
 url = "https://api.company.com/sse"
 [mcps.private-sse.headers]
-"X-API-Key" = "${SSE_API_KEY}"
+"X-API-Key" = "your-key-here"
 
 # ============================================================================
 # Profile Configuration

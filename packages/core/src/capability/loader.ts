@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseCapabilityConfig } from "../config/parser";
 import { loadCapabilityHooks } from "#hooks/loader";
+import { resolveCapabilityMcpEnv } from "./mcp-env";
 import type {
 	CapabilityConfig,
 	Command,
@@ -386,7 +387,8 @@ function mergeByName<T extends { name: string }>(fileBased: T[], programmatic: T
  * @throws Error if loading errors occur
  */
 export async function loadCapability(capabilityPath: string): Promise<LoadedCapability> {
-	const config = await loadCapabilityConfig(capabilityPath);
+	const rawConfig = await loadCapabilityConfig(capabilityPath);
+	const config = await resolveCapabilityMcpEnv(rawConfig, capabilityPath);
 	const id = config.capability.id;
 
 	// Load content from both programmatic exports and filesystem, then merge

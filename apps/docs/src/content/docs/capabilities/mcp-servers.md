@@ -39,7 +39,7 @@ MCP servers can see what you send them, and their tool responses can influence d
 [mcps.filesystem]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
-env = { SOMENAME = "SOMEVALUE", SOMEVALUE = "$SOME_ENV_VALUE" }
+env = { SOMENAME = "SOMEVALUE", SOMEVALUE = "literal-value" }
 ```
 
 Optional fields:
@@ -54,7 +54,7 @@ Optional fields:
 [mcps.notion]
 transport = "http"
 url = "https://mcp.notion.com/mcp"
-headers = { Authorization = "Bearer ${API_TOKEN}" }
+headers = { Authorization = "Bearer your-token-here" }
 ```
 
 ## sse example (deprecated)
@@ -94,11 +94,14 @@ When you define `[mcps.name]`, OmniDev:
 
 ## Environment variables
 
-Use `${VAR}` to reference values from your shell or environment files:
+`omni.toml` MCP values are written literally. If you need secret interpolation, define the MCP inside a capability's `capability.toml` and add a gitignored `.env` file next to it. OmniDev resolves `${VAR}` in MCP fields only, with shell environment variables taking precedence over the capability-local `.env`.
 
 ```toml
-[mcps.database]
-command = "node"
-args = ["./mcp-server.js"]
-env = { DB_URL = "${DATABASE_URL}" }
+[mcp]
+command = "npx"
+args = ["mcp-remote", "https://mcp.riskos.socure.com/mcp", "--header", "Authorization: Basic ${SOCURE_AUTH}"]
+```
+
+```dotenv
+SOCURE_AUTH=your-base64-value
 ```

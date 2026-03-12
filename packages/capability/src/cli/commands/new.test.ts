@@ -213,20 +213,26 @@ describe("capability new command", () => {
 			await runNew("test-cap", { path: "test-cap", programmatic: true });
 
 			const gitignore = readFileSync("test-cap/.gitignore", "utf-8");
+			expect(gitignore).toContain(".env");
 			expect(gitignore).toContain("dist/");
 			expect(gitignore).toContain("node_modules/");
 		});
 
-		test("does not create programmatic files without flag", async () => {
+		test("creates .gitignore with .env for non-programmatic capabilities", async () => {
 			await runNew("plain-cap", { path: "plain-cap" });
 
 			// Standard files should exist
 			expect(existsSync("plain-cap/capability.toml")).toBe(true);
+			expect(existsSync("plain-cap/.gitignore")).toBe(true);
 
 			// Programmatic files should NOT exist
 			expect(existsSync("plain-cap/package.json")).toBe(false);
 			expect(existsSync("plain-cap/index.ts")).toBe(false);
-			expect(existsSync("plain-cap/.gitignore")).toBe(false);
+
+			const gitignore = readFileSync("plain-cap/.gitignore", "utf-8");
+			expect(gitignore).toContain(".env");
+			expect(gitignore).not.toContain("dist/");
+			expect(gitignore).not.toContain("node_modules/");
 		});
 
 		test("handles kebab-case in variable names", async () => {

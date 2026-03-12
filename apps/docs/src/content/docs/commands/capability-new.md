@@ -39,7 +39,7 @@ This adds the following files for building a programmatic capability:
 
 - `package.json` - Node.js package with build script
 - `index.ts` - TypeScript entry point with CLI command template
-- `.gitignore` - Ignores `dist/` and `node_modules/`
+- `.gitignore` - Ignores capability-local `.env`, plus `dist/` and `node_modules/`
 
 ## Generated files
 
@@ -48,6 +48,7 @@ This adds the following files for building a programmatic capability:
 ```
 capabilities/my-capability/
 ├── capability.toml               # Capability metadata
+├── .gitignore                    # Git ignore for capability-local .env
 ├── skills/
 │   └── getting-started/
 │       └── SKILL.md              # Skill template
@@ -65,7 +66,7 @@ capabilities/my-capability/
 ├── capability.toml               # Capability metadata
 ├── package.json                  # Node.js package config
 ├── index.ts                      # TypeScript entry point with CLI commands
-├── .gitignore                    # Git ignore for dist/ and node_modules/
+├── .gitignore                    # Git ignore for .env, dist/, and node_modules/
 ├── skills/
 │   └── getting-started/
 │       └── SKILL.md              # Skill template
@@ -97,6 +98,7 @@ Output:
     - rules/coding-standards.md
     - hooks/hooks.toml
     - hooks/example-hook.sh
+    - .gitignore
 
 💡 To add this capability as a local source, run:
    omnidev add cap --local ./capabilities/api-client
