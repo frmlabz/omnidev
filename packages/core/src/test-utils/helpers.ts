@@ -261,11 +261,11 @@ export function setupTestDir(
 	};
 
 	beforeEach(async () => {
-		originalCwd = process.cwd();
-		currentDir = tmpdir(prefix);
 		if (shouldChdir) {
 			releaseCwdLock = await acquireCwdLock();
 		}
+		originalCwd = process.cwd();
+		currentDir = tmpdir(prefix);
 		applyOptions(currentDir);
 	});
 
