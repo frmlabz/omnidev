@@ -1,3 +1,4 @@
+---
 '@omnidev-ai/cli': minor
 '@omnidev-ai/capability': minor
 ---
