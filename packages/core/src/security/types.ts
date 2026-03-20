@@ -25,7 +25,9 @@ export type FindingType =
 	| "symlink_escape"
 	| "symlink_absolute"
 	| "suspicious_script"
-	| "binary_file";
+	| "binary_file"
+	| "hidden_command"
+	| "network_request";
 
 /**
  * A security finding (potential issue)
@@ -94,6 +96,7 @@ export const DEFAULT_SECURITY_CONFIG: Required<SecurityConfig> = {
 		symlinks: true,
 		scripts: true,
 		binaries: false,
+		hiddenCommands: true,
 	},
 };
 
@@ -105,4 +108,5 @@ export const DEFAULT_SCAN_SETTINGS: Required<ScanSettings> = {
 	symlinks: true,
 	scripts: true,
 	binaries: false,
+	hiddenCommands: true,
 };

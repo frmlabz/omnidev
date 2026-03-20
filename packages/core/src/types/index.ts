@@ -326,6 +326,8 @@ export interface ScanSettings {
 	scripts?: boolean;
 	/** Detect binary files in content folders */
 	binaries?: boolean;
+	/** Detect commands hidden in HTML comments and outbound network requests */
+	hiddenCommands?: boolean;
 }
 
 /**

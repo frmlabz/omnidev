@@ -130,6 +130,100 @@ const SUSPICIOUS_SCRIPT_PATTERNS: Array<{
 ];
 
 /**
+ * Patterns for outbound network requests (even without pipe-to-shell).
+ * These are suspicious in capability/skill content because they can
+ * exfiltrate data or download malicious payloads.
+ */
+const NETWORK_REQUEST_PATTERNS: Array<{
+	pattern: RegExp;
+	message: string;
+	severity: FindingSeverity;
+}> = [
+	{
+		pattern: /\bcurl\s+.*https?:\/\//i,
+		message: "Outbound curl request detected",
+		severity: "medium",
+	},
+	{
+		pattern: /\bwget\s+.*https?:\/\//i,
+		message: "Outbound wget request detected",
+		severity: "medium",
+	},
+	{
+		pattern: /\bfetch\s*\(\s*["'`]https?:\/\//i,
+		message: "Outbound fetch() request detected",
+		severity: "medium",
+	},
+	{
+		pattern: /\b(?:http|https)\.(?:get|request|post|put)\s*\(/i,
+		message: "Outbound HTTP request via Node.js http module",
+		severity: "medium",
+	},
+	{
+		pattern: /\brequests\.(?:get|post|put|delete|patch)\s*\(/i,
+		message: "Outbound HTTP request via Python requests",
+		severity: "medium",
+	},
+	{
+		pattern: /\bnc\b.*\s\d{2,5}\b/i,
+		message: "Netcat connection detected",
+		severity: "high",
+	},
+	{
+		pattern: /\b(?:Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b/i,
+		message: "Outbound PowerShell web request detected",
+		severity: "medium",
+	},
+];
+
+/**
+ * Patterns that indicate executable commands hidden in content.
+ * Used to detect commands inside HTML comments, invisible markup, etc.
+ */
+const HIDDEN_COMMAND_PATTERNS: Array<{
+	pattern: RegExp;
+	message: string;
+	severity: FindingSeverity;
+}> = [
+	// Backtick-wrapped commands (prompt injection via rendered-invisible content)
+	{
+		pattern: /`[^`]*(?:curl|wget|bash|sh|python|ruby|node|exec|eval|system)\s[^`]*`/i,
+		message: "Executable command in backtick-wrapped code",
+		severity: "critical",
+	},
+	// Shell pipe patterns
+	{
+		pattern: /\|\s*(?:ba)?sh\b/i,
+		message: "Pipe to shell execution",
+		severity: "critical",
+	},
+	// Direct shell invocations
+	{
+		pattern: /(?:^|\s)(?:bash|sh|zsh)\s+-c\s+/i,
+		message: "Shell invocation with -c flag",
+		severity: "high",
+	},
+	// Common command patterns
+	{
+		pattern: /\b(?:curl|wget)\s+.*https?:\/\//i,
+		message: "Network fetch command detected",
+		severity: "high",
+	},
+	// Python/Ruby/Node one-liners
+	{
+		pattern: /\b(?:python|ruby|node)\s+-e\s+/i,
+		message: "Inline script execution",
+		severity: "high",
+	},
+	// eval/exec with strings
+	{
+		pattern: /\beval\s*\(.*\)/i,
+		message: "eval() call detected",
+		severity: "high",
+	},
+];
+
+/**
  * File extensions that are considered binary (not content files)
  */
 const BINARY_EXTENSIONS = new Set([
@@ -280,6 +374,167 @@ async function scanFileForScripts(
 }
 
 /**
+ * Regex to match HTML comments, including multiline.
+ * Captures the content between <!-- and -->
+ */
+const HTML_COMMENT_RE = /<!--([\s\S]*?)-->/g;
+
+/**
+ * Regex to match markdown link/image references that could hide content
+ * e.g., [invisible]: https://evil.com "!`curl ...`"
+ */
+const HIDDEN_REFERENCE_RE = /^\[.*?\]:\s*\S+\s+"(.+)"/gm;
+
+/**
+ * Extract hidden content regions from a markdown file.
+ * Returns array of { content, startLine } for each hidden region.
+ */
+function extractHiddenRegions(fileContent: string): Array<{ content: string; startLine: number }> {
+	const regions: Array<{ content: string; startLine: number }> = [];
+
+	// HTML comments
+	HTML_COMMENT_RE.lastIndex = 0;
+	for (
+		let match = HTML_COMMENT_RE.exec(fileContent);
+		match !== null;
+		match = HTML_COMMENT_RE.exec(fileContent)
+	) {
+		const captured = match[1];
+		if (captured === undefined) continue;
+		const beforeMatch = fileContent.substring(0, match.index);
+		const startLine = beforeMatch.split("\n").length;
+		regions.push({ content: captured, startLine });
+	}
+
+	// Hidden reference definitions with title text
+	HIDDEN_REFERENCE_RE.lastIndex = 0;
+	for (
+		let match = HIDDEN_REFERENCE_RE.exec(fileContent);
+		match !== null;
+		match = HIDDEN_REFERENCE_RE.exec(fileContent)
+	) {
+		const captured = match[1];
+		if (captured === undefined) continue;
+		const beforeMatch = fileContent.substring(0, match.index);
+		const startLine = beforeMatch.split("\n").length;
+		regions.push({ content: captured, startLine });
+	}
+
+	return regions;
+}
+
+/**
+ * Scan a markdown file for commands hidden in HTML comments and other
+ * invisible markup. This catches the prompt injection attack vector where
+ * malicious commands are placed inside <!-- --> so they're invisible
+ * when the markdown is rendered but still processed by the LLM.
+ */
+async function scanFileForHiddenCommands(
+	filePath: string,
+	relativePath: string,
+): Promise<SecurityFinding[]> {
+	const findings: SecurityFinding[] = [];
+
+	try {
+		const content = await readFile(filePath, "utf-8");
+		const hiddenRegions = extractHiddenRegions(content);
+
+		for (const region of hiddenRegions) {
+			const regionLines = region.content.split("\n");
+
+			for (let i = 0; i < regionLines.length; i++) {
+				const line = regionLines[i] ?? "";
+				if (!line.trim()) continue;
+
+				for (const { pattern, message, severity } of HIDDEN_COMMAND_PATTERNS) {
+					if (pattern.test(line)) {
+						findings.push({
+							type: "hidden_command",
+							severity,
+							file: relativePath,
+							line: region.startLine + i,
+							message: `Hidden in comment: ${message}`,
+							details: line.trim().substring(0, 100),
+						});
+					}
+				}
+
+				// Also check for network request patterns inside hidden content
+				for (const { pattern, message, severity } of NETWORK_REQUEST_PATTERNS) {
+					if (pattern.test(line)) {
+						findings.push({
+							type: "network_request",
+							severity: severity === "medium" ? "high" : severity,
+							file: relativePath,
+							line: region.startLine + i,
+							message: `Hidden in comment: ${message}`,
+							details: line.trim().substring(0, 100),
+						});
+					}
+				}
+
+				// Also check for suspicious script patterns inside hidden content
+				for (const { pattern, message, severity } of SUSPICIOUS_SCRIPT_PATTERNS) {
+					if (pattern.test(line)) {
+						findings.push({
+							type: "hidden_command",
+							severity: severity === "medium" ? "high" : severity,
+							file: relativePath,
+							line: region.startLine + i,
+							message: `Hidden in comment: ${message}`,
+							details: line.trim().substring(0, 100),
+						});
+					}
+				}
+			}
+		}
+	} catch {
+		// File might be unreadable, skip
+	}
+
+	return findings;
+}
+
+/**
+ * Scan a file for outbound network request patterns (visible content).
+ * Unlike hidden command scanning, this checks visible lines in content files
+ * for network calls that could exfiltrate data or fetch malicious payloads.
+ */
+async function scanFileForNetworkRequests(
+	filePath: string,
+	relativePath: string,
+): Promise<SecurityFinding[]> {
+	const findings: SecurityFinding[] = [];
+
+	try {
+		const content = await readFile(filePath, "utf-8");
+		const lines = content.split("\n");
+
+		for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+			const line = lines[lineNum];
+			if (!line) continue;
+
+			for (const { pattern, message, severity } of NETWORK_REQUEST_PATTERNS) {
+				if (pattern.test(line)) {
+					findings.push({
+						type: "network_request",
+						severity,
+						file: relativePath,
+						line: lineNum + 1,
+						message,
+						details: line.trim().substring(0, 100),
+					});
+				}
+			}
+		}
+	} catch {
+		// File might be unreadable, skip
+	}
+
+	return findings;
+}
+
+/**
  * Check if a symlink escapes the capability directory
  */
 async function checkSymlink(
@@ -406,19 +661,34 @@ export async function scanCapability(
 
 				// Only scan text files for content issues
 				if (isTextFile(fullPath)) {
+					const ext = fullPath.toLowerCase().substring(fullPath.lastIndexOf("."));
+
 					// Scan for Unicode issues
 					if (settings.unicode) {
 						const unicodeFindings = await scanFileForUnicode(fullPath, relativePath);
 						findings.push(...unicodeFindings);
 					}
 
-					// Scan for script issues (only for shell/script files)
+					// Scan for script issues (shell/script files)
 					if (settings.scripts) {
-						const ext = fullPath.toLowerCase().substring(fullPath.lastIndexOf("."));
 						if ([".sh", ".bash", ".zsh", ".fish", ".py", ".rb", ".js", ".ts"].includes(ext)) {
 							const scriptFindings = await scanFileForScripts(fullPath, relativePath);
 							findings.push(...scriptFindings);
 						}
+					}
+
+					// Scan for hidden commands in markdown/content files
+					if (settings.hiddenCommands) {
+						if ([".md", ".txt", ".yaml", ".yml", ".toml"].includes(ext)) {
+							const hiddenFindings = await scanFileForHiddenCommands(fullPath, relativePath);
+							findings.push(...hiddenFindings);
+						}
+					}
+
+					// Scan all content files for network request patterns
+					if (settings.hiddenCommands) {
+						const networkFindings = await scanFileForNetworkRequests(fullPath, relativePath);
+						findings.push(...networkFindings);
 					}
 				}
 			}
@@ -469,6 +739,8 @@ export async function scanCapabilities(
 		symlink_absolute: 0,
 		suspicious_script: 0,
 		binary_file: 0,
+		hidden_command: 0,
+		network_request: 0,
 	};
 
 	const findingsBySeverity: Record<FindingSeverity, number> = {

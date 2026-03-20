@@ -75,6 +75,8 @@ async function filterAllowedFindings(
 		symlink_absolute: 0,
 		suspicious_script: 0,
 		binary_file: 0,
+		hidden_command: 0,
+		network_request: 0,
 	};
 
 	const findingsBySeverity: Record<string, number> = {
