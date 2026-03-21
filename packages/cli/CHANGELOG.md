@@ -1,5 +1,11 @@
 # @omnidev-ai/cli
 
+## 0.17.1
+
+### Patch Changes
+
+- cfb283e: Switch capability dependency sync to npm-only, require npm in sync diagnostics, and align integration coverage with the new runtime expectations.
+
 ## 0.17.0
 
 ### Minor Changes
