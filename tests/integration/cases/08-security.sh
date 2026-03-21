@@ -62,12 +62,15 @@ assert_file_contains ".omni/security.json" "test-security"
 assert_file_contains ".omni/security.json" "suspicious_script"
 
 info "Running security issues after allow..."
-# Should now pass (exit 0) since finding is allowed
-run_omnidev security issues
+# This should still fail because the network_request finding remains
+if run_omnidev security issues 2>&1; then
+  fail "Expected security issues to keep failing while network_request is still present"
+fi
 
 info "Validating allowed finding is hidden..."
-output=$(run_omnidev security issues 2>&1)
+output=$(run_omnidev security issues 2>&1 || true)
 assert_contains "$output" "allowed finding"
+assert_contains "$output" "network_request"
 
 info "Testing security list-allows..."
 output=$(run_omnidev security list-allows 2>&1)

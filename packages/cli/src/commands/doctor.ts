@@ -58,48 +58,50 @@ async function checkPackageManager(): Promise<Check> {
 	const execFileAsync = promisify(execFile);
 
 	try {
-		const { stdout } = await execFileAsync("bun", ["--version"]);
-		const version = stdout.trim();
-		const firstPart = version.split(".")[0];
-		if (!firstPart) {
+		const { stdout: npmStdout } = await execFileAsync("npm", ["--version"]);
+		const npmVersion = npmStdout.trim();
+
+		try {
+			const { stdout: bunStdout } = await execFileAsync("bun", ["--version"]);
+			const bunVersion = bunStdout.trim();
+			const firstPart = bunVersion.split(".")[0];
+			if (!firstPart) {
+				return {
+					name: "Package Manager",
+					passed: false,
+					message: `Invalid Bun version format: ${bunVersion}`,
+					fix: "Reinstall Bun: curl -fsSL https://bun.sh/install | bash",
+				};
+			}
+
+			const major = Number.parseInt(firstPart, 10);
+			if (major < 1) {
+				return {
+					name: "Package Manager",
+					passed: false,
+					message: `npm v${npmVersion}; bun v${bunVersion}`,
+					fix: "Upgrade Bun: curl -fsSL https://bun.sh/install | bash",
+				};
+			}
+
 			return {
 				name: "Package Manager",
-				passed: false,
-				message: `Invalid Bun version format: ${version}`,
-				fix: "Reinstall Bun: curl -fsSL https://bun.sh/install | bash",
+				passed: true,
+				message: `npm v${npmVersion}; bun v${bunVersion}`,
 			};
-		}
-
-		const major = Number.parseInt(firstPart, 10);
-		if (major < 1) {
+		} catch {
 			return {
 				name: "Package Manager",
-				passed: false,
-				message: `bun v${version}`,
-				fix: "Upgrade Bun: curl -fsSL https://bun.sh/install | bash",
+				passed: true,
+				message: `npm v${npmVersion}`,
 			};
 		}
-
-		return {
-			name: "Package Manager",
-			passed: true,
-			message: `bun v${version}`,
-		};
-	} catch {}
-
-	try {
-		const { stdout } = await execFileAsync("npm", ["--version"]);
-		return {
-			name: "Package Manager",
-			passed: true,
-			message: `npm v${stdout.trim()}`,
-		};
 	} catch {
 		return {
 			name: "Package Manager",
 			passed: false,
-			message: "Neither Bun nor npm is installed",
-			fix: "Install Bun (recommended): curl -fsSL https://bun.sh/install | bash",
+			message: "npm is not installed",
+			fix: "Install Node.js and npm: https://nodejs.org/",
 		};
 	}
 }

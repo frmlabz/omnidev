@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.14.1
+
+### Patch Changes
+
+- Switch capability dependency installation to npm-only, require npm for capability sync diagnostics, and align integration coverage with the new runtime expectations.
+
 ## 0.14.0
 
 ### Minor Changes

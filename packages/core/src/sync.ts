@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { fetchAllCapabilitySources, type SyncWarning } from "./capability/sources";
 import { loadConfig } from "./config/config";
@@ -28,6 +29,53 @@ export interface SyncOptions {
 	adapters?: ProviderAdapter[];
 }
 
+interface InstallCommand {
+	cmd: "npm";
+	args: string[];
+}
+
+function getDeclaredPackageManager(packageManager: unknown): string | undefined {
+	if (typeof packageManager !== "string" || packageManager.trim().length === 0) {
+		return undefined;
+	}
+
+	const atIndex = packageManager.indexOf("@");
+	return atIndex === -1 ? packageManager : packageManager.slice(0, atIndex);
+}
+
+export function resolveCapabilityInstallCommand(
+	capabilityPath: string,
+	options: { hasNpm: boolean },
+): InstallCommand {
+	const packageJsonPath = join(capabilityPath, "package.json");
+	const packageLockPath = join(capabilityPath, "package-lock.json");
+
+	let packageManager: string | undefined;
+	try {
+		const pkgJson = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as {
+			packageManager?: unknown;
+		};
+		packageManager = getDeclaredPackageManager(pkgJson.packageManager);
+	} catch {
+		// Ignore parse errors and fall back to lockfile/availability based detection.
+	}
+
+	if (!options.hasNpm) {
+		throw new Error("npm is not installed. Install npm to install capability dependencies.");
+	}
+
+	if (packageManager && packageManager !== "npm") {
+		throw new Error(
+			`Capability at ${capabilityPath} declares packageManager=${packageManager}, but OmniDev only supports npm for capability dependencies.`,
+		);
+	}
+
+	return {
+		cmd: "npm",
+		args: [existsSync(packageLockPath) ? "ci" : "install"],
+	};
+}
+
 /**
  * Install dependencies and build TypeScript capabilities in .omni/capabilities/
  * Only processes capabilities that have a package.json and are not wrapped.
@@ -35,8 +83,7 @@ export interface SyncOptions {
  * package.json dependencies are not relevant to the capability itself.
  */
 export async function installCapabilityDependencies(silent: boolean): Promise<void> {
-	const { existsSync, readdirSync, readFileSync } = await import("node:fs");
-	const { join } = await import("node:path");
+	const { readdirSync } = await import("node:fs");
 	const { parse } = await import("smol-toml");
 
 	const capabilitiesDir = ".omni/capabilities";
@@ -56,13 +103,10 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 		});
 	}
 
-	const hasBun = await commandExists("bun");
-	const hasNpm = hasBun ? false : await commandExists("npm");
+	const hasNpm = await commandExists("npm");
 
-	if (!hasBun && !hasNpm) {
-		throw new Error(
-			"Neither Bun nor npm is installed. Install one of them to install capability dependencies.",
-		);
+	if (!hasNpm) {
+		throw new Error("npm is not installed. Install npm to install capability dependencies.");
 	}
 
 	for (const entry of entries) {
@@ -98,9 +142,9 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 		try {
 			// Install dependencies silently (only show errors)
 			await new Promise<void>((resolve, reject) => {
-				const useNpmCi = hasNpm && existsSync(join(capabilityPath, "package-lock.json"));
-				const cmd = hasBun ? "bun" : "npm";
-				const args = hasBun ? ["install"] : useNpmCi ? ["ci"] : ["install"];
+				const { cmd, args } = resolveCapabilityInstallCommand(capabilityPath, {
+					hasNpm,
+				});
 
 				const proc = spawn(cmd, args, {
 					cwd: capabilityPath,
@@ -138,10 +182,7 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 			if (hasBuildScript) {
 				// Always rebuild capabilities with build scripts to ensure latest changes
 				await new Promise<void>((resolve, reject) => {
-					const cmd = hasBun ? "bun" : "npm";
-					const args = ["run", "build"];
-
-					const proc = spawn(cmd, args, {
+					const proc = spawn("npm", ["run", "build"], {
 						cwd: capabilityPath,
 						stdio: "pipe",
 					});
