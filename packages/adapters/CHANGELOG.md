@@ -1,12 +1,5 @@
 # @omnidev-ai/adapters
 
-## 0.2.2
-
-### Patch Changes
-
-- Updated dependencies
-  - @omnidev-ai/core@0.14.1
-
 ## 0.2.1
 
 ### Patch Changes

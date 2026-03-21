@@ -1,6 +1,6 @@
 {
 	"name": "@omnidev-ai/cli",
-	"version": "0.17.1",
+	"version": "0.17.0",
 	"type": "module",
 	"license": "MIT",
 	"imports": {
