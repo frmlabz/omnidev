@@ -1,5 +1,13 @@
 # @omnidev-ai/cli
 
+## 0.18.1
+
+### Patch Changes
+
+- 0cae198: Track provider-generated outputs in the sync manifest so `omnidev sync` can remove stale managed skills, rules, agents, commands, and config files without deleting user-modified files.
+- 5344088: Track provider-managed sync outputs so stale generated files are cleaned up safely.
+- 79178b2: Add a generated-file warning to `AGENTS.md` and `CLAUDE.md`, remind users to update `.gitignore` when enabling a provider, and preserve full skill directories when syncing provider skill outputs so reference files are copied alongside `SKILL.md`.
+
 ## 0.18.0
 
 ### Minor Changes

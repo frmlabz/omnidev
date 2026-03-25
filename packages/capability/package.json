@@ -1,6 +1,6 @@
 {
 	"name": "@omnidev-ai/capability",
-	"version": "0.18.0",
+	"version": "0.18.1",
 	"type": "module",
 	"license": "MIT",
 	"imports": {
