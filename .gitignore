@@ -46,3 +46,5 @@ plans
 omni.local.toml
 # OmniDev Provider Files
 CLAUDE.md
+AGENTS.md
+.codex/
