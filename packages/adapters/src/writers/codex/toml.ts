@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import type { McpConfig, SyncBundle } from "@omnidev-ai/core";
 import { stringify } from "smol-toml";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Codex MCP server config format (for `.codex/config.toml`)
@@ -147,6 +148,7 @@ export const CodexTomlWriter: FileWriter = {
 
 		return {
 			filesWritten: [ctx.outputPath],
+			managedOutputs: [createManagedOutput(ctx.outputPath, this.id, tomlContent)],
 		};
 	},
 };

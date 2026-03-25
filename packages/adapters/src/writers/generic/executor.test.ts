@@ -41,6 +41,15 @@ describe("executeWriters", () => {
 		expect(result.filesWritten).toContain("CLAUDE.md");
 		expect(result.filesWritten).toContain(".claude/skills/test-skill/SKILL.md");
 		expect(result.deduplicatedCount).toBe(0);
+		expect(result.managedOutputs).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ path: "CLAUDE.md", writerId: "instructions-md" }),
+				expect.objectContaining({
+					path: ".claude/skills/test-skill/SKILL.md",
+					writerId: "skills",
+				}),
+			]),
+		);
 
 		expect(existsSync(`${testDir.path}/CLAUDE.md`)).toBe(true);
 		expect(existsSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`)).toBe(true);
@@ -58,6 +67,9 @@ describe("executeWriters", () => {
 
 		expect(result.filesWritten).toEqual(["AGENTS.md"]);
 		expect(result.deduplicatedCount).toBe(2);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({ path: "AGENTS.md", writerId: "instructions-md" }),
+		]);
 	});
 
 	test("does not deduplicate same writer with different paths", async () => {
@@ -109,5 +121,6 @@ describe("executeWriters", () => {
 
 		expect(result.filesWritten).toEqual([]);
 		expect(result.deduplicatedCount).toBe(0);
+		expect(result.managedOutputs).toEqual([]);
 	});
 });

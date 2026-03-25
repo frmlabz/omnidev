@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Writer for Cursor rules files.
@@ -19,15 +20,19 @@ export const CursorRulesWriter: FileWriter = {
 		await mkdir(rulesDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const rule of bundle.rules) {
 			const rulePath = join(rulesDir, `omnidev-${rule.name}.mdc`);
 			await writeFile(rulePath, rule.content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, `omnidev-${rule.name}.mdc`));
+			const relativePath = join(ctx.outputPath, `omnidev-${rule.name}.mdc`);
+			filesWritten.push(relativePath);
+			managedOutputs.push(createManagedOutput(relativePath, this.id, rule.content));
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

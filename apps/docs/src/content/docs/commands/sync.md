@@ -19,6 +19,9 @@ omnidev sync
 2. Resolves capability dependencies
 3. Generates provider-specific files (`CLAUDE.md`, `AGENTS.md`, etc.)
 4. Runs any sync hooks defined by capabilities
+5. Removes stale OmniDev-managed provider outputs that are no longer generated
+
+If a previously managed file was modified after the last sync, OmniDev warns and leaves it in place instead of deleting it automatically.
 
 Run `omnidev sync` after:
 

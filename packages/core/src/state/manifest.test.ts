@@ -1,11 +1,13 @@
+import { createHash } from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
-import type { LoadedCapability } from "../types";
+import type { LoadedCapability, ManagedOutput } from "../types";
 import {
 	buildManifestFromCapabilities,
+	cleanupStaleManagedOutputs,
 	cleanupStaleResources,
 	loadManifest,
 	saveManifest,
@@ -24,21 +26,61 @@ async function readTextFile(path: string): Promise<string> {
 	return await readFile(path, "utf-8");
 }
 
+function hashContent(content: string): string {
+	return createHash("sha256").update(content).digest("hex");
+}
+
+function createManagedOutput(
+	path: string,
+	writerId: string,
+	content: string,
+	options?: Partial<ManagedOutput>,
+): ManagedOutput {
+	return {
+		path,
+		writerId,
+		hash: hashContent(content),
+		cleanupStrategy: options?.cleanupStrategy ?? "delete-file",
+		...(options?.pruneRoot ? { pruneRoot: options.pruneRoot } : {}),
+		...(options?.jsonKey ? { jsonKey: options.jsonKey } : {}),
+	};
+}
+
 describe("manifest", () => {
 	setupTestDir("manifest-test-", { chdir: true, createOmniDir: true });
 
 	describe("loadManifest", () => {
-		test("returns empty manifest when file does not exist", async () => {
+		test("returns empty v2 manifest when file does not exist", async () => {
 			const manifest = await loadManifest();
 
-			expect(manifest.version).toBe(1);
+			expect(manifest.version).toBe(2);
 			expect(manifest.capabilities).toEqual({});
+			expect(manifest.providers).toEqual({});
 			expect(manifest.syncedAt).toBeDefined();
 		});
 
-		test("loads existing manifest from disk", async () => {
-			const existingManifest: ResourceManifest = {
-				version: 1,
+		test("migrates v1 manifests without provider outputs", async () => {
+			await writeTextFile(
+				".omni/state/manifest.json",
+				JSON.stringify({
+					version: 1,
+					syncedAt: "2025-01-01T00:00:00.000Z",
+					capabilities: {
+						"test-cap": {
+							skills: ["skill1"],
+							rules: ["rule1"],
+							commands: ["cmd1"],
+							subagents: ["agent1"],
+							mcps: [],
+						},
+					},
+				}),
+			);
+
+			const manifest = await loadManifest();
+
+			expect(manifest).toEqual({
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
 				capabilities: {
 					"test-cap": {
@@ -49,20 +91,15 @@ describe("manifest", () => {
 						mcps: [],
 					},
 				},
-			};
-
-			await writeTextFile(".omni/state/manifest.json", JSON.stringify(existingManifest));
-
-			const manifest = await loadManifest();
-
-			expect(manifest).toEqual(existingManifest);
+				providers: {},
+			});
 		});
 	});
 
 	describe("saveManifest", () => {
 		test("creates state directory and writes manifest", async () => {
 			const manifest: ResourceManifest = {
-				version: 1,
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
 				capabilities: {
 					"my-cap": {
@@ -71,6 +108,21 @@ describe("manifest", () => {
 						commands: [],
 						subagents: [],
 						mcps: [],
+					},
+				},
+				providers: {
+					"claude-code": {
+						outputs: {
+							".claude/skills/s1/SKILL.md": createManagedOutput(
+								".claude/skills/s1/SKILL.md",
+								"skills",
+								"skill content",
+								{
+									cleanupStrategy: "delete-file-and-prune-empty-parents",
+									pruneRoot: ".claude/skills",
+								},
+							),
+						},
 					},
 				},
 			};
@@ -83,7 +135,7 @@ describe("manifest", () => {
 	});
 
 	describe("buildManifestFromCapabilities", () => {
-		test("builds manifest from loaded capabilities", () => {
+		test("builds manifest from loaded capabilities and provider outputs", () => {
 			const capabilities: LoadedCapability[] = [
 				{
 					id: "cap1",
@@ -113,23 +165,23 @@ describe("manifest", () => {
 					],
 					exports: {},
 				},
-				{
-					id: "cap2",
-					path: "/path/to/cap2",
-					config: { capability: { id: "cap2", name: "Cap 2", version: "1.0.0", description: "" } },
-					skills: [],
-					rules: [],
-					docs: [],
-					subagents: [],
-					mcps: [],
-					commands: [],
-					exports: {},
-				},
 			];
 
-			const manifest = buildManifestFromCapabilities(capabilities);
+			const providerOutputs = new Map([
+				[
+					"claude-code",
+					[
+						createManagedOutput(".claude/skills/skill-a/SKILL.md", "skills", "skill-a", {
+							cleanupStrategy: "delete-file-and-prune-empty-parents",
+							pruneRoot: ".claude/skills",
+						}),
+					],
+				],
+			]);
 
-			expect(manifest.version).toBe(1);
+			const manifest = buildManifestFromCapabilities(capabilities, providerOutputs);
+
+			expect(manifest.version).toBe(2);
 			expect(manifest.capabilities.cap1).toEqual({
 				skills: ["skill-a", "skill-b"],
 				rules: ["rule-a"],
@@ -137,32 +189,26 @@ describe("manifest", () => {
 				subagents: ["agent-a"],
 				mcps: [],
 			});
-			expect(manifest.capabilities.cap2).toEqual({
-				skills: [],
-				rules: [],
-				commands: [],
-				subagents: [],
-				mcps: [],
-			});
-		});
-
-		test("handles empty capabilities array", () => {
-			const manifest = buildManifestFromCapabilities([]);
-
-			expect(manifest.version).toBe(1);
-			expect(manifest.capabilities).toEqual({});
-			expect(manifest.syncedAt).toBeDefined();
+			expect(manifest.providers["claude-code"]?.outputs[".claude/skills/skill-a/SKILL.md"]).toEqual(
+				providerOutputs.get("claude-code")?.[0],
+			);
 		});
 	});
 
 	describe("saveManifest and loadManifest round-trip", () => {
 		test("save then load returns same manifest", async () => {
 			const manifest: ResourceManifest = {
-				version: 1,
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
 				capabilities: {
 					cap1: { skills: ["s1"], rules: ["r1"], commands: ["c1"], subagents: ["a1"], mcps: [] },
-					cap2: { skills: [], rules: [], commands: [], subagents: [], mcps: [] },
+				},
+				providers: {
+					codex: {
+						outputs: {
+							"AGENTS.md": createManagedOutput("AGENTS.md", "instructions-md", "agents"),
+						},
+					},
 				},
 			};
 
@@ -171,256 +217,163 @@ describe("manifest", () => {
 
 			expect(loaded).toEqual(manifest);
 		});
-
-		test("overwrites existing manifest", async () => {
-			const manifest1: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					old: { skills: ["old"], rules: [], commands: [], subagents: [], mcps: [] },
-				},
-			};
-			const manifest2: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-02T00:00:00.000Z",
-				capabilities: {
-					new: { skills: ["new"], rules: [], commands: [], subagents: [], mcps: [] },
-				},
-			};
-
-			await saveManifest(manifest1);
-			await saveManifest(manifest2);
-			const loaded = await loadManifest();
-
-			expect(loaded).toEqual(manifest2);
-			expect(loaded.capabilities.old).toBeUndefined();
-		});
 	});
 
 	describe("cleanupStaleResources", () => {
-		test("deletes skills and rules from disabled capabilities", async () => {
-			// Create skill directory
-			await writeTextFile(".claude/skills/old-skill/SKILL.md", "old skill content");
-
-			// Create rule file
-			await writeTextFile(".cursor/rules/omnidev-old-rule.mdc", "old rule content");
-
-			const previousManifest: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					"disabled-cap": {
-						skills: ["old-skill"],
-						rules: ["old-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
-					"enabled-cap": {
-						skills: ["keep-skill"],
-						rules: ["keep-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
+		test("is a no-op for provider-managed files", async () => {
+			const result = await cleanupStaleResources(
+				{
+					version: 2,
+					syncedAt: "2025-01-01T00:00:00.000Z",
+					capabilities: {},
+					providers: {},
 				},
-			};
+				new Set(["cap"]),
+			);
 
-			// Only enabled-cap is in the current set
-			const currentCapabilityIds = new Set(["enabled-cap"]);
-
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toEqual(["old-skill"]);
-			expect(result.deletedRules).toEqual(["old-rule"]);
-
-			// Verify files are deleted
-			const { existsSync } = await import("node:fs");
-			expect(existsSync(".claude/skills/old-skill")).toBe(false);
-			expect(existsSync(".cursor/rules/omnidev-old-rule.mdc")).toBe(false);
+			expect(result).toEqual({
+				deletedSkills: [],
+				deletedRules: [],
+				deletedCommands: [],
+				deletedSubagents: [],
+				deletedMcps: [],
+			});
 		});
+	});
 
-		test("preserves resources from still-enabled capabilities", async () => {
-			// Create skill directory for enabled capability
-			await writeTextFile(".claude/skills/keep-skill/SKILL.md", "keep this");
+	describe("cleanupStaleManagedOutputs", () => {
+		test("deletes stale managed skill files and prunes empty parent directories", async () => {
+			const skillContent = "---\nname: old-skill\ndescription: old\n---\n\nold";
+			await writeTextFile(".claude/skills/old-skill/SKILL.md", skillContent);
 
 			const previousManifest: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					"enabled-cap": {
-						skills: ["keep-skill"],
-						rules: [],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
-				},
-			};
-
-			const currentCapabilityIds = new Set(["enabled-cap"]);
-
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toEqual([]);
-
-			// Verify file still exists
-			const { existsSync } = await import("node:fs");
-			expect(existsSync(".claude/skills/keep-skill/SKILL.md")).toBe(true);
-		});
-
-		test("handles missing files gracefully", async () => {
-			const previousManifest: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					"disabled-cap": {
-						skills: ["nonexistent-skill"],
-						rules: ["nonexistent-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
-				},
-			};
-
-			const currentCapabilityIds = new Set<string>();
-
-			// Should not throw
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toEqual([]);
-			expect(result.deletedRules).toEqual([]);
-		});
-
-		test("handles empty previous manifest", async () => {
-			const previousManifest: ResourceManifest = {
-				version: 1,
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
 				capabilities: {},
-			};
-
-			const currentCapabilityIds = new Set(["new-cap"]);
-
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toEqual([]);
-			expect(result.deletedRules).toEqual([]);
-			expect(result.deletedCommands).toEqual([]);
-			expect(result.deletedSubagents).toEqual([]);
-		});
-
-		test("deletes multiple skills and rules from same capability", async () => {
-			// Create multiple skills
-			await writeTextFile(".claude/skills/skill-1/SKILL.md", "skill 1");
-			await writeTextFile(".claude/skills/skill-2/SKILL.md", "skill 2");
-			await writeTextFile(".claude/skills/skill-3/SKILL.md", "skill 3");
-
-			// Create multiple rules
-			await writeTextFile(".cursor/rules/omnidev-rule-1.mdc", "rule 1");
-			await writeTextFile(".cursor/rules/omnidev-rule-2.mdc", "rule 2");
-
-			const previousManifest: ResourceManifest = {
-				version: 1,
-				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					"multi-resource-cap": {
-						skills: ["skill-1", "skill-2", "skill-3"],
-						rules: ["rule-1", "rule-2"],
-						commands: [],
-						subagents: [],
-						mcps: [],
+				providers: {
+					"claude-code": {
+						outputs: {
+							".claude/skills/old-skill/SKILL.md": createManagedOutput(
+								".claude/skills/old-skill/SKILL.md",
+								"skills",
+								skillContent,
+								{
+									cleanupStrategy: "delete-file-and-prune-empty-parents",
+									pruneRoot: ".claude/skills",
+								},
+							),
+						},
 					},
 				},
 			};
 
-			const currentCapabilityIds = new Set<string>();
+			const result = await cleanupStaleManagedOutputs(previousManifest, new Map());
 
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toEqual(["skill-1", "skill-2", "skill-3"]);
-			expect(result.deletedRules).toEqual(["rule-1", "rule-2"]);
-
-			const { existsSync } = await import("node:fs");
-			expect(existsSync(".claude/skills/skill-1")).toBe(false);
-			expect(existsSync(".claude/skills/skill-2")).toBe(false);
-			expect(existsSync(".claude/skills/skill-3")).toBe(false);
-			expect(existsSync(".cursor/rules/omnidev-rule-1.mdc")).toBe(false);
-			expect(existsSync(".cursor/rules/omnidev-rule-2.mdc")).toBe(false);
+			expect(result.deletedPaths).toEqual([".claude/skills/old-skill/SKILL.md"]);
+			expect(existsSync(".claude/skills/old-skill")).toBe(false);
 		});
 
-		test("deletes resources from multiple disabled capabilities", async () => {
-			// Create resources for multiple capabilities
-			await writeTextFile(".claude/skills/cap1-skill/SKILL.md", "cap1 skill");
-			await writeTextFile(".claude/skills/cap2-skill/SKILL.md", "cap2 skill");
-			await writeTextFile(".cursor/rules/omnidev-cap1-rule.mdc", "cap1 rule");
-			await writeTextFile(".cursor/rules/omnidev-cap2-rule.mdc", "cap2 rule");
+		test("preserves modified tracked files and reports skipped cleanup", async () => {
+			await writeTextFile(".cursor/rules/omnidev-old-rule.mdc", "user modified");
 
 			const previousManifest: ResourceManifest = {
-				version: 1,
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					cap1: {
-						skills: ["cap1-skill"],
-						rules: ["cap1-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
-					cap2: {
-						skills: ["cap2-skill"],
-						rules: ["cap2-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
-					},
-					cap3: {
-						skills: ["cap3-skill"],
-						rules: [],
-						commands: [],
-						subagents: [],
-						mcps: [],
+				capabilities: {},
+				providers: {
+					cursor: {
+						outputs: {
+							".cursor/rules/omnidev-old-rule.mdc": createManagedOutput(
+								".cursor/rules/omnidev-old-rule.mdc",
+								"cursor-rules",
+								"original content",
+							),
+						},
 					},
 				},
 			};
 
-			// Only cap3 remains enabled
-			const currentCapabilityIds = new Set(["cap3"]);
+			const result = await cleanupStaleManagedOutputs(previousManifest, new Map());
 
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
-
-			expect(result.deletedSkills).toContain("cap1-skill");
-			expect(result.deletedSkills).toContain("cap2-skill");
-			expect(result.deletedSkills).not.toContain("cap3-skill");
-			expect(result.deletedRules).toContain("cap1-rule");
-			expect(result.deletedRules).toContain("cap2-rule");
+			expect(result.deletedPaths).toEqual([]);
+			expect(result.skippedPaths).toEqual([
+				{
+					path: ".cursor/rules/omnidev-old-rule.mdc",
+					reason: "managed file changed at .cursor/rules/omnidev-old-rule.mdc",
+				},
+			]);
+			expect(await readTextFile(".cursor/rules/omnidev-old-rule.mdc")).toBe("user modified");
 		});
 
-		test("cleans up when all capabilities are disabled", async () => {
-			await writeTextFile(".claude/skills/only-skill/SKILL.md", "only");
-			await writeTextFile(".cursor/rules/omnidev-only-rule.mdc", "only");
+		test("removes only managed hooks from settings.json", async () => {
+			const hooks = {
+				PreToolUse: [
+					{
+						matcher: "Write",
+						hooks: [{ type: "command", command: "echo write" }],
+					},
+				],
+			};
+
+			await writeTextFile(
+				".claude/settings.json",
+				JSON.stringify({ someOtherSetting: true, hooks }, null, 2),
+			);
 
 			const previousManifest: ResourceManifest = {
-				version: 1,
+				version: 2,
 				syncedAt: "2025-01-01T00:00:00.000Z",
-				capabilities: {
-					"the-only-cap": {
-						skills: ["only-skill"],
-						rules: ["only-rule"],
-						commands: [],
-						subagents: [],
-						mcps: [],
+				capabilities: {},
+				providers: {
+					"claude-code": {
+						outputs: {
+							".claude/settings.json": createManagedOutput(
+								".claude/settings.json",
+								"hooks",
+								JSON.stringify(hooks),
+								{
+									cleanupStrategy: "remove-json-key",
+									jsonKey: "hooks",
+								},
+							),
+						},
 					},
 				},
 			};
 
-			// Empty set - all capabilities disabled
-			const currentCapabilityIds = new Set<string>();
+			const result = await cleanupStaleManagedOutputs(previousManifest, new Map());
 
-			const result = await cleanupStaleResources(previousManifest, currentCapabilityIds);
+			expect(result.deletedPaths).toEqual([".claude/settings.json"]);
+			expect(JSON.parse(await readTextFile(".claude/settings.json"))).toEqual({
+				someOtherSetting: true,
+			});
+		});
 
-			expect(result.deletedSkills).toEqual(["only-skill"]);
-			expect(result.deletedRules).toEqual(["only-rule"]);
+		test("does not delete paths still claimed by another provider", async () => {
+			const content = "# Shared";
+			await writeTextFile("CLAUDE.md", content);
+
+			const previousManifest: ResourceManifest = {
+				version: 2,
+				syncedAt: "2025-01-01T00:00:00.000Z",
+				capabilities: {},
+				providers: {
+					"claude-code": {
+						outputs: {
+							"CLAUDE.md": createManagedOutput("CLAUDE.md", "instructions-md", content),
+						},
+					},
+				},
+			};
+
+			const nextProviders = new Map([
+				["cursor", [createManagedOutput("CLAUDE.md", "instructions-md", content)]],
+			]);
+
+			const result = await cleanupStaleManagedOutputs(previousManifest, nextProviders);
+
+			expect(result.deletedPaths).toEqual([]);
+			expect(existsSync("CLAUDE.md")).toBe(true);
 		});
 	});
 });

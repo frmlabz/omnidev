@@ -129,6 +129,26 @@ export interface Doc {
 	capabilityId: string;
 }
 
+export type ManagedOutputCleanupStrategy =
+	| "delete-file"
+	| "delete-file-and-prune-empty-parents"
+	| "remove-json-key";
+
+export interface ManagedOutput {
+	/** Relative path to the managed file */
+	path: string;
+	/** Writer that generated the output */
+	writerId: string;
+	/** Hash of the last generated content or managed subsection */
+	hash: string;
+	/** Cleanup behavior when the output becomes stale */
+	cleanupStrategy: ManagedOutputCleanupStrategy;
+	/** Root directory to stop at when pruning empty parent folders */
+	pruneRoot?: string;
+	/** JSON key to remove when cleaning up a partially managed file */
+	jsonKey?: string;
+}
+
 export type SubagentModel = "sonnet" | "opus" | "haiku" | "inherit";
 export type SubagentPermissionMode =
 	| "default"
@@ -433,6 +453,7 @@ export interface ProviderSyncResult {
 	// What did the sync action do?
 	filesWritten: string[];
 	filesDeleted: string[];
+	managedOutputs?: ManagedOutput[];
 }
 
 export interface ProviderManifest {

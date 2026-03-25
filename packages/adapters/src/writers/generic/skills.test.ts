@@ -36,6 +36,14 @@ describe("SkillsWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".claude/skills/test-skill/SKILL.md"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".claude/skills/test-skill/SKILL.md",
+				writerId: "skills",
+				cleanupStrategy: "delete-file-and-prune-empty-parents",
+				pruneRoot: ".claude/skills",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`, "utf-8");
@@ -83,6 +91,7 @@ describe("SkillsWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([]);
+		expect(result.managedOutputs).toEqual([]);
 	});
 
 	test("has correct id", () => {

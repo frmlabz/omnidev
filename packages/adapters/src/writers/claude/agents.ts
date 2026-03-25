@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle, Subagent } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Generate YAML frontmatter for a Claude Code agent.
@@ -51,6 +52,7 @@ export const ClaudeAgentsWriter: FileWriter = {
 		await mkdir(agentsDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const agent of bundle.subagents) {
 			const frontmatter = generateFrontmatter(agent);
@@ -58,11 +60,14 @@ export const ClaudeAgentsWriter: FileWriter = {
 
 			const agentPath = join(agentsDir, `${agent.name}.md`);
 			await writeFile(agentPath, content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, `${agent.name}.md`));
+			const relativePath = join(ctx.outputPath, `${agent.name}.md`);
+			filesWritten.push(relativePath);
+			managedOutputs.push(createManagedOutput(relativePath, this.id, content));
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

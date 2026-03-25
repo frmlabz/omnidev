@@ -40,6 +40,12 @@ describe("OpenCodeCommandsWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".opencode/commands/review-pr.md"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".opencode/commands/review-pr.md",
+				writerId: "opencode-commands",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.opencode/commands/review-pr.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.opencode/commands/review-pr.md`, "utf-8");

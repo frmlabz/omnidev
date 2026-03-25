@@ -9,6 +9,8 @@ export interface ExecuteWritersResult {
 	filesWritten: string[];
 	/** Number of writers that were deduplicated (skipped) */
 	deduplicatedCount: number;
+	/** Managed outputs emitted by executed writers */
+	managedOutputs: import("@omnidev-ai/core").ManagedOutput[];
 }
 
 /**
@@ -45,6 +47,7 @@ export async function executeWriters(
 
 	// Execute each unique writer
 	const allFilesWritten: string[] = [];
+	const allManagedOutputs: import("@omnidev-ai/core").ManagedOutput[] = [];
 
 	for (const config of uniqueConfigs) {
 		const result: WriterResult = await config.writer.write(bundle, {
@@ -53,10 +56,12 @@ export async function executeWriters(
 			...(providerId ? { providerId } : {}),
 		});
 		allFilesWritten.push(...result.filesWritten);
+		allManagedOutputs.push(...(result.managedOutputs ?? []));
 	}
 
 	return {
 		filesWritten: allFilesWritten,
 		deduplicatedCount,
+		managedOutputs: allManagedOutputs,
 	};
 }

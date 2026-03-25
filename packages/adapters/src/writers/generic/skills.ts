@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "./types";
+import { createManagedOutput } from "./managed-outputs";
 
 /**
  * Writer for skills directories.
@@ -19,6 +20,7 @@ export const SkillsWriter: FileWriter = {
 		await mkdir(skillsDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const skill of bundle.skills) {
 			const skillDir = join(skillsDir, skill.name);
@@ -33,11 +35,19 @@ description: "${skill.description}"
 ${skill.instructions}`;
 
 			await writeFile(skillPath, content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, skill.name, "SKILL.md"));
+			const relativePath = join(ctx.outputPath, skill.name, "SKILL.md");
+			filesWritten.push(relativePath);
+			managedOutputs.push(
+				createManagedOutput(relativePath, this.id, content, {
+					cleanupStrategy: "delete-file-and-prune-empty-parents",
+					pruneRoot: ctx.outputPath,
+				}),
+			);
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

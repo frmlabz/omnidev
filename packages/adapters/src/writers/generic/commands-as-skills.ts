@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle, Command } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Generate YAML frontmatter for a skill derived from a command.
@@ -36,6 +37,7 @@ export const CommandsAsSkillsWriter: FileWriter = {
 		await mkdir(skillsDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const command of bundle.commands) {
 			const commandSkillDir = join(skillsDir, command.name);
@@ -46,11 +48,19 @@ export const CommandsAsSkillsWriter: FileWriter = {
 
 			const skillPath = join(commandSkillDir, "SKILL.md");
 			await writeFile(skillPath, content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, command.name, "SKILL.md"));
+			const relativePath = join(ctx.outputPath, command.name, "SKILL.md");
+			filesWritten.push(relativePath);
+			managedOutputs.push(
+				createManagedOutput(relativePath, this.id, content, {
+					cleanupStrategy: "delete-file-and-prune-empty-parents",
+					pruneRoot: ctx.outputPath,
+				}),
+			);
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

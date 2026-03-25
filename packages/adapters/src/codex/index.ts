@@ -50,6 +50,7 @@ export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } 
 		return {
 			filesWritten: result.filesWritten,
 			filesDeleted: [],
+			managedOutputs: result.managedOutputs,
 		};
 	},
 };

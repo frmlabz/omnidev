@@ -40,6 +40,12 @@ describe("CursorCommandsWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/commands/review-pr.md"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".cursor/commands/review-pr.md",
+				writerId: "cursor-commands",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.cursor/commands/review-pr.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.cursor/commands/review-pr.md`, "utf-8");

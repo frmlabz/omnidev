@@ -20,6 +20,8 @@ export interface SyncAdaptersResult {
 	deduplicatedCount: number;
 	/** Per-adapter breakdown (for logging) */
 	perAdapter: Map<string, string[]>;
+	/** Managed outputs emitted by executed writers */
+	managedOutputs: import("@omnidev-ai/core").ManagedOutput[];
 }
 
 /**
@@ -46,6 +48,7 @@ export async function syncAdaptersWithWriters(
 			filesWritten: [],
 			deduplicatedCount: 0,
 			perAdapter: new Map(),
+			managedOutputs: [],
 		};
 	}
 
@@ -97,5 +100,6 @@ export async function syncAdaptersWithWriters(
 		filesWritten: result.filesWritten,
 		deduplicatedCount: result.deduplicatedCount,
 		perAdapter,
+		managedOutputs: result.managedOutputs,
 	};
 }

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Writer for Cursor commands.
@@ -20,6 +21,7 @@ export const CursorCommandsWriter: FileWriter = {
 		await mkdir(commandsDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const command of bundle.commands) {
 			// Cursor commands are plain markdown - the command name is the filename
@@ -28,11 +30,14 @@ export const CursorCommandsWriter: FileWriter = {
 
 			const commandPath = join(commandsDir, `${command.name}.md`);
 			await writeFile(commandPath, content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, `${command.name}.md`));
+			const relativePath = join(ctx.outputPath, `${command.name}.md`);
+			filesWritten.push(relativePath);
+			managedOutputs.push(createManagedOutput(relativePath, this.id, content));
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

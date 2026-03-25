@@ -40,6 +40,12 @@ describe("ClaudeAgentsWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".claude/agents/code-reviewer.md"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".claude/agents/code-reviewer.md",
+				writerId: "claude-agents",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.claude/agents/code-reviewer.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.claude/agents/code-reviewer.md`, "utf-8");

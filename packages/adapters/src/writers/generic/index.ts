@@ -1,4 +1,5 @@
 export type { AdapterWriterConfig, FileWriter, WriterContext, WriterResult } from "./types";
+export { createManagedOutput } from "./managed-outputs";
 export { executeWriters, type ExecuteWritersResult } from "./executor";
 export { HooksWriter } from "./hooks";
 export { InstructionsMdWriter } from "./instructions-md";

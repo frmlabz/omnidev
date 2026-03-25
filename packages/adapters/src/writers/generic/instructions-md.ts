@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "./types";
+import { createManagedOutput } from "./managed-outputs";
 import { renderOmniMdForProvider } from "./omni-md";
 
 /**
@@ -41,6 +42,7 @@ export const InstructionsMdWriter: FileWriter = {
 
 		return {
 			filesWritten: [ctx.outputPath],
+			managedOutputs: [createManagedOutput(ctx.outputPath, this.id, content)],
 		};
 	},
 };

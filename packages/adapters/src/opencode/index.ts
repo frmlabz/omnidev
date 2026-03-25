@@ -49,6 +49,7 @@ export const opencodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[]
 		return {
 			filesWritten: result.filesWritten,
 			filesDeleted: [],
+			managedOutputs: result.managedOutputs,
 		};
 	},
 };

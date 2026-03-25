@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { transformHooksConfig, type SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "./types";
+import { createManagedOutput } from "./managed-outputs";
 
 /**
  * Writer for hooks configuration files.
@@ -52,6 +53,12 @@ export const HooksWriter: FileWriter = {
 
 		return {
 			filesWritten: [ctx.outputPath],
+			managedOutputs: [
+				createManagedOutput(ctx.outputPath, this.id, JSON.stringify(claudeHooks), {
+					cleanupStrategy: "remove-json-key",
+					jsonKey: "hooks",
+				}),
+			],
 		};
 	},
 };

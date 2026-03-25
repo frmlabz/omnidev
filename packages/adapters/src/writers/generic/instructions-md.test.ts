@@ -28,6 +28,13 @@ describe("InstructionsMdWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual(["CLAUDE.md"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: "CLAUDE.md",
+				writerId: "instructions-md",
+				cleanupStrategy: "delete-file",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/CLAUDE.md`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/CLAUDE.md`, "utf-8");

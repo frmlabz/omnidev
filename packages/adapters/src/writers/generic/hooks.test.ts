@@ -45,6 +45,14 @@ describe("HooksWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".claude/settings.json"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".claude/settings.json",
+				writerId: "hooks",
+				cleanupStrategy: "remove-json-key",
+				jsonKey: "hooks",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.claude/settings.json`)).toBe(true);
 
 		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
@@ -94,6 +102,7 @@ describe("HooksWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([]);
+		expect(result.managedOutputs).toBeUndefined();
 	});
 
 	test("creates parent directories", async () => {

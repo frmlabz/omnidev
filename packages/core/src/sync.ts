@@ -8,11 +8,13 @@ import { hasAnyHooks } from "./hooks/merger";
 import { syncMcpJson } from "./mcp-json/manager";
 import {
 	buildManifestFromCapabilities,
+	cleanupStaleManagedOutputs,
 	cleanupStaleResources,
+	getProviderManagedOutputs,
 	loadManifest,
 	saveManifest,
 } from "./state/manifest";
-import type { ProviderAdapter, ProviderContext, SyncBundle } from "./types";
+import type { ManagedOutput, ProviderAdapter, ProviderContext, SyncBundle } from "./types";
 
 export interface SyncResult {
 	capabilities: string[];
@@ -324,11 +326,10 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	// Sync .mcp.json with capability MCP servers (before saving manifest)
 	await syncMcpJson(capabilities, previousManifest);
 
-	// Save updated manifest for future cleanup
-	const newManifest = buildManifestFromCapabilities(capabilities);
-	await saveManifest(newManifest);
-
 	// Run enabled adapters to write provider-specific files
+	const enabledProviderIds = new Set(adapters.map((adapter) => String(adapter.id)));
+	const successfulProviderOutputs = new Map<string, ManagedOutput[]>();
+
 	if (adapters.length > 0) {
 		const config = await loadConfig();
 		const ctx: ProviderContext = {
@@ -338,12 +339,38 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 
 		for (const adapter of adapters) {
 			try {
-				await adapter.sync(bundle, ctx);
+				const adapterResult = await adapter.sync(bundle, ctx);
+				successfulProviderOutputs.set(String(adapter.id), adapterResult.managedOutputs ?? []);
 			} catch (error) {
 				console.error(`Error running ${adapter.displayName} adapter:`, error);
 			}
 		}
 	}
+
+	const nextProviderOutputs = new Map<string, ManagedOutput[]>();
+	if (adapters.length === 0) {
+		for (const providerId of Object.keys(previousManifest.providers)) {
+			nextProviderOutputs.set(providerId, getProviderManagedOutputs(previousManifest, providerId));
+		}
+	} else {
+		for (const providerId of enabledProviderIds) {
+			if (successfulProviderOutputs.has(providerId)) {
+				nextProviderOutputs.set(providerId, successfulProviderOutputs.get(providerId) ?? []);
+				continue;
+			}
+
+			nextProviderOutputs.set(providerId, getProviderManagedOutputs(previousManifest, providerId));
+		}
+	}
+
+	const cleanupResult = await cleanupStaleManagedOutputs(previousManifest, nextProviderOutputs);
+	for (const skipped of cleanupResult.skippedPaths) {
+		console.warn(`Warning: skipped cleanup for ${skipped.path} (${skipped.reason})`);
+	}
+
+	// Save updated manifest for future cleanup
+	const newManifest = buildManifestFromCapabilities(capabilities, nextProviderOutputs);
+	await saveManifest(newManifest);
 
 	const result: SyncResult = {
 		capabilities: capabilities.map((c) => c.id),

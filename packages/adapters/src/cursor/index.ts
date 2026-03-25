@@ -76,6 +76,7 @@ export const cursorAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] }
 				...new Set([...instructionsResult.filesWritten, ...cursorResult.filesWritten]),
 			],
 			filesDeleted: [],
+			managedOutputs: [...instructionsResult.managedOutputs, ...cursorResult.managedOutputs],
 		};
 	},
 };

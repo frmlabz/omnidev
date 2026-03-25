@@ -61,6 +61,12 @@ describe("CursorMcpJsonWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/mcp.json"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".cursor/mcp.json",
+				writerId: "cursor-mcp-json",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.cursor/mcp.json`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");

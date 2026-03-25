@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { McpConfig, SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Cursor MCP server config format (for `.cursor/mcp.json`)
@@ -141,10 +142,12 @@ export const CursorMcpJsonWriter: FileWriter = {
 		};
 
 		// Write the JSON file with pretty formatting
-		await writeFile(configPath, `${JSON.stringify(cursorMcpJson, null, 2)}\n`, "utf-8");
+		const content = `${JSON.stringify(cursorMcpJson, null, 2)}\n`;
+		await writeFile(configPath, content, "utf-8");
 
 		return {
 			filesWritten: [ctx.outputPath],
+			managedOutputs: [createManagedOutput(ctx.outputPath, this.id, content)],
 		};
 	},
 };

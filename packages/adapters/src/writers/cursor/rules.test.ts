@@ -35,6 +35,13 @@ describe("CursorRulesWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".cursor/rules/omnidev-test-rule.mdc"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".cursor/rules/omnidev-test-rule.mdc",
+				writerId: "cursor-rules",
+				cleanupStrategy: "delete-file",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.cursor/rules/omnidev-test-rule.mdc`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.cursor/rules/omnidev-test-rule.mdc`, "utf-8");
@@ -78,6 +85,7 @@ describe("CursorRulesWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([]);
+		expect(result.managedOutputs).toEqual([]);
 	});
 
 	test("has correct id", () => {

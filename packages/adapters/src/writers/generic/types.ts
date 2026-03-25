@@ -1,4 +1,4 @@
-import type { CanonicalProviderId, SyncBundle } from "@omnidev-ai/core";
+import type { CanonicalProviderId, ManagedOutput, SyncBundle } from "@omnidev-ai/core";
 
 /**
  * Context passed to file writers during sync execution.
@@ -18,6 +18,8 @@ export interface WriterContext {
 export interface WriterResult {
 	/** List of files written (relative to projectRoot) */
 	filesWritten: string[];
+	/** Managed outputs that should be tracked for stale cleanup */
+	managedOutputs?: ManagedOutput[];
 }
 
 /**

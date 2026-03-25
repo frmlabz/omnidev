@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { SyncBundle, Command } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
+import { createManagedOutput } from "#writers/generic/managed-outputs";
 
 /**
  * Generate YAML frontmatter for an OpenCode command.
@@ -40,6 +41,7 @@ export const OpenCodeCommandsWriter: FileWriter = {
 		await mkdir(commandsDir, { recursive: true });
 
 		const filesWritten: string[] = [];
+		const managedOutputs = [];
 
 		for (const command of bundle.commands) {
 			const frontmatter = generateFrontmatter(command);
@@ -47,11 +49,14 @@ export const OpenCodeCommandsWriter: FileWriter = {
 
 			const commandPath = join(commandsDir, `${command.name}.md`);
 			await writeFile(commandPath, content, "utf-8");
-			filesWritten.push(join(ctx.outputPath, `${command.name}.md`));
+			const relativePath = join(ctx.outputPath, `${command.name}.md`);
+			filesWritten.push(relativePath);
+			managedOutputs.push(createManagedOutput(relativePath, this.id, content));
 		}
 
 		return {
 			filesWritten,
+			managedOutputs,
 		};
 	},
 };

@@ -62,6 +62,12 @@ describe("CodexTomlWriter", () => {
 		});
 
 		expect(result.filesWritten).toEqual([".codex/config.toml"]);
+		expect(result.managedOutputs).toEqual([
+			expect.objectContaining({
+				path: ".codex/config.toml",
+				writerId: "codex-toml",
+			}),
+		]);
 		expect(existsSync(`${testDir.path}/.codex/config.toml`)).toBe(true);
 
 		const content = readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8");

@@ -47,6 +47,7 @@ export const claudeCodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig
 		return {
 			filesWritten: result.filesWritten,
 			filesDeleted: [],
+			managedOutputs: result.managedOutputs,
 		};
 	},
 };
