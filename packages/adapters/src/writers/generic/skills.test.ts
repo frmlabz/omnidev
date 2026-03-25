@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import type { Skill, SyncBundle } from "@omnidev-ai/core";
 import { SkillsWriter } from "./skills";
@@ -50,6 +51,47 @@ describe("SkillsWriter", () => {
 		expect(content).toContain("name: test-skill");
 		expect(content).toContain('description: "A test skill"');
 		expect(content).toContain("Do the test thing");
+	});
+
+	test("copies reference files from the source skill directory", async () => {
+		const sourceSkillDir = join(testDir.path, "source-skill");
+		mkdirSync(join(sourceSkillDir, "references"), { recursive: true });
+		writeFileSync(
+			join(sourceSkillDir, "SKILL.md"),
+			`---
+name: test-skill
+description: A test skill
+---
+
+Original instructions`,
+		);
+		writeFileSync(join(sourceSkillDir, "references", "guide.md"), "# Reference guide\n");
+
+		const skills: Skill[] = [
+			{
+				name: "test-skill",
+				description: "A test skill",
+				instructions: "Do the test thing",
+				capabilityId: "test-cap",
+				sourcePath: sourceSkillDir,
+			},
+		];
+		const bundle = createBundle(skills);
+
+		const result = await SkillsWriter.write(bundle, {
+			outputPath: ".claude/skills/",
+			projectRoot: testDir.path,
+		});
+
+		expect(result.filesWritten).toContain(".claude/skills/test-skill/SKILL.md");
+		expect(result.filesWritten).toContain(".claude/skills/test-skill/references/guide.md");
+		expect(existsSync(`${testDir.path}/.claude/skills/test-skill/references/guide.md`)).toBe(true);
+		expect(
+			readFileSync(`${testDir.path}/.claude/skills/test-skill/references/guide.md`, "utf-8"),
+		).toBe("# Reference guide\n");
+		expect(readFileSync(`${testDir.path}/.claude/skills/test-skill/SKILL.md`, "utf-8")).toContain(
+			"Do the test thing",
+		);
 	});
 
 	test("writes multiple skills", async () => {

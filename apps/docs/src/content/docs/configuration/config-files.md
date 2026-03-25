@@ -98,6 +98,7 @@ The `always_disabled` filter is applied after all other capability resolution (p
 ## OMNI.md
 
 Single source of truth for project instructions. Provider files are generated from this file during sync.
+Generated instruction files like `AGENTS.md` and `CLAUDE.md` are ephemeral copies, so any persistent edit should be made in `OMNI.md`.
 
 See the dedicated [OMNI.md guide](./omni-md).
 

@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { getAllAdapters } from "@omnidev-ai/adapters";
+import { getEnabledAdapters } from "@omnidev-ai/adapters";
 import type { ProviderId } from "@omnidev-ai/core";
 import {
 	disableProvider,
@@ -6,8 +9,8 @@ import {
 	readEnabledProviders,
 	syncAgentConfiguration,
 } from "@omnidev-ai/core";
-import { getEnabledAdapters } from "@omnidev-ai/adapters";
 import { buildCommand, buildRouteMap } from "@stricli/core";
+import { getProviderGitignoreFiles } from "#prompts/provider";
 
 export async function runProviderList() {
 	const enabled = await readEnabledProviders();
@@ -47,6 +50,7 @@ export async function runProviderEnable(_flags: Record<string, never>, providerI
 
 	await enableProvider(providerId as ProviderId);
 	console.log(`✓ Enabled provider: ${adapter.displayName}`);
+	await maybeRemindAboutProviderGitignore(providerId as ProviderId);
 
 	// Sync with newly enabled adapter
 	const enabledAdapters = await getEnabledAdapters();
@@ -137,3 +141,32 @@ export const providerRoutes = buildRouteMap({
 		brief: "Manage AI provider adapters",
 	},
 });
+
+async function maybeRemindAboutProviderGitignore(providerId: ProviderId): Promise<void> {
+	const missingEntries = await getMissingGitignoreEntries(getProviderGitignoreFiles([providerId]));
+	if (missingEntries.length === 0) {
+		return;
+	}
+
+	console.log("");
+	console.log(
+		"Also update your .gitignore to ignore provider files if you do not want to commit them:",
+	);
+	for (const entry of missingEntries) {
+		console.log(`  - ${entry}`);
+	}
+}
+
+async function getMissingGitignoreEntries(entries: string[]): Promise<string[]> {
+	if (entries.length === 0) {
+		return [];
+	}
+
+	let content = "";
+	if (existsSync(".gitignore")) {
+		content = await readFile(".gitignore", "utf-8");
+	}
+
+	const lines = new Set(content.split("\n").map((line) => line.trim()));
+	return [...new Set(entries)].filter((entry) => !lines.has(entry));
+}

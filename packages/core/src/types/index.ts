@@ -115,6 +115,7 @@ export interface Skill {
 	description: string;
 	instructions: string;
 	capabilityId: string;
+	sourcePath?: string;
 }
 
 export interface Rule {

@@ -112,7 +112,10 @@ export async function loadSkills(
 						resolvedVariables,
 						`skill file ${skillPath}`,
 					);
-					skills.push(skill);
+					skills.push({
+						...skill,
+						sourcePath: join(dir, entry.name),
+					});
 				}
 			}
 		}

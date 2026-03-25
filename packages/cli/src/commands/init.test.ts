@@ -6,6 +6,7 @@ import { runInit } from "./init";
 
 describe("init command", () => {
 	setupTestDir("init-test-", { chdir: true });
+	const generatedCopyNotice = "Edit `OMNI.md` instead.";
 
 	test("creates .omni/ directory", async () => {
 		await runInit({}, "claude-code");
@@ -91,6 +92,7 @@ describe("init command", () => {
 
 		// AGENTS.md is generated from OMNI.md during sync with instructions embedded
 		const content = readFileSync("AGENTS.md", "utf-8");
+		expect(content).toContain(generatedCopyNotice);
 		expect(content).toContain("# Project Instructions");
 	});
 
@@ -113,6 +115,7 @@ describe("init command", () => {
 
 		// AGENTS.md should be generated from OMNI.md
 		const content = readFileSync("AGENTS.md", "utf-8");
+		expect(content).toContain(generatedCopyNotice);
 		expect(content).toContain("# Project Instructions");
 	});
 
@@ -129,6 +132,7 @@ describe("init command", () => {
 
 		// CLAUDE.md is generated from OMNI.md during sync with instructions embedded
 		const content = readFileSync("CLAUDE.md", "utf-8");
+		expect(content).toContain(generatedCopyNotice);
 		expect(content).toContain("# Project Instructions");
 	});
 
@@ -147,6 +151,7 @@ describe("init command", () => {
 
 		// CLAUDE.md is generated from OMNI.md during sync with instructions embedded
 		const claudeContent = readFileSync("CLAUDE.md", "utf-8");
+		expect(claudeContent).toContain(generatedCopyNotice);
 		expect(claudeContent).toContain("# Project Instructions");
 	});
 
@@ -159,6 +164,7 @@ describe("init command", () => {
 
 		const content = readFileSync("CLAUDE.md", "utf-8");
 		// Should be regenerated from OMNI.md, not preserve existing content
+		expect(content).toContain(generatedCopyNotice);
 		expect(content).toContain("# Project Instructions");
 	});
 
@@ -171,6 +177,7 @@ describe("init command", () => {
 
 		const content = readFileSync("AGENTS.md", "utf-8");
 		// Should be regenerated from OMNI.md, not preserve existing content
+		expect(content).toContain(generatedCopyNotice);
 		expect(content).toContain("# Project Instructions");
 	});
 
@@ -252,6 +259,7 @@ describe("init command", () => {
 
 		// But AGENTS.md should be regenerated from it with instructions embedded
 		const agentsContent = readFileSync("AGENTS.md", "utf-8");
+		expect(agentsContent).toContain(generatedCopyNotice);
 		expect(agentsContent).toContain("# My Custom Instructions");
 	});
 

@@ -7,6 +7,8 @@ sidebar:
 
 `OMNI.md` is your project’s instruction source of truth. OmniDev uses it to generate provider-specific instruction files during `omnidev sync`.
 
+Do not edit generated files like `AGENTS.md` or `CLAUDE.md` directly. They are ephemeral copies of `OMNI.md`, so any persistent change belongs in `OMNI.md`.
+
 ## Example
 
 ```markdown

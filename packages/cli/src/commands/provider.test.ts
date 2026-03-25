@@ -87,6 +87,32 @@ describe("provider commands", () => {
 			const output = stdout.join("\n");
 			expect(output).toContain("✓ Enabled provider: Cursor");
 		});
+
+		test("asks the user to update .gitignore for missing provider entries", async () => {
+			const { writeEnabledProviders } = await getProviderFunctions();
+			await writeEnabledProviders(["claude-code"]);
+
+			const { stdout } = await captureConsole(async () => {
+				await runProviderEnable({}, "cursor");
+			});
+
+			const output = stdout.join("\n");
+			expect(output).toContain("Also update your .gitignore");
+			expect(output).toContain(".cursor/");
+		});
+
+		test("does not ask to update .gitignore when provider entries are already ignored", async () => {
+			const { writeEnabledProviders } = await getProviderFunctions();
+			await writeEnabledProviders(["claude-code"]);
+			await writeFile(".gitignore", ".cursor/\n", "utf-8");
+
+			const { stdout } = await captureConsole(async () => {
+				await runProviderEnable({}, "cursor");
+			});
+
+			const output = stdout.join("\n");
+			expect(output).not.toContain("Also update your .gitignore");
+		});
 	});
 
 	describe("runProviderDisable", () => {

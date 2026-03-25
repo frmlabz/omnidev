@@ -54,6 +54,7 @@ This is a test skill.`;
 			description: "A test skill",
 			instructions: "# Instructions\n\nThis is a test skill.",
 			capabilityId: "test-cap",
+			sourcePath: skillsDir,
 		});
 	});
 

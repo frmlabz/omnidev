@@ -23,6 +23,8 @@ Enable a provider adapter.
 omnidev provider enable cursor
 ```
 
+When you enable a provider, OmniDev also reminds you to add that provider's generated files and directories to `.gitignore` if they are not already ignored.
+
 ## `provider disable <id>`
 
 Disable a provider adapter.
