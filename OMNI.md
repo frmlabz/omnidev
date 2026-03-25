@@ -1,8 +1,3 @@
-# Project Instructions
-
-<!-- This file is your project's instruction manifest for AI agents. -->
-<!-- It will be combined with capability-generated content during sync. -->
-
 ## Project Description
 
 OmniDev is a monorepo for a capability manager that lets teams define AI coding capabilities once and sync them across providers such as Claude Code, Codex, Cursor, and OpenCode. The repository includes the core capability/runtime logic, provider adapters and writers, the CLI and capability scaffolding tools, the docs site, and integration-style example coverage.
