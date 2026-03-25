@@ -1,5 +1,15 @@
 # @omnidev-ai/core
 
+## 0.15.0
+
+### Minor Changes
+
+- 895accb: Add capability-local skill interpolation for static and programmatic skills using `{OMNIDEV_*}` placeholders backed by `.env` values, with shell environment variables taking precedence. Document the new skill templating behavior alongside the existing MCP interpolation flow.
+
+### Patch Changes
+
+- cfb283e: Switch capability dependency sync to npm-only, require npm in sync diagnostics, and align integration coverage with the new runtime expectations.
+
 ## 0.14.0
 
 ### Minor Changes
