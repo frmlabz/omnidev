@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
@@ -7,10 +7,17 @@ import { loadSkills } from "./skills";
 describe("loadSkills", () => {
 	const testDir = setupTestDir("capability-skills-test-");
 	let capabilityPath: string;
+	const envKeys = ["TEST_PROJECT_NAME"];
 
 	beforeEach(() => {
 		capabilityPath = join(testDir.path, "test-capability");
 		mkdirSync(capabilityPath, { recursive: true });
+	});
+
+	afterEach(() => {
+		for (const key of envKeys) {
+			delete process.env[key];
+		}
 	});
 
 	test("returns empty array when skills directory does not exist", async () => {
@@ -48,6 +55,71 @@ This is a test skill.`;
 			instructions: "# Instructions\n\nThis is a test skill.",
 			capabilityId: "test-cap",
 		});
+	});
+
+	test("resolves skill placeholders from capability-local .env", async () => {
+		const skillsDir = join(capabilityPath, "skills", "templated-skill");
+		mkdirSync(skillsDir, { recursive: true });
+
+		writeFileSync(join(capabilityPath, ".env"), "TEST_PROJECT_NAME=omnidev\n");
+		writeFileSync(
+			join(skillsDir, "SKILL.md"),
+			`---
+name: {OMNIDEV_TEST_PROJECT_NAME}-skill
+description: Skill for {OMNIDEV_TEST_PROJECT_NAME}
+---
+
+Project: {OMNIDEV_TEST_PROJECT_NAME}`,
+		);
+
+		const skills = await loadSkills(capabilityPath, "test-cap");
+
+		expect(skills).toHaveLength(1);
+		expect(skills[0]?.name).toBe("omnidev-skill");
+		expect(skills[0]?.description).toBe("Skill for omnidev");
+		expect(skills[0]?.instructions).toBe("Project: omnidev");
+	});
+
+	test("prefers shell environment over capability-local .env for skill placeholders", async () => {
+		const skillsDir = join(capabilityPath, "skills", "templated-skill");
+		mkdirSync(skillsDir, { recursive: true });
+
+		writeFileSync(join(capabilityPath, ".env"), "TEST_PROJECT_NAME=local-name\n");
+		process.env.TEST_PROJECT_NAME = "shell-name";
+		writeFileSync(
+			join(skillsDir, "SKILL.md"),
+			`---
+name: templated-skill
+description: Skill for {OMNIDEV_TEST_PROJECT_NAME}
+---
+
+Project: {OMNIDEV_TEST_PROJECT_NAME}`,
+		);
+
+		const skills = await loadSkills(capabilityPath, "test-cap");
+
+		expect(skills).toHaveLength(1);
+		expect(skills[0]?.description).toBe("Skill for shell-name");
+		expect(skills[0]?.instructions).toBe("Project: shell-name");
+	});
+
+	test("throws when a skill placeholder is unresolved", async () => {
+		const skillsDir = join(capabilityPath, "skills", "templated-skill");
+		mkdirSync(skillsDir, { recursive: true });
+
+		writeFileSync(
+			join(skillsDir, "SKILL.md"),
+			`---
+name: templated-skill
+description: Skill for {OMNIDEV_MISSING_NAME}
+---
+
+Project: {OMNIDEV_MISSING_NAME}`,
+		);
+
+		await expect(loadSkills(capabilityPath, "test-cap")).rejects.toThrow(
+			/Missing environment variable "MISSING_NAME".*skill file.*placeholder "\{OMNIDEV_MISSING_NAME\}"/,
+		);
 	});
 
 	test("loads multiple skills from different directories", async () => {

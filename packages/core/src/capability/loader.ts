@@ -1,9 +1,8 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parseCapabilityConfig } from "../config/parser";
 import { loadCapabilityHooks } from "#hooks/loader";
-import { resolveCapabilityMcpEnv } from "./mcp-env";
+import { parseCapabilityConfig } from "../config/parser";
 import type {
 	CapabilityConfig,
 	Command,
@@ -21,8 +20,10 @@ import type {
 } from "../types/capability-export";
 import { loadCommands } from "./commands";
 import { loadDocs } from "./docs";
+import { loadCapabilityEnvVariables } from "./env";
+import { resolveCapabilityMcpEnv } from "./mcp-env";
 import { loadRules } from "./rules";
-import { loadSkills } from "./skills";
+import { loadSkills, parseSkillMarkdown } from "./skills";
 import { loadSubagents } from "./subagents";
 
 const CAPABILITIES_DIR = ".omni/capabilities";
@@ -153,45 +154,17 @@ async function loadTypeDefinitions(capabilityPath: string): Promise<string | und
  * Convert programmatic skill exports to Skill objects
  * Expects SkillExport format with skillMd (markdown with YAML frontmatter)
  */
-function convertSkillExports(skillExports: unknown[], capabilityId: string): Skill[] {
-	return skillExports.map((skillExport) => {
+function convertSkillExports(
+	skillExports: unknown[],
+	capabilityId: string,
+	variables: Record<string, string>,
+): Skill[] {
+	return skillExports.map((skillExport, index) => {
 		const exportObj = skillExport as SkillExport;
-		const lines = exportObj.skillMd.split("\n");
-		let name = "unnamed";
-		let description = "";
-		let instructions = exportObj.skillMd;
-
-		// Simple YAML frontmatter parser
-		if (lines[0]?.trim() === "---") {
-			const endIndex = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-			if (endIndex > 0) {
-				const frontmatter = lines.slice(1, endIndex);
-				instructions = lines
-					.slice(endIndex + 1)
-					.join("\n")
-					.trim();
-
-				for (const line of frontmatter) {
-					const match = line.match(/^(\w+):\s*(.+)$/);
-					if (match?.[1] && match[2]) {
-						const key = match[1];
-						const value = match[2];
-						if (key === "name") {
-							name = value.replace(/^["']|["']$/g, "");
-						} else if (key === "description") {
-							description = value.replace(/^["']|["']$/g, "");
-						}
-					}
-				}
-			}
-		}
-
-		return {
-			name,
-			description,
-			instructions,
-			capabilityId,
-		};
+		return parseSkillMarkdown(exportObj.skillMd, capabilityId, {
+			variables,
+			sourceLabel: `programmatic skill export[${index}]`,
+		});
 	});
 }
 
@@ -387,8 +360,9 @@ function mergeByName<T extends { name: string }>(fileBased: T[], programmatic: T
  * @throws Error if loading errors occur
  */
 export async function loadCapability(capabilityPath: string): Promise<LoadedCapability> {
+	const capabilityEnvVariables = await loadCapabilityEnvVariables(capabilityPath);
 	const rawConfig = await loadCapabilityConfig(capabilityPath);
-	const config = await resolveCapabilityMcpEnv(rawConfig, capabilityPath);
+	const config = await resolveCapabilityMcpEnv(rawConfig, capabilityPath, capabilityEnvVariables);
 	const id = config.capability.id;
 
 	// Load content from both programmatic exports and filesystem, then merge
@@ -414,9 +388,9 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 	// Load from both sources and merge (programmatic wins on name conflicts)
 	const skillsExport = getExportValue("skills");
 	const programmaticSkills = Array.isArray(skillsExport)
-		? convertSkillExports(skillsExport, id)
+		? convertSkillExports(skillsExport, id, capabilityEnvVariables)
 		: [];
-	const fileSkills = await loadSkills(capabilityPath, id);
+	const fileSkills = await loadSkills(capabilityPath, id, capabilityEnvVariables);
 	const skills = mergeByName(fileSkills, programmaticSkills);
 
 	const rulesExport = getExportValue("rules");

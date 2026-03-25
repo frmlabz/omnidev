@@ -163,6 +163,27 @@ import type {
 - Use programmatic exports for dynamic or generated content.
 - When both are used, ensure output is deterministic.
 
+### Capability-local `.env`
+
+Capabilities can include a gitignored `.env` next to `capability.toml` for local interpolation:
+
+- MCP config resolves `${VAR}` placeholders from that `.env`
+- skill content resolves `{OMNIDEV_VAR}` placeholders from the same `.env`
+- shell environment variables override `.env`
+
+Example:
+
+```dotenv
+PROJECT_NAME=omnidev
+```
+
+```markdown
+---
+name: plan-{OMNIDEV_PROJECT_NAME}
+description: Planning for {OMNIDEV_PROJECT_NAME}
+---
+```
+
 ### Gitignore patterns
 
 Add patterns via programmatic export so OmniDev can manage them:

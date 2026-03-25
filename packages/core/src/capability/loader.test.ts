@@ -236,7 +236,7 @@ functions = ["fn1", "fn2"]
 describe("loadCapability", () => {
 	const testDir = setupTestDir("test-load-capability-", { chdir: true });
 	let capabilitiesDir: string;
-	const envKeys = ["OMNIDEV_TEST_SHELL_TOKEN"];
+	const envKeys = ["OMNIDEV_TEST_SHELL_TOKEN", "TEST_PROJECT_NAME"];
 
 	beforeEach(() => {
 		// Create test directory in os temp dir
@@ -389,6 +389,101 @@ command = "node"`,
 		const placeholder = "$" + "{NON_MCP_TOKEN}";
 
 		expect(capability.config.capability.description).toBe(`Literal ${placeholder}`);
+	});
+
+	test("resolves programmatic skill placeholders from capability-local .env", async () => {
+		const capPath = join(".omni", "capabilities", "programmatic-skill-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "programmatic-skill-env"
+name = "Programmatic Skill Env"
+version = "1.0.0"
+description = "Uses skill interpolation"`,
+		);
+		writeFileSync(join(capPath, ".env"), "TEST_PROJECT_NAME=local-skill\n");
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const skills = [
+  {
+    skillMd: \`---
+name: {OMNIDEV_TEST_PROJECT_NAME}-skill
+description: Skill for {OMNIDEV_TEST_PROJECT_NAME}
+---
+Project: {OMNIDEV_TEST_PROJECT_NAME}\`
+  }
+];`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.skills).toHaveLength(1);
+		expect(capability.skills[0]?.name).toBe("local-skill-skill");
+		expect(capability.skills[0]?.description).toBe("Skill for local-skill");
+		expect(capability.skills[0]?.instructions).toBe("Project: local-skill");
+	});
+
+	test("prefers shell environment for programmatic skill placeholders", async () => {
+		const capPath = join(".omni", "capabilities", "programmatic-skill-shell-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "programmatic-skill-shell-env"
+name = "Programmatic Skill Shell Env"
+version = "1.0.0"
+description = "Uses shell precedence"`,
+		);
+		writeFileSync(join(capPath, ".env"), "TEST_PROJECT_NAME=local-skill\n");
+		process.env.TEST_PROJECT_NAME = "shell-skill";
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const skills = [
+  {
+    skillMd: \`---
+name: templated-skill
+description: Skill for {OMNIDEV_TEST_PROJECT_NAME}
+---
+Project: {OMNIDEV_TEST_PROJECT_NAME}\`
+  }
+];`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.skills).toHaveLength(1);
+		expect(capability.skills[0]?.description).toBe("Skill for shell-skill");
+		expect(capability.skills[0]?.instructions).toBe("Project: shell-skill");
+	});
+
+	test("throws when a programmatic skill placeholder is unresolved", async () => {
+		const capPath = join(".omni", "capabilities", "programmatic-skill-missing-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "programmatic-skill-missing-env"
+name = "Programmatic Skill Missing Env"
+version = "1.0.0"
+description = "Missing env variable"`,
+		);
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const skills = [
+  {
+    skillMd: \`---
+name: templated-skill
+description: Skill for {OMNIDEV_MISSING_NAME}
+---
+Project: {OMNIDEV_MISSING_NAME}\`
+  }
+];`,
+		);
+
+		expect(async () => await loadCapability(capPath)).toThrow(
+			/Missing environment variable "MISSING_NAME".*programmatic skill export\[0\].*placeholder "\{OMNIDEV_MISSING_NAME\}"/,
+		);
 	});
 
 	test("loads capability with skills from filesystem", async () => {

@@ -6,6 +6,7 @@ OmniDev is a package manager for AI coding capabilities (skills, rules, prompts,
 - **One config, all tools** — Configure once via `omni.toml`, then generate provider-specific files
 - **Profile switching** — Load different capability sets for frontend, backend, planning, etc.
 - **Full-featured** — Capabilities can contain skills, rules, commands, subagents, hooks, and MCP servers
+- **Capability-local templating** — Use a gitignored capability `.env` to parameterize MCP config and skill content
 
 > Status: **alpha** — breaking changes may occur while features settle.
 

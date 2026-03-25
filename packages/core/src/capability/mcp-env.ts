@@ -1,41 +1,11 @@
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { parseEnv } from "node:util";
 import type { CapabilityConfig, McpConfig } from "../types";
+import { loadCapabilityEnvVariables } from "./env";
 
-const CAPABILITY_ENV_FILE = ".env";
 const ENV_PLACEHOLDER = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 const ENV_PLACEHOLDER_DETECTOR = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/;
 
 function hasEnvPlaceholder(value: string): boolean {
 	return ENV_PLACEHOLDER_DETECTOR.test(value);
-}
-
-function mergeEnvSources(capabilityEnv: Record<string, string>): Record<string, string> {
-	const merged = { ...capabilityEnv };
-
-	for (const [key, value] of Object.entries(process.env)) {
-		if (typeof value === "string") {
-			merged[key] = value;
-		}
-	}
-
-	return merged;
-}
-
-async function loadCapabilityEnv(capabilityPath: string): Promise<Record<string, string>> {
-	const envPath = join(capabilityPath, CAPABILITY_ENV_FILE);
-	if (!existsSync(envPath)) {
-		return {};
-	}
-
-	const envContent = await readFile(envPath, "utf-8");
-	return Object.fromEntries(
-		Object.entries(parseEnv(envContent)).filter(
-			(entry): entry is [string, string] => typeof entry[1] === "string",
-		),
-	);
 }
 
 function resolveString(
@@ -87,35 +57,36 @@ function mcpHasPlaceholders(mcp: McpConfig): boolean {
 export async function resolveCapabilityMcpEnv(
 	config: CapabilityConfig,
 	capabilityPath: string,
+	variables?: Record<string, string>,
 ): Promise<CapabilityConfig> {
 	if (!config.mcp || !mcpHasPlaceholders(config.mcp)) {
 		return config;
 	}
 
-	const variables = mergeEnvSources(await loadCapabilityEnv(capabilityPath));
+	const resolvedVariables = variables ?? (await loadCapabilityEnvVariables(capabilityPath));
 	const resolvedMcp: McpConfig = { ...config.mcp };
 	const capabilityId = config.capability.id;
 
 	if (resolvedMcp.command) {
 		resolvedMcp.command = resolveString(
 			resolvedMcp.command,
-			variables,
+			resolvedVariables,
 			capabilityId,
 			"mcp.command",
 		);
 	}
 
 	if (resolvedMcp.cwd) {
-		resolvedMcp.cwd = resolveString(resolvedMcp.cwd, variables, capabilityId, "mcp.cwd");
+		resolvedMcp.cwd = resolveString(resolvedMcp.cwd, resolvedVariables, capabilityId, "mcp.cwd");
 	}
 
 	if (resolvedMcp.url) {
-		resolvedMcp.url = resolveString(resolvedMcp.url, variables, capabilityId, "mcp.url");
+		resolvedMcp.url = resolveString(resolvedMcp.url, resolvedVariables, capabilityId, "mcp.url");
 	}
 
 	if (resolvedMcp.args) {
 		resolvedMcp.args = resolvedMcp.args.map((arg, index) =>
-			resolveString(arg, variables, capabilityId, `mcp.args[${index}]`),
+			resolveString(arg, resolvedVariables, capabilityId, `mcp.args[${index}]`),
 		);
 	}
 
@@ -123,7 +94,7 @@ export async function resolveCapabilityMcpEnv(
 		resolvedMcp.env = Object.fromEntries(
 			Object.entries(resolvedMcp.env).map(([key, value]) => [
 				key,
-				resolveString(value, variables, capabilityId, `mcp.env.${key}`),
+				resolveString(value, resolvedVariables, capabilityId, `mcp.env.${key}`),
 			]),
 		);
 	}
@@ -132,7 +103,7 @@ export async function resolveCapabilityMcpEnv(
 		resolvedMcp.headers = Object.fromEntries(
 			Object.entries(resolvedMcp.headers).map(([key, value]) => [
 				key,
-				resolveString(value, variables, capabilityId, `mcp.headers.${key}`),
+				resolveString(value, resolvedVariables, capabilityId, `mcp.headers.${key}`),
 			]),
 		);
 	}

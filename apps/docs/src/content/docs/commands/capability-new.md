@@ -41,6 +41,8 @@ This adds the following files for building a programmatic capability:
 - `index.ts` - TypeScript entry point with CLI command template
 - `.gitignore` - Ignores capability-local `.env`, plus `dist/` and `node_modules/`
 
+The generated `.gitignore` keeps capability-local `.env` values out of source control. Those values can be used for MCP `${VAR}` interpolation and skill `{OMNIDEV_VAR}` interpolation.
+
 ## Generated files
 
 ### Standard capability

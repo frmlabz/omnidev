@@ -96,6 +96,11 @@ When you define `[mcps.name]`, OmniDev:
 
 `omni.toml` MCP values are written literally. If you need secret interpolation, define the MCP inside a capability's `capability.toml` and add a gitignored `.env` file next to it. OmniDev resolves `${VAR}` in MCP fields only, with shell environment variables taking precedence over the capability-local `.env`.
 
+This is separate from skill interpolation:
+
+- MCP config uses `${VAR}`
+- skill content uses `{OMNIDEV_VAR}`
+
 ```toml
 [mcp]
 command = "npx"
