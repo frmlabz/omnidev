@@ -33,8 +33,8 @@ describe("CodexTomlWriter", () => {
 		};
 	}
 
-	function createBundle(capabilities: LoadedCapability[]): SyncBundle {
-		return {
+	function createBundle(capabilities: LoadedCapability[], hooks?: SyncBundle["hooks"]): SyncBundle {
+		const bundle: SyncBundle = {
 			capabilities,
 			skills: [],
 			rules: [],
@@ -43,6 +43,10 @@ describe("CodexTomlWriter", () => {
 			subagents: [],
 			instructionsContent: "",
 		};
+		if (hooks) {
+			bundle.hooks = hooks;
+		}
+		return bundle;
 	}
 
 	test("has correct id", () => {
@@ -217,6 +221,59 @@ describe("CodexTomlWriter", () => {
 
 		expect(result.filesWritten).toEqual([]);
 		expect(existsSync(`${testDir.path}/.codex/config.toml`)).toBe(false);
+	});
+
+	test("writes feature flag when hooks are present without MCPs", async () => {
+		const bundle = createBundle([], {
+			PreToolUse: [
+				{
+					matcher: "Bash",
+					hooks: [{ type: "command", command: "echo codex-hook" }],
+				},
+			],
+		});
+
+		const result = await CodexTomlWriter.write(bundle, {
+			outputPath: ".codex/config.toml",
+			projectRoot: testDir.path,
+		});
+
+		expect(result.filesWritten).toEqual([".codex/config.toml"]);
+
+		const parsed = parse(readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8")) as {
+			features?: { codex_hooks?: boolean };
+			mcp_servers?: Record<string, Record<string, unknown>>;
+		};
+
+		expect(parsed.features?.codex_hooks).toBe(true);
+		expect(parsed.mcp_servers).toBeUndefined();
+	});
+
+	test("writes feature flag alongside MCP config when hooks are present", async () => {
+		const bundle = createBundle(
+			[
+				createCapability("context7", {
+					command: "npx",
+					args: ["-y", "@upstash/context7-mcp"],
+				}),
+			],
+			{
+				Stop: [{ hooks: [{ type: "command", command: "echo done" }] }],
+			},
+		);
+
+		await CodexTomlWriter.write(bundle, {
+			outputPath: ".codex/config.toml",
+			projectRoot: testDir.path,
+		});
+
+		const parsed = parse(readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8")) as {
+			features?: { codex_hooks?: boolean };
+			mcp_servers?: Record<string, Record<string, unknown>>;
+		};
+
+		expect(parsed.features?.codex_hooks).toBe(true);
+		expect(parsed.mcp_servers?.context7).toBeDefined();
 	});
 
 	test("returns empty array when bundle has no capabilities", async () => {

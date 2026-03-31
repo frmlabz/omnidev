@@ -398,7 +398,7 @@ If the capability name is omitted, it will be inferred from:
 - For GitHub sources: the repository name or last path segment
 
 Claude plugins (.claude-plugin/plugin.json) are automatically wrapped as OmniDev capabilities.
-Hooks defined in hooks.json are also supported and will be synced to .claude/settings.json.
+Hooks defined in hooks.json are also supported and will be synced into OmniDev's hook pipeline.
 
 Examples:
   omnidev add cap my-cap --github expo/skills              # Uses version = "latest"

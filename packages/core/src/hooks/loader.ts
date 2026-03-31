@@ -16,7 +16,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { HOOKS_DIRECTORY, HOOKS_CONFIG_FILENAME, CLAUDE_HOOKS_CONFIG_FILENAME } from "./constants";
-import type { HooksConfig, HookValidationResult, CapabilityHooks } from "./types";
+import type {
+	HooksConfig,
+	HookValidationResult,
+	CapabilityHooks,
+	ProviderHooksConfig,
+} from "./types";
 import {
 	validateHooksConfig,
 	createEmptyHooksConfig,
@@ -26,6 +31,7 @@ import {
 	transformToOmnidev,
 	containsClaudeVariables,
 	resolveCapabilityRootInConfig,
+	resolveCapabilityRootInValue,
 } from "./variables";
 import { loadHooksJson } from "./json-loader";
 import { HOOK_EVENTS } from "./constants";
@@ -45,6 +51,8 @@ export interface LoadHooksOptions {
 export interface LoadHooksResult {
 	/** The loaded hooks configuration (empty if not found or invalid) */
 	config: HooksConfig;
+	/** Optional provider-scoped hook config from [claude]/[codex] sections */
+	providerConfigs?: ProviderHooksConfig;
 	/** Validation result */
 	validation: HookValidationResult;
 	/** Whether hooks were found */
@@ -103,6 +111,72 @@ export function loadHooksFromCapability(
 
 	// Load hooks.json files and merge
 	return loadJsonHooksFiles(capabilityPath, hooksJsonInDir, hooksJsonAtRoot, hooksDir, opts);
+}
+
+const PROVIDER_SECTION_KEYS = ["claude", "codex"] as const;
+
+function splitHooksTomlConfig(parsed: unknown): {
+	sharedConfig: unknown;
+	providerConfigs: ProviderHooksConfig | undefined;
+	topLevelIssues: HookValidationResult["errors"];
+} {
+	const topLevelIssues: HookValidationResult["errors"] = [];
+
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		return {
+			sharedConfig: parsed,
+			providerConfigs: undefined,
+			topLevelIssues,
+		};
+	}
+
+	const parsedObj = parsed as Record<string, unknown>;
+	const sharedConfig: Record<string, unknown> = {};
+	const providerConfigs: ProviderHooksConfig = {};
+
+	for (const [key, value] of Object.entries(parsedObj)) {
+		if (key === "description" || (HOOK_EVENTS as readonly string[]).includes(key)) {
+			sharedConfig[key] = value;
+			continue;
+		}
+
+		if ((PROVIDER_SECTION_KEYS as readonly string[]).includes(key)) {
+			if (value && typeof value === "object" && !Array.isArray(value)) {
+				providerConfigs[key as keyof ProviderHooksConfig] = value as Record<string, unknown>;
+			} else {
+				topLevelIssues.push({
+					severity: "error",
+					code: "HOOKS_INVALID_TOML",
+					message: `[${key}] must be a table`,
+				});
+			}
+			continue;
+		}
+
+		topLevelIssues.push({
+			severity: "error",
+			code: "HOOKS_UNKNOWN_EVENT",
+			message: `Unknown hook event: "${key}"`,
+			suggestion: `Valid events are: ${HOOK_EVENTS.join(", ")}, plus [claude] and [codex] sections`,
+		});
+	}
+
+	return {
+		sharedConfig,
+		providerConfigs: Object.keys(providerConfigs).length > 0 ? providerConfigs : undefined,
+		topLevelIssues,
+	};
+}
+
+function prefixValidationIssues(
+	issues: HookValidationResult["errors"],
+	sectionLabel: string,
+): HookValidationResult["errors"] {
+	return issues.map((issue) => ({
+		...issue,
+		message: `[${sectionLabel}] ${issue.message}`,
+		...(issue.suggestion ? { suggestion: `[${sectionLabel}] ${issue.suggestion}` } : {}),
+	}));
 }
 
 /**
@@ -170,31 +244,70 @@ function loadTomlHooks(
 		};
 	}
 
+	const {
+		sharedConfig,
+		providerConfigs: rawProviderConfigs,
+		topLevelIssues,
+	} = splitHooksTomlConfig(parsed);
+
 	// Validate
 	let validation: HookValidationResult;
 	if (opts.validate) {
-		validation = validateHooksConfig(parsed, {
+		const sharedValidation = validateHooksConfig(sharedConfig, {
 			basePath: hooksDir,
 			checkScripts: opts.checkScripts ?? false,
 		});
+
+		const providerErrors: HookValidationResult["errors"] = [];
+		const providerWarnings: HookValidationResult["warnings"] = [];
+
+		for (const [provider, providerConfig] of Object.entries(rawProviderConfigs ?? {})) {
+			const providerValidation = validateHooksConfig(providerConfig, {
+				basePath: hooksDir,
+				checkScripts: opts.checkScripts ?? false,
+			});
+			providerErrors.push(...prefixValidationIssues(providerValidation.errors, provider));
+			providerWarnings.push(...prefixValidationIssues(providerValidation.warnings, provider));
+		}
+
+		validation = {
+			valid: sharedValidation.valid && topLevelIssues.length === 0 && providerErrors.length === 0,
+			errors: [...topLevelIssues, ...sharedValidation.errors, ...providerErrors],
+			warnings: [...sharedValidation.warnings, ...providerWarnings],
+		};
 	} else {
 		validation = createEmptyValidationResult();
 	}
 
 	// Get config
-	let config = validation.valid ? (parsed as HooksConfig) : createEmptyHooksConfig();
+	let config = validation.valid ? (sharedConfig as HooksConfig) : createEmptyHooksConfig();
+	let providerConfigs = validation.valid ? rawProviderConfigs : undefined;
 
 	// Resolve capability root if requested
 	if (opts.resolveCapabilityRoot && validation.valid) {
 		config = resolveCapabilityRootInConfig(config, capabilityPath);
+		if (providerConfigs) {
+			providerConfigs = Object.fromEntries(
+				Object.entries(providerConfigs).map(([provider, providerConfig]) => [
+					provider,
+					resolveCapabilityRootInValue(providerConfig, capabilityPath) as Record<string, unknown>,
+				]),
+			) as ProviderHooksConfig;
+		}
 	}
 
-	return {
+	const result: LoadHooksResult = {
 		config,
 		validation,
 		found: true,
 		configPath,
 	};
+
+	if (providerConfigs) {
+		result.providerConfigs = providerConfigs;
+	}
+
+	return result;
 }
 
 /**
@@ -334,6 +447,7 @@ export function loadCapabilityHooks(
 		capabilityName,
 		capabilityPath,
 		config: result.config,
+		...(result.providerConfigs ? { providerConfigs: result.providerConfigs } : {}),
 		validation: result.validation,
 	};
 }

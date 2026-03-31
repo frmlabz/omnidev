@@ -1,4 +1,4 @@
-import { hasAnyHooks, mergeHooksConfigs } from "@omnidev-ai/core";
+import { composeHooksForProvider, hasHooksInConfig } from "@omnidev-ai/core";
 import type { CanonicalProviderId, LoadedCapability, SyncBundle } from "@omnidev-ai/core";
 
 function capabilityAppliesToProvider(
@@ -60,12 +60,16 @@ export function createProviderScopedBundle(
 		instructionsContent: generateInstructionsContent(rules, docs),
 	};
 
-	const mergedHooks = mergeHooksConfigs(
+	const composedHooks = composeHooksForProvider(
 		capabilities.flatMap((capability) => (capability.hooks ? [capability.hooks] : [])),
+		providerId,
 	);
+	for (const warning of composedHooks.warnings) {
+		console.warn(warning);
+	}
 
-	if (hasAnyHooks(mergedHooks)) {
-		scopedBundle.hooks = mergedHooks;
+	if (hasHooksInConfig(composedHooks.config as Record<string, unknown>)) {
+		scopedBundle.hooks = composedHooks.config;
 	}
 
 	return scopedBundle;

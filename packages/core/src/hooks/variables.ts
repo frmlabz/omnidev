@@ -177,6 +177,30 @@ export function resolveCapabilityRoot(content: string, capabilityPath: string): 
 }
 
 /**
+ * Recursively resolve capability-root variables in unknown TOML/JSON-like values.
+ */
+export function resolveCapabilityRootInValue(value: unknown, capabilityPath: string): unknown {
+	if (typeof value === "string") {
+		return resolveCapabilityRoot(value, capabilityPath);
+	}
+
+	if (Array.isArray(value)) {
+		return value.map((entry) => resolveCapabilityRootInValue(entry, capabilityPath));
+	}
+
+	if (value && typeof value === "object") {
+		return Object.fromEntries(
+			Object.entries(value).map(([key, entry]) => [
+				key,
+				resolveCapabilityRootInValue(entry, capabilityPath),
+			]),
+		);
+	}
+
+	return value;
+}
+
+/**
  * Resolve capability root in all hooks within a HooksConfig
  *
  * @param config - The hooks configuration
@@ -187,48 +211,5 @@ export function resolveCapabilityRootInConfig(
 	config: HooksConfig,
 	capabilityPath: string,
 ): HooksConfig {
-	const result: HooksConfig = {};
-
-	if (config.description !== undefined) {
-		result.description = config.description;
-	}
-
-	const events = [
-		"PreToolUse",
-		"PostToolUse",
-		"PermissionRequest",
-		"UserPromptSubmit",
-		"Stop",
-		"SubagentStop",
-		"Notification",
-		"SessionStart",
-		"SessionEnd",
-		"PreCompact",
-	] as const;
-
-	for (const event of events) {
-		const matchers = config[event];
-		if (matchers) {
-			result[event] = matchers.map((matcher) => ({
-				...matcher,
-				hooks: matcher.hooks.map((hook) => {
-					if (hook.type === "command") {
-						return {
-							...hook,
-							command: resolveCapabilityRoot(hook.command, capabilityPath),
-						};
-					}
-					if (hook.type === "prompt") {
-						return {
-							...hook,
-							prompt: resolveCapabilityRoot(hook.prompt, capabilityPath),
-						};
-					}
-					return hook;
-				}),
-			}));
-		}
-	}
-
-	return result;
+	return resolveCapabilityRootInValue(config, capabilityPath) as HooksConfig;
 }

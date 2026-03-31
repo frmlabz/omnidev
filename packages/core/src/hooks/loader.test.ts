@@ -93,6 +93,90 @@ prompt = "Check completion"
 			expect(result.config.Stop).toHaveLength(1);
 		});
 
+		test("loads shared hooks separately from provider sections", () => {
+			createHooksConfig(`
+description = "Test hooks"
+
+[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "echo shared"
+
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
+type = "command"
+command = "echo codex"
+statusMessage = "Checking Bash command"
+
+[[claude.PermissionRequest]]
+matcher = "Bash"
+[[claude.PermissionRequest.hooks]]
+type = "prompt"
+prompt = "Approve?"
+`);
+
+			const result = loadHooksFromCapability(testDir);
+			expect(result.validation.valid).toBe(true);
+			expect(result.config.PreToolUse?.[0]?.hooks[0]).toEqual({
+				type: "command",
+				command: "echo shared",
+			});
+			expect(result.providerConfigs?.codex).toBeDefined();
+			expect(result.providerConfigs?.claude).toBeDefined();
+			expect(
+				(result.providerConfigs?.codex?.PreToolUse as Array<Record<string, unknown>>)?.[0]?.hooks,
+			).toEqual([
+				{
+					type: "command",
+					command: "echo codex",
+					statusMessage: "Checking Bash command",
+				},
+			]);
+			expect(result.config.PermissionRequest).toBeUndefined();
+		});
+
+		test("marks invalid provider override sections as invalid", () => {
+			createHooksConfig(`
+[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "echo shared"
+
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
+type = "commnad"
+command = "echo broken"
+`);
+
+			const result = loadHooksFromCapability(testDir);
+			expect(result.validation.valid).toBe(false);
+			expect(result.validation.errors.some((error) => error.message.includes("[codex]"))).toBe(
+				true,
+			);
+			expect(result.providerConfigs).toBeUndefined();
+		});
+
+		test("resolves provider-section variables to absolute paths", () => {
+			createHooksConfig(`
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
+type = "command"
+command = "\${OMNIDEV_CAPABILITY_ROOT}/hooks/check.sh"
+`);
+
+			const result = loadHooksFromCapability(testDir, { resolveCapabilityRoot: true });
+			const codexMatchers = result.providerConfigs?.codex?.PreToolUse as Array<
+				Record<string, unknown>
+			>;
+			const codexHooks = codexMatchers?.[0]?.hooks as Array<Record<string, unknown>>;
+			expect(codexHooks?.[0]?.command).toBe(`${testDir}/hooks/check.sh`);
+		});
+
 		test("transforms Claude variables to OmniDev format", () => {
 			createHooksConfig(`
 [[PreToolUse]]

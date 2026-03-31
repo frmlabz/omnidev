@@ -24,6 +24,9 @@ export type HookEvent = (typeof HOOK_EVENTS)[number];
 /** Hook execution types: command or prompt */
 export type HookType = (typeof HOOK_TYPES)[number];
 
+/** Provider-specific hook section names within hooks.toml */
+export type HookProviderSection = "claude" | "codex";
+
 /** Events that support matcher patterns */
 export type MatcherEvent = (typeof MATCHER_EVENTS)[number];
 
@@ -96,6 +99,9 @@ export interface HooksConfig {
 	SessionEnd?: HookMatcher[];
 }
 
+/** Provider-scoped raw hook config parsed from hooks.toml provider sections */
+export type ProviderHooksConfig = Partial<Record<HookProviderSection, Record<string, unknown>>>;
+
 // ============ Validation Types ============
 
 export type ValidationSeverity = "error" | "warning";
@@ -154,6 +160,8 @@ export interface CapabilityHooks {
 	capabilityPath: string;
 	/** The hooks configuration */
 	config: HooksConfig;
+	/** Optional provider-specific hook config sections from hooks.toml */
+	providerConfigs?: ProviderHooksConfig;
 	/** Validation result */
 	validation: HookValidationResult;
 }

@@ -9,8 +9,6 @@ import { createManagedOutput } from "./managed-outputs";
  * Writer for hooks configuration files.
  *
  * Writes hooks from the sync bundle to a settings.json file.
- * Transforms OMNIDEV_ variables to provider-specific variables (e.g., CLAUDE_).
- *
  * Used by claude-code (.claude/settings.json).
  */
 export const HooksWriter: FileWriter = {
@@ -21,14 +19,13 @@ export const HooksWriter: FileWriter = {
 			return { filesWritten: [] };
 		}
 
+		const claudeHooks = transformHooksConfig(bundle.hooks, "toClaude");
+
 		const settingsPath = join(ctx.projectRoot, ctx.outputPath);
 
 		// Ensure parent directory exists
 		const parentDir = dirname(settingsPath);
 		await mkdir(parentDir, { recursive: true });
-
-		// Transform OMNIDEV_ variables to CLAUDE_ variables
-		const claudeHooks = transformHooksConfig(bundle.hooks, "toClaude");
 
 		// Load existing settings if they exist
 		let existingSettings: Record<string, unknown> = {};

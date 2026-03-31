@@ -85,7 +85,7 @@ When wrapping a Claude plugin, OmniDev will:
 4. Load hooks from `hooks.json` (at root) or `hooks/hooks.json`
 5. Resolve `${CLAUDE_PLUGIN_ROOT}` paths to absolute paths
 
-Hooks defined in `hooks.json` are merged into `.claude/settings.json` during sync.
+Hooks defined in `hooks.json` are imported into OmniDev's shared hook pipeline during sync.
 
 ## `omnidev add mcp`
 

@@ -47,7 +47,7 @@ A capability can contribute one or more of the following:
 - **MCP servers**: Model Context Protocol endpoints configured in `omni.toml`
 - **Gitignore patterns**: added to `.omni/.gitignore` during sync
 - **Sync hooks**: custom setup steps run during `omnidev sync`
-- **Claude Code hooks**: automated scripts that run at specific agent lifecycle events
+- **Hooks**: automated scripts that run at specific agent lifecycle events and sync to Claude Code and Codex
 
 ## Versioning & reproducibility
 
@@ -99,7 +99,7 @@ my-capability/
 ├── skills/               # Skill folders with SKILL.md
 ├── commands/             # Slash-style commands (COMMAND.md)
 ├── subagents/            # Specialized agents (agent.toml + prompt.md)
-└── hooks/                # Claude Code hooks (hooks.toml + scripts)
+└── hooks/                # Shared/provider-specific hooks (hooks.toml + scripts)
 ```
 
 ## capability.toml

@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { McpConfig, SyncBundle } from "@omnidev-ai/core";
+import { hasHooksInConfig, type McpConfig, type SyncBundle } from "@omnidev-ai/core";
 import { stringify } from "smol-toml";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
@@ -27,6 +27,9 @@ interface CodexMcpServerConfig {
  * Codex config.toml structure
  */
 interface CodexConfig {
+	features?: {
+		codex_hooks?: boolean;
+	};
 	mcp_servers?: Record<string, CodexMcpServerConfig>;
 }
 
@@ -109,9 +112,10 @@ export const CodexTomlWriter: FileWriter = {
 
 	async write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult> {
 		const mcps = collectMcps(bundle);
+		const hasHooks = hasHooksInConfig(bundle.hooks as Record<string, unknown> | undefined);
 
-		// If no MCPs, don't write the file
-		if (mcps.size === 0) {
+		// If no MCPs or hooks, don't write the file
+		if (mcps.size === 0 && !hasHooks) {
 			return { filesWritten: [] };
 		}
 
@@ -131,14 +135,18 @@ export const CodexTomlWriter: FileWriter = {
 			}
 		}
 
-		// If all MCPs were skipped (e.g., all SSE), don't write the file
-		if (Object.keys(mcpServers).length === 0) {
+		// If all MCPs were skipped (e.g., all SSE) and there are no hooks, don't write the file
+		if (Object.keys(mcpServers).length === 0 && !hasHooks) {
 			return { filesWritten: [] };
 		}
 
-		const codexConfig: CodexConfig = {
-			mcp_servers: mcpServers,
-		};
+		const codexConfig: CodexConfig = {};
+		if (hasHooks) {
+			codexConfig.features = { codex_hooks: true };
+		}
+		if (Object.keys(mcpServers).length > 0) {
+			codexConfig.mcp_servers = mcpServers;
+		}
 
 		// Generate TOML content
 		const tomlContent = FILE_HEADER + stringify(codexConfig);

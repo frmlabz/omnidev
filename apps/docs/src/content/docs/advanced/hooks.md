@@ -1,16 +1,16 @@
 ---
 title: Hooks
-description: Automate workflows with Claude Code hooks in your capabilities.
+description: Automate Claude Code and Codex hooks from a shared capability file.
 sidebar:
   order: 1
 ---
 
-Hooks let capabilities register automated scripts that run at specific points in the Claude Code agent lifecycle. When you run [`omnidev sync`](/commands/core/#omnidev-sync), hooks from all enabled capabilities are merged and written to `.claude/settings.json`.
+Hooks let capabilities register automated scripts that run at specific points in the agent lifecycle. When you run [`omnidev sync`](/commands/core/#omnidev-sync), OmniDev reads `hooks/hooks.toml`, composes a provider-specific view, and writes the appropriate output files for each enabled provider.
 
 This enables powerful automation: validating commands before execution, running linters after file edits, injecting context at session start, and more.
 
 :::note
-Hooks are a Claude Code feature. OmniDev provides a way to define hooks in capabilities and sync them to your project. For the full hooks specification, see the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks).
+OmniDev supports a shared hook source format plus optional `[claude]` and `[codex]` sections for provider-specific overrides. For the full native specifications, see the [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks) and the [Codex Hooks Documentation](https://developers.openai.com/codex/hooks).
 :::
 
 ## Quick Start
@@ -66,12 +66,12 @@ my-capability/
 
 ## Configuration Format
 
-Hooks are defined in TOML with a simple structure:
+Hooks are defined in TOML with a shared top-level section plus optional provider-specific sections:
 
 ```toml
 # hooks/hooks.toml
 
-# Each event is a TOML array of tables
+# Shared hooks
 [[PreToolUse]]
 matcher = "Bash"           # Regex pattern for tool names
 [[PreToolUse.hooks]]       # Array of hooks to run
@@ -79,17 +79,55 @@ type = "command"
 command = "${OMNIDEV_CAPABILITY_ROOT}/hooks/validate-bash.sh"
 timeout = 30               # Optional, in seconds
 
-# Multiple matchers per event
-[[PostToolUse]]
-matcher = "Write|Edit"     # Match Write OR Edit tools
-[[PostToolUse.hooks]]
+# Provider-specific override for Codex only
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
 type = "command"
-command = "${OMNIDEV_PROJECT_DIR}/.omni/hooks/lint.sh"
+command = "${OMNIDEV_CAPABILITY_ROOT}/hooks/validate-bash.sh"
+statusMessage = "Checking Bash command"
+```
+
+Provider composition rules:
+
+- Top-level events are shared.
+- `[claude]` and `[codex]` are optional provider-specific escape hatches.
+- If a provider section defines an event, that event replaces the shared event for that provider only.
+- Hooks that are not usable in the active provider are skipped with warnings instead of failing sync.
+
+## Provider Compatibility
+
+| Provider | Output files | Notes |
+|----------|--------------|-------|
+| Claude Code | `.claude/settings.json` | Shared hooks plus `[claude]` overrides |
+| Codex | `.codex/hooks.json`, `.codex/config.toml` | Shared hooks plus `[codex]` overrides; `features.codex_hooks = true` is written automatically |
+
+### Shared hooks
+
+Top-level hooks should be the portable/common subset you want available on both providers.
+
+### Provider-specific hooks
+
+Use provider sections when a hook only makes sense on one provider:
+
+```toml
+[[claude.PermissionRequest]]
+matcher = "Bash"
+[[claude.PermissionRequest.hooks]]
+type = "prompt"
+prompt = "Review this permission request."
+
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
+type = "command"
+command = "${OMNIDEV_CAPABILITY_ROOT}/hooks/pre-tool.sh"
+statusMessage = "Checking Bash command"
 ```
 
 ## Hook Events
 
-OmniDev supports all 10 Claude Code hook events:
+OmniDev's shared top-level format still supports the existing OmniDev hook events, but providers use only what they can materialize. Claude gets the full shared set plus `[claude]` overrides. Codex uses its current documented subset and warns when shared hooks cannot be used there.
 
 ### Tool Execution Events
 
@@ -209,14 +247,14 @@ timeout = 30  # Default: 30 seconds
 
 ## Environment Variables
 
-OmniDev uses its own variable naming that gets transformed during sync:
+OmniDev uses its own variable naming throughout `hooks.toml`, including provider-specific sections:
 
-| In hooks.toml | In settings.json | Description |
-|---------------|------------------|-------------|
-| `${OMNIDEV_CAPABILITY_ROOT}` | `${CLAUDE_PLUGIN_ROOT}` | Capability's root directory |
-| `${OMNIDEV_PROJECT_DIR}` | `${CLAUDE_PROJECT_DIR}` | Project root |
+| In hooks.toml | Provider output | Description |
+|---------------|-----------------|-------------|
+| `${OMNIDEV_CAPABILITY_ROOT}` | Resolved provider command path | Capability root directory |
+| `${OMNIDEV_PROJECT_DIR}` | Resolved provider command path | Project root |
 
-**Always use `OMNIDEV_` prefixed variables** in your `hooks.toml`. They're automatically transformed when written to `.claude/settings.json`.
+**Always use `OMNIDEV_` prefixed variables** in your authored `hooks.toml`. OmniDev resolves them before writing provider output.
 
 Additional variables available at runtime:
 - `CLAUDE_ENV_FILE` - (SessionStart only) File path for persisting environment variables
@@ -319,10 +357,12 @@ sys.exit(0)  # Default: continue normally
 When you run [`omnidev sync`](/commands/core/#omnidev-sync):
 
 1. OmniDev loads `hooks/hooks.toml` from each enabled capability
-2. Validates TOML structure, types, and regex patterns
-3. Transforms `OMNIDEV_` variables to `CLAUDE_` variables
-4. Merges hooks from all capabilities
-5. Writes to `.claude/settings.json`
+2. Separates shared hooks from `[claude]` and `[codex]` sections
+3. Resolves `OMNIDEV_` variables to provider-ready command paths
+4. Builds a provider-specific view of the hooks
+5. Warns about hooks that are not usable in the active provider
+6. Writes `.claude/settings.json` and/or `.codex/hooks.json`
+7. Enables `features.codex_hooks` in `.codex/config.toml` when Codex hooks are present
 
 ### Merged Output
 
@@ -486,4 +526,5 @@ Debug output shows:
 
 - [Core Commands](/commands/core/) - `sync` and `doctor` commands
 - [Capability Structure](/capabilities/structure/) - How to organize capabilities
-- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks) - Full hooks specification
+- [Claude Code Hooks Documentation](https://code.claude.com/docs/en/hooks) - Full Claude specification
+- [Codex Hooks Documentation](https://developers.openai.com/codex/hooks) - Full Codex specification

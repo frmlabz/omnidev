@@ -28,6 +28,7 @@ export {
 export type {
 	HookEvent,
 	HookType,
+	HookProviderSection,
 	MatcherEvent,
 	PromptHookEvent,
 	NotificationMatcher,
@@ -40,6 +41,7 @@ export type {
 	Hook,
 	HookMatcher,
 	HooksConfig,
+	ProviderHooksConfig,
 	ValidationSeverity,
 	HookValidationCode,
 	HookValidationIssue,
@@ -78,6 +80,7 @@ export {
 	containsClaudeVariables,
 	containsOmnidevVariables,
 	resolveCapabilityRoot,
+	resolveCapabilityRootInValue,
 	resolveCapabilityRootInConfig,
 } from "./variables";
 
@@ -100,6 +103,9 @@ export {
 	countHooks,
 	getEventsWithHooks,
 } from "./merger";
+
+// Provider composition
+export { composeHooksForProvider, hasHooksInConfig } from "./provider-config";
 
 // JSON loader (Claude plugin hooks.json format)
 export type { LoadJsonHooksResult } from "./json-loader";

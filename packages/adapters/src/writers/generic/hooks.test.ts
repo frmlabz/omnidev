@@ -93,6 +93,32 @@ describe("HooksWriter", () => {
 		expect(content.hooks).toBeDefined();
 	});
 
+	test("transforms project-dir placeholders to Claude variables", async () => {
+		const hooks: HooksConfig = {
+			PostToolUse: [
+				{
+					matcher: "Write",
+					hooks: [
+						{
+							type: "command",
+							command: String.raw`\${OMNIDEV_PROJECT_DIR}/scripts/check.sh`,
+						},
+					],
+				},
+			],
+		};
+
+		await HooksWriter.write(createBundle(hooks), {
+			outputPath: ".claude/settings.json",
+			projectRoot: testDir.path,
+		});
+
+		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
+		expect(content.hooks.PostToolUse[0].hooks[0].command).toBe(
+			String.raw`\${CLAUDE_PROJECT_DIR}/scripts/check.sh`,
+		);
+	});
+
 	test("returns empty array when no hooks", async () => {
 		const bundle = createBundle(undefined);
 

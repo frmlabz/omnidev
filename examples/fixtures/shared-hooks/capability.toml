@@ -1,0 +1,5 @@
+[capability]
+id = "shared-hooks"
+name = "Shared Hooks Fixture"
+version = "1.0.0"
+description = "Fixture with shared, Claude-only, and Codex-only hooks"

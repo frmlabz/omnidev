@@ -1,0 +1,24 @@
+[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "echo shared-pre"
+
+[[Stop]]
+matcher = "ignored-by-codex"
+[[Stop.hooks]]
+type = "command"
+command = "echo shared-stop"
+
+[[codex.PreToolUse]]
+matcher = "Bash"
+[[codex.PreToolUse.hooks]]
+type = "command"
+command = "echo codex-pre"
+statusMessage = "Codex override active"
+
+[[claude.PermissionRequest]]
+matcher = "Bash"
+[[claude.PermissionRequest.hooks]]
+type = "prompt"
+prompt = "Review this request before approval."

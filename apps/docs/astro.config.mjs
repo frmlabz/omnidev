@@ -130,7 +130,7 @@ export default defineConfig({
 					label: "Advanced",
 					items: [
 						{ label: "Creating Capabilities", link: "/advanced/creating-capabilities" },
-						{ label: "Claude Code Hooks", link: "/advanced/hooks" },
+						{ label: "Hooks", link: "/advanced/hooks" },
 						{ label: "Best Practices", link: "/advanced/best-practices" },
 					],
 				},

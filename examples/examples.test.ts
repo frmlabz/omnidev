@@ -493,6 +493,73 @@ capabilities = ["standard"]
 	);
 
 	test(
+		"shared hooks sync to Claude and Codex with provider-specific overrides",
+		async () => {
+			const sharedHooksFixture = resolve(examplesDir, "fixtures", "shared-hooks");
+			const config = `
+[capabilities.sources]
+shared-hooks = { source = "file://${sharedHooksFixture}" }
+
+[profiles.default]
+capabilities = ["shared-hooks"]
+`;
+			await writeFile("omni.toml", config, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "claude-code,codex");
+			});
+
+			const { stderr } = await captureConsole(async () => {
+				await runSync();
+			});
+
+			expect(existsSync(".claude/settings.json")).toBe(true);
+			expect(existsSync(".codex/hooks.json")).toBe(true);
+			expect(existsSync(".codex/config.toml")).toBe(true);
+
+			const claudeSettings = JSON.parse(readFileSync(".claude/settings.json", "utf-8"));
+			expect(claudeSettings.hooks.PreToolUse).toEqual([
+				{
+					matcher: "Bash",
+					hooks: [{ type: "command", command: "echo shared-pre" }],
+				},
+			]);
+			expect(claudeSettings.hooks.PermissionRequest).toEqual([
+				{
+					matcher: "Bash",
+					hooks: [{ type: "prompt", prompt: "Review this request before approval." }],
+				},
+			]);
+
+			const codexHooks = JSON.parse(readFileSync(".codex/hooks.json", "utf-8"));
+			expect(codexHooks.hooks.PreToolUse).toEqual([
+				{
+					matcher: "Bash",
+					hooks: [
+						{
+							type: "command",
+							command: "echo codex-pre",
+							statusMessage: "Codex override active",
+						},
+					],
+				},
+			]);
+			expect(codexHooks.hooks.Stop).toEqual([
+				{
+					hooks: [{ type: "command", command: "echo shared-stop" }],
+				},
+			]);
+
+			const codexConfig = readFileSync(".codex/config.toml", "utf-8");
+			expect(codexConfig).toContain("codex_hooks = true");
+			expect(stderr).toContain(
+				'[hooks] Warning: Capability "shared-hooks" defines [claude] hooks; they are not used by Codex.',
+			);
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
 		"all providers enabled together",
 		async () => {
 			await writeFile("omni.toml", standardConfig, "utf-8");
