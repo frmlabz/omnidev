@@ -1,11 +1,3 @@
----
-name: code-reviewer
-description: Reviews code for quality and best practices
-tools: Read, Glob, Grep
-model: sonnet
-permissionMode: acceptEdits
----
-
 # Code Reviewer Subagent
 
 FIXTURE_MARKER:STANDARD_SUBAGENT

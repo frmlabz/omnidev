@@ -1,124 +1,135 @@
 ---
 title: Subagents
-description: Define specialized agents with SUBAGENT.md.
+description: Define specialized agents with agent.toml and prompt.md.
 sidebar:
   order: 9
 ---
 
-Subagents are specialized AI agents that can be invoked for focused tasks. Define them in `subagents/<name>/SUBAGENT.md`.
+Subagents are specialized AI agents that OmniDev can materialize for Claude Code, Cursor, Codex, and OpenCode.
 
-## Structure
+## Preferred format
 
-```
+Define subagents in `subagents/<name>/agent.toml` and `subagents/<name>/prompt.md`:
+
+```text
 my-capability/
 ├── capability.toml
 └── subagents/
     └── code-reviewer/
-        └── SUBAGENT.md
+        ├── agent.toml
+        └── prompt.md
 ```
 
-## SUBAGENT.md format
+### `agent.toml`
 
-```markdown
----
-name: code-reviewer
-description: Reviews code for quality and best practices
-tools: Read, Glob, Grep, Bash
-model: inherit
-permissionMode: default
----
+```toml
+name = "code-reviewer"
+description = "Reviews code for quality and best practices"
 
-You are a senior code reviewer ensuring high standards.
+[claude]
+tools = ["Read", "Glob", "Grep"]
+model = "sonnet"
+permission_mode = "acceptEdits"
+
+[codex]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Atlas", "Delta"]
 ```
 
-### Frontmatter fields
+### `prompt.md`
+
+```md
+You are a senior code reviewer.
+Focus on correctness, regressions, and missing tests.
+```
+
+## Manifest fields
+
+### Shared
 
 | Field | Required | Description |
 | --- | --- | --- |
-| `name` | Yes | Unique identifier (lowercase, hyphenated) |
-| `description` | Yes | When to invoke this subagent |
-| `tools` | No | Allowlist of tools |
-| `disallowedTools` | No | Tools to remove from allowlist |
+| `name` | Yes | Unique identifier used for the generated agent file |
+| `description` | Yes | Human-facing guidance for when the subagent should be used |
+
+### `[claude]`
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `tools` | No | Tool allowlist |
+| `disallowed_tools` | No | Tools to remove from the allowlist |
 | `model` | No | `sonnet`, `opus`, `haiku`, or `inherit` |
-| `permissionMode` | No | `default`, `acceptEdits`, `dontAsk`, `bypassPermissions`, `plan` |
-| `skills` | No | Skills to preload for this agent |
-| `hooks` | No | Lifecycle hooks scoped to this subagent |
+| `permission_mode` | No | `default`, `acceptEdits`, `dontAsk`, `bypassPermissions`, `plan` |
+| `skills` | No | Skills to preload for Claude-compatible providers |
+| `hooks` | No | Claude-scoped lifecycle hooks |
 
-### OpenCode-specific fields
+### `[codex]`
 
-These fields are only used when syncing to OpenCode:
+| Field | Required | Description |
+| --- | --- | --- |
+| `model` | No | Full Codex model ID, for example `gpt-5.4` |
+| `model_reasoning_effort` | No | `low`, `medium`, `high`, or `xhigh` |
+| `sandbox_mode` | No | `read-only`, `workspace-write`, or `danger-full-access` |
+| `nickname_candidates` | No | Optional display nicknames for spawned Codex agents |
 
-| Field | Description |
-| --- | --- |
-| `mode` | `primary` (runs in main context) or `subagent` (spawned) |
-| `temperature` | Model sampling temperature |
-| `maxSteps` | Maximum turns before stopping |
-| `hidden` | Hide this agent from listings |
-| `toolPermissions` | Object with tool names as keys and boolean values |
-| `permissions` | Granular permissions: `edit`, `bash`, `webfetch` |
-| `modelId` | Full model ID (e.g., `anthropic/claude-sonnet-4`) |
-
-## Provider Output
+## Provider output
 
 ### Claude Code
 
-Subagents are written to `.claude/agents/<name>.md`:
+OmniDev writes `.claude/agents/<name>.md` and maps `[claude]` settings into Claude's YAML frontmatter.
 
-```markdown
----
-name: code-reviewer
-description: "Reviews code for quality and best practices"
-tools: Read, Glob, Grep
-model: sonnet
----
+### Cursor
 
-You are a senior code reviewer ensuring high standards.
+OmniDev writes `.cursor/agents/<name>.md`. Cursor derives its agent settings from the Claude-compatible fields.
+
+### Codex
+
+OmniDev writes `.codex/agents/<name>.toml` with the required Codex fields:
+
+```toml
+name = "code-reviewer"
+description = "Reviews code for quality and best practices"
+developer_instructions = "You are a senior code reviewer.\nFocus on correctness, regressions, and missing tests."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Atlas", "Delta"]
 ```
 
 ### OpenCode
 
-Subagents are written to `.opencode/agents/<name>.md` with OpenCode-specific formatting:
-
-```markdown
----
-description: "Reviews code for quality and best practices"
-model: anthropic/claude-sonnet-4
-tools:
-  read: true
-  glob: true
-  grep: true
----
-
-You are a senior code reviewer ensuring high standards.
-```
-
-Model names are automatically mapped:
-- `sonnet` → `anthropic/claude-sonnet-4`
-- `opus` → `anthropic/claude-opus-4`
-- `haiku` → `anthropic/claude-haiku-3-5`
-
-Permission modes are also mapped:
-- `acceptEdits` → `{ edit: 'allow', bash: { '*': 'ask' } }`
-- `dontAsk` → `{ edit: 'allow', bash: { '*': 'allow' } }`
-- `plan` → `{ edit: 'deny', bash: { '*': 'deny' } }`
+OmniDev writes `.opencode/agents/<name>.md`. OpenCode continues deriving its defaults from the Claude-compatible fields, including model and permission mappings.
 
 ## Programmatic subagents
+
+Preferred programmatic shape:
 
 ```typescript
 import type { CapabilityExport, SubagentExport } from "@omnidev-ai/core";
 
 const reviewer: SubagentExport = {
-  subagentMd: `---
-name: code-reviewer
-description: Reviews code for quality and best practices
-tools: Read, Glob, Grep
-model: sonnet
----
+  agentToml: `name = "code-reviewer"
+description = "Reviews code for quality and best practices"
 
-You are a specialized reviewer...`
+[claude]
+tools = ["Read", "Glob", "Grep"]
+
+[codex]
+model = "gpt-5.4"`,
+  promptMd: "Review the diff and report concrete defects."
 };
 
 export default {
   subagents: [reviewer]
 } satisfies CapabilityExport;
 ```
+
+## Legacy format
+
+OmniDev still reads legacy `SUBAGENT.md` and `AGENT.md` files during migration, but they are deprecated.
+
+- Preferred format: `agent.toml` + `prompt.md`
+- When both formats exist for the same agent, OmniDev prefers `agent.toml` + `prompt.md`
+- Deprecation tracking lives in the repository root `DEPRECATIONS.md`

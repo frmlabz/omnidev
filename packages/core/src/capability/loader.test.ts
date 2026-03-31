@@ -772,6 +772,81 @@ description = "Has programmatic docs"`,
 		expect(capability.docs.find((d) => d.name === "programmatic-doc")).toBeDefined();
 	});
 
+	test("loads programmatic subagents from agentToml and promptMd", async () => {
+		const capPath = join(".omni", "capabilities", "programmatic-subagents");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "programmatic-subagents"
+name = "Programmatic Subagents"
+version = "1.0.0"
+description = "Has programmatic subagents"`,
+		);
+
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const subagents = [
+  {
+    agentToml: \`name = "reviewer"
+description = "Reviews code"
+
+[claude]
+tools = ["Read", "Grep"]
+
+[codex]
+model = "gpt-5.4"
+model_reasoning_effort = "high"\`,
+    promptMd: "Review the diff and report defects."
+  }
+];`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.subagents).toHaveLength(1);
+		expect(capability.subagents[0]?.name).toBe("reviewer");
+		expect(capability.subagents[0]?.claude?.tools).toEqual(["Read", "Grep"]);
+		expect(capability.subagents[0]?.codex).toEqual({
+			model: "gpt-5.4",
+			modelReasoningEffort: "high",
+		});
+	});
+
+	test("loads legacy programmatic subagents from subagentMd", async () => {
+		const capPath = join(".omni", "capabilities", "legacy-programmatic-subagents");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "legacy-programmatic-subagents"
+name = "Legacy Programmatic Subagents"
+version = "1.0.0"
+description = "Has legacy programmatic subagents"`,
+		);
+
+		writeFileSync(
+			join(capPath, "index.ts"),
+			`export const subagents = [
+  {
+    subagentMd: \`---
+name: legacy-reviewer
+description: Reviews code
+tools: Read, Grep
+---
+
+Review the diff.\`
+  }
+];`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.subagents).toHaveLength(1);
+		expect(capability.subagents[0]?.name).toBe("legacy-reviewer");
+		expect(capability.subagents[0]?.tools).toEqual(["Read", "Grep"]);
+	});
+
 	test("programmatic type definitions take precedence over filesystem", async () => {
 		const capPath = join(".omni", "capabilities", "programmatic-types");
 		mkdirSync(capPath, { recursive: true });

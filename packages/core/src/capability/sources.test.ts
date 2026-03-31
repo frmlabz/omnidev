@@ -552,6 +552,22 @@ description = "Test"
 		// 'subagents' should also be detected as agent dir
 		expect(existsSync(join(capDir, "subagents"))).toBe(true);
 	});
+
+	test("recognizes neutral agent manifests for wrapping", () => {
+		const capDir = join(testDir.path, ".omni", "capabilities", "test-cap");
+		const agentDir = join(capDir, "subagents", "reviewer");
+		mkdirSync(agentDir, { recursive: true });
+
+		writeFileSync(
+			join(agentDir, "agent.toml"),
+			`name = "reviewer"
+description = "Reviews code"`,
+		);
+		writeFileSync(join(agentDir, "prompt.md"), "Review the code.");
+
+		expect(existsSync(join(agentDir, "agent.toml"))).toBe(true);
+		expect(existsSync(join(agentDir, "prompt.md"))).toBe(true);
+	});
 });
 
 // Note: Tests for fetchCapabilitySource and fetchAllCapabilitySources with actual

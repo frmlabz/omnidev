@@ -413,6 +413,160 @@ Flat file prompt.`,
 		expect(subagents.find((s) => s.name === "flat-subagent")).toBeDefined();
 	});
 
+	test("loads neutral manifest format from agent.toml and prompt.md", async () => {
+		const subagentDir = join(capabilityPath, "subagents", "manifest-agent");
+		mkdirSync(subagentDir, { recursive: true });
+
+		writeFileSync(
+			join(subagentDir, "agent.toml"),
+			`name = "manifest-agent"
+description = "Agent from neutral manifest"
+
+[claude]
+tools = ["Read", "Glob", "Grep"]
+model = "sonnet"
+permission_mode = "acceptEdits"
+skills = ["prd", "ralph"]
+
+[codex]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Atlas", "Delta"]
+`,
+		);
+		writeFileSync(join(subagentDir, "prompt.md"), "Investigate the code path and report risks.");
+
+		const subagents = await loadSubagents(capabilityPath, "test-cap");
+
+		expect(subagents).toHaveLength(1);
+		expect(subagents[0]?.name).toBe("manifest-agent");
+		expect(subagents[0]?.description).toBe("Agent from neutral manifest");
+		expect(subagents[0]?.systemPrompt).toBe("Investigate the code path and report risks.");
+		expect(subagents[0]?.claude).toEqual({
+			tools: ["Read", "Glob", "Grep"],
+			model: "sonnet",
+			permissionMode: "acceptEdits",
+			skills: ["prd", "ralph"],
+		});
+		expect(subagents[0]?.codex).toEqual({
+			model: "gpt-5.4",
+			modelReasoningEffort: "high",
+			sandboxMode: "read-only",
+			nicknameCandidates: ["Atlas", "Delta"],
+		});
+		expect(subagents[0]?.tools).toEqual(["Read", "Glob", "Grep"]);
+		expect(subagents[0]?.model).toBe("sonnet");
+	});
+
+	test("loads neutral manifest directly in subagents directory", async () => {
+		const subagentsDir = join(capabilityPath, "subagents");
+		mkdirSync(subagentsDir, { recursive: true });
+
+		writeFileSync(
+			join(subagentsDir, "agent.toml"),
+			`name = "flat-manifest-agent"
+description = "Agent defined directly in subagents"
+
+[codex]
+model = "gpt-5.4-mini"
+`,
+		);
+		writeFileSync(join(subagentsDir, "prompt.md"), "Prompt from flat manifest.");
+
+		const subagents = await loadSubagents(capabilityPath, "test-cap");
+
+		expect(subagents).toHaveLength(1);
+		expect(subagents[0]).toEqual({
+			name: "flat-manifest-agent",
+			description: "Agent defined directly in subagents",
+			systemPrompt: "Prompt from flat manifest.",
+			capabilityId: "test-cap",
+			codex: {
+				model: "gpt-5.4-mini",
+			},
+		});
+	});
+
+	test("loads neutral manifest directly in singular agent directory", async () => {
+		const agentDir = join(capabilityPath, "agent");
+		mkdirSync(agentDir, { recursive: true });
+
+		writeFileSync(
+			join(agentDir, "agent.toml"),
+			`name = "root-agent"
+description = "Agent defined in singular directory"
+
+[claude]
+model = "haiku"
+`,
+		);
+		writeFileSync(join(agentDir, "prompt.md"), "Prompt from singular agent directory.");
+
+		const subagents = await loadSubagents(capabilityPath, "test-cap");
+
+		expect(subagents).toHaveLength(1);
+		expect(subagents[0]).toEqual({
+			name: "root-agent",
+			description: "Agent defined in singular directory",
+			systemPrompt: "Prompt from singular agent directory.",
+			capabilityId: "test-cap",
+			claude: {
+				model: "haiku",
+			},
+			model: "haiku",
+		});
+	});
+
+	test("prefers neutral manifest when both new and legacy files exist", async () => {
+		const subagentDir = join(capabilityPath, "subagents", "dual-agent");
+		mkdirSync(subagentDir, { recursive: true });
+
+		writeFileSync(
+			join(subagentDir, "agent.toml"),
+			`name = "dual-agent"
+description = "Manifest wins"
+
+[codex]
+model = "gpt-5.4-mini"
+`,
+		);
+		writeFileSync(join(subagentDir, "prompt.md"), "Prompt from manifest.");
+		writeFileSync(
+			join(subagentDir, "SUBAGENT.md"),
+			`---
+name: dual-agent
+description: Legacy loses
+model: sonnet
+---
+
+Legacy prompt.`,
+		);
+
+		const subagents = await loadSubagents(capabilityPath, "test-cap");
+
+		expect(subagents).toHaveLength(1);
+		expect(subagents[0]?.description).toBe("Manifest wins");
+		expect(subagents[0]?.systemPrompt).toBe("Prompt from manifest.");
+		expect(subagents[0]?.codex?.model).toBe("gpt-5.4-mini");
+		expect(subagents[0]?.model).toBeUndefined();
+	});
+
+	test("throws when agent.toml is present without prompt.md", async () => {
+		const subagentDir = join(capabilityPath, "subagents", "broken-agent");
+		mkdirSync(subagentDir, { recursive: true });
+		writeFileSync(
+			join(subagentDir, "agent.toml"),
+			`name = "broken-agent"
+description = "Broken agent"
+`,
+		);
+
+		await expect(loadSubagents(capabilityPath, "test-cap")).rejects.toThrow(
+			"agent.toml and prompt.md must both be present",
+		);
+	});
+
 	test("associates subagents with correct capability ID", async () => {
 		const subagentDir = join(capabilityPath, "subagents", "test-subagent");
 		mkdirSync(subagentDir, { recursive: true });

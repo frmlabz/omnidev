@@ -4,6 +4,14 @@ import type { SyncBundle, Subagent, SubagentModel, SubagentPermissionMode } from
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
 
+function getClaudeConfig(agent: Subagent) {
+	return {
+		tools: agent.claude?.tools ?? agent.tools,
+		model: agent.claude?.model ?? agent.model,
+		permissionMode: agent.claude?.permissionMode ?? agent.permissionMode,
+	};
+}
+
 /**
  * Map Claude model names to OpenCode model IDs.
  */
@@ -56,12 +64,13 @@ function mapToolsToOpenCode(tools: string[] | undefined): Record<string, boolean
  * Generate YAML frontmatter for an OpenCode agent.
  */
 function generateFrontmatter(agent: Subagent): string {
+	const claude = getClaudeConfig(agent);
 	const lines: string[] = ["---"];
 
 	lines.push(`description: "${agent.description.replace(/"/g, '\\"')}"`);
 
 	// Use OpenCode-specific modelId if provided, otherwise map from Claude model
-	const modelId = agent.modelId ?? mapModelToOpenCode(agent.model);
+	const modelId = agent.modelId ?? mapModelToOpenCode(claude.model);
 	if (modelId) {
 		lines.push(`model: ${modelId}`);
 	}
@@ -87,7 +96,7 @@ function generateFrontmatter(agent: Subagent): string {
 	}
 
 	// Tools - use toolPermissions if provided, otherwise map from tools array
-	const toolsObj = agent.toolPermissions ?? mapToolsToOpenCode(agent.tools);
+	const toolsObj = agent.toolPermissions ?? mapToolsToOpenCode(claude.tools);
 	if (toolsObj) {
 		lines.push("tools:");
 		for (const [tool, enabled] of Object.entries(toolsObj)) {
@@ -96,7 +105,7 @@ function generateFrontmatter(agent: Subagent): string {
 	}
 
 	// Permissions - use OpenCode-specific permissions if provided, otherwise map from permissionMode
-	const permissions = agent.permissions ?? mapPermissionsToOpenCode(agent.permissionMode);
+	const permissions = agent.permissions ?? mapPermissionsToOpenCode(claude.permissionMode);
 	if (permissions) {
 		lines.push("permissions:");
 		for (const [key, value] of Object.entries(permissions)) {

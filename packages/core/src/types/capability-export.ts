@@ -44,27 +44,43 @@ export interface SkillExport {
 /**
  * Subagent export structure
  *
- * Defines a subagent that Claude can delegate tasks to.
- * Uses YAML frontmatter in markdown format for configuration.
+ * Defines a subagent that OmniDev can materialize across providers.
+ * Prefer agentToml + promptMd. subagentMd is deprecated and kept for compatibility.
  *
  * @example
  * ```typescript
  * const codeReviewer: SubagentExport = {
- *   subagentMd: `---
- * name: code-reviewer
- * description: Reviews code for quality and best practices
- * tools: Read, Glob, Grep
- * model: sonnet
- * ---
+ *   agentToml: `name = "code-reviewer"
+ * description = "Reviews code for quality and best practices"
  *
- * You are a code reviewer. When invoked, analyze the code and provide
+ * [claude]
+ * tools = ["Read", "Glob", "Grep"]
+ *
+ * [codex]
+ * model = "gpt-5.4"`,
+ *   promptMd: `You are a code reviewer. When invoked, analyze the code and provide
  * specific, actionable feedback on quality, security, and best practices.`
  * };
  * ```
  */
 export interface SubagentExport {
-	/** SUBAGENT.md content (markdown with YAML frontmatter) */
-	subagentMd: string;
+	/**
+	 * Preferred neutral agent manifest content.
+	 * Pair with promptMd.
+	 */
+	agentToml?: string;
+
+	/**
+	 * Preferred neutral prompt content.
+	 * Pair with agentToml.
+	 */
+	promptMd?: string;
+
+	/**
+	 * Deprecated legacy SUBAGENT.md content (markdown with YAML frontmatter).
+	 * Kept for compatibility while capabilities migrate to agentToml + promptMd.
+	 */
+	subagentMd?: string;
 }
 
 /**

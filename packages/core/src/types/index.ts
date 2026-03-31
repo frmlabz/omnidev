@@ -158,6 +158,9 @@ export type SubagentPermissionMode =
 	| "bypassPermissions"
 	| "plan";
 
+export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
+export type CodexModelReasoningEffort = "low" | "medium" | "high" | "xhigh";
+
 export interface SubagentHookConfig {
 	matcher?: string;
 	hooks: {
@@ -172,13 +175,7 @@ export interface SubagentHooks {
 	Stop?: SubagentHookConfig[];
 }
 
-export interface Subagent {
-	/** Unique identifier using lowercase letters and hyphens */
-	name: string;
-	/** When Claude should delegate to this subagent */
-	description: string;
-	/** System prompt that guides the subagent's behavior */
-	systemPrompt: string;
+export interface ClaudeSubagentConfig {
 	/** Tools the subagent can use (inherits all if omitted) */
 	tools?: string[];
 	/** Tools to deny (removed from inherited or specified list) */
@@ -190,6 +187,60 @@ export interface Subagent {
 	/** Skills to load into the subagent's context at startup */
 	skills?: string[];
 	/** Lifecycle hooks scoped to this subagent */
+	hooks?: SubagentHooks;
+}
+
+export interface CodexSubagentConfig {
+	/** Full model ID to use for this agent file */
+	model?: string;
+	/** Codex reasoning effort */
+	modelReasoningEffort?: CodexModelReasoningEffort;
+	/** Sandbox mode override for the spawned agent */
+	sandboxMode?: CodexSandboxMode;
+	/** Optional display nicknames for spawned agents */
+	nicknameCandidates?: string[];
+}
+
+export interface Subagent {
+	/** Unique identifier using lowercase letters and hyphens */
+	name: string;
+	/** When the provider should delegate to this subagent */
+	description: string;
+	/** System prompt that guides the subagent's behavior */
+	systemPrompt: string;
+	/** Claude-compatible agent settings */
+	claude?: ClaudeSubagentConfig;
+	/** Codex-compatible agent settings */
+	codex?: CodexSubagentConfig;
+	/**
+	 * Deprecated compatibility alias for claude.tools.
+	 * Prefer subagent.claude?.tools for new code.
+	 */
+	tools?: string[];
+	/**
+	 * Deprecated compatibility alias for claude.disallowedTools.
+	 * Prefer subagent.claude?.disallowedTools for new code.
+	 */
+	disallowedTools?: string[];
+	/**
+	 * Deprecated compatibility alias for claude.model.
+	 * Prefer subagent.claude?.model for new code.
+	 */
+	model?: SubagentModel;
+	/**
+	 * Deprecated compatibility alias for claude.permissionMode.
+	 * Prefer subagent.claude?.permissionMode for new code.
+	 */
+	permissionMode?: SubagentPermissionMode;
+	/**
+	 * Deprecated compatibility alias for claude.skills.
+	 * Prefer subagent.claude?.skills for new code.
+	 */
+	skills?: string[];
+	/**
+	 * Deprecated compatibility alias for claude.hooks.
+	 * Prefer subagent.claude?.hooks for new code.
+	 */
 	hooks?: SubagentHooks;
 	/** Capability that provides this subagent */
 	capabilityId: string;

@@ -4,33 +4,44 @@ import type { SyncBundle, Subagent } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
 
+function getClaudeConfig(agent: Subagent) {
+	return {
+		tools: agent.claude?.tools ?? agent.tools,
+		disallowedTools: agent.claude?.disallowedTools ?? agent.disallowedTools,
+		model: agent.claude?.model ?? agent.model,
+		permissionMode: agent.claude?.permissionMode ?? agent.permissionMode,
+		skills: agent.claude?.skills ?? agent.skills,
+	};
+}
+
 /**
  * Generate YAML frontmatter for a Claude Code agent.
  */
 function generateFrontmatter(agent: Subagent): string {
+	const claude = getClaudeConfig(agent);
 	const lines: string[] = ["---"];
 
 	lines.push(`name: ${agent.name}`);
 	lines.push(`description: "${agent.description.replace(/"/g, '\\"')}"`);
 
-	if (agent.tools && agent.tools.length > 0) {
-		lines.push(`tools: ${agent.tools.join(", ")}`);
+	if (claude.tools && claude.tools.length > 0) {
+		lines.push(`tools: ${claude.tools.join(", ")}`);
 	}
 
-	if (agent.disallowedTools && agent.disallowedTools.length > 0) {
-		lines.push(`disallowedTools: ${agent.disallowedTools.join(", ")}`);
+	if (claude.disallowedTools && claude.disallowedTools.length > 0) {
+		lines.push(`disallowedTools: ${claude.disallowedTools.join(", ")}`);
 	}
 
-	if (agent.model && agent.model !== "inherit") {
-		lines.push(`model: ${agent.model}`);
+	if (claude.model && claude.model !== "inherit") {
+		lines.push(`model: ${claude.model}`);
 	}
 
-	if (agent.permissionMode && agent.permissionMode !== "default") {
-		lines.push(`permissionMode: ${agent.permissionMode}`);
+	if (claude.permissionMode && claude.permissionMode !== "default") {
+		lines.push(`permissionMode: ${claude.permissionMode}`);
 	}
 
-	if (agent.skills && agent.skills.length > 0) {
-		lines.push(`skills: ${agent.skills.join(", ")}`);
+	if (claude.skills && claude.skills.length > 0) {
+		lines.push(`skills: ${claude.skills.join(", ")}`);
 	}
 
 	lines.push("---");

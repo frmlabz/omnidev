@@ -54,7 +54,15 @@ const WRAPPED_ROOT_FILE_PATTERNS = [
 
 // File patterns for each content type
 const SKILL_FILES = ["SKILL.md", "skill.md", "Skill.md"];
-const AGENT_FILES = ["AGENT.md", "agent.md", "Agent.md", "SUBAGENT.md", "subagent.md"];
+const AGENT_FILES = [
+	"AGENT.md",
+	"agent.md",
+	"Agent.md",
+	"SUBAGENT.md",
+	"subagent.md",
+	"agent.toml",
+	"AGENT.toml",
+];
 const COMMAND_FILES = ["COMMAND.md", "command.md", "Command.md"];
 
 export interface FetchResult {

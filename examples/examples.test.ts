@@ -88,7 +88,10 @@ function findFilesWithMarker(dir: string, marker: string): string[] {
 			const fullPath = resolve(currentDir, entry.name);
 			if (entry.isDirectory()) {
 				search(fullPath);
-			} else if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".mdc"))) {
+			} else if (
+				entry.isFile() &&
+				(entry.name.endsWith(".md") || entry.name.endsWith(".mdc") || entry.name.endsWith(".toml"))
+			) {
 				try {
 					const content = readFileSync(fullPath, "utf-8");
 					if (content.includes(marker)) {
@@ -367,6 +370,7 @@ capabilities = ["standard"]
 			// Verify codex specific files
 			expect(existsSync("AGENTS.md")).toBe(true);
 			expect(existsSync(".codex/skills")).toBe(true);
+			expect(existsSync(".codex/agents")).toBe(true);
 
 			// Verify AGENTS.md contains instructions
 			const agentsMd = readFileSync("AGENTS.md", "utf-8");
@@ -376,6 +380,10 @@ capabilities = ["standard"]
 			const skillFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.skill);
 			expect(skillFiles.length).toBeGreaterThan(0);
 			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
+
+			// Verify subagents were written to .codex/agents
+			const subagentFiles = findFilesWithMarker(".", "FIXTURE_MARKER:STANDARD_SUBAGENT");
+			expect(subagentFiles.some((f) => f.includes(".codex/agents"))).toBe(true);
 		},
 		{ timeout: 30000 },
 	);
@@ -465,6 +473,7 @@ capabilities = ["standard"]
 
 			// Each adapter has its own skills directory
 			expect(existsSync(".codex/skills")).toBe(true);
+			expect(existsSync(".codex/agents")).toBe(true);
 			expect(existsSync(".opencode/skills")).toBe(true);
 
 			// Verify AGENTS.md content
@@ -476,6 +485,9 @@ capabilities = ["standard"]
 			expect(skillFiles.length).toBeGreaterThan(0);
 			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
 			expect(skillFiles.some((f) => f.includes(".opencode/skills"))).toBe(true);
+
+			const subagentFiles = findFilesWithMarker(".", "FIXTURE_MARKER:STANDARD_SUBAGENT");
+			expect(subagentFiles.some((f) => f.includes(".codex/agents"))).toBe(true);
 		},
 		{ timeout: 30000 },
 	);
@@ -503,6 +515,7 @@ capabilities = ["standard"]
 			// Codex-based providers
 			expect(existsSync("AGENTS.md")).toBe(true);
 			expect(existsSync(".codex/skills")).toBe(true);
+			expect(existsSync(".codex/agents")).toBe(true);
 			expect(existsSync(".opencode/skills")).toBe(true);
 
 			// Verify both instruction files have content
@@ -517,6 +530,9 @@ capabilities = ["standard"]
 			expect(skillFiles.some((f) => f.includes(".claude/skills"))).toBe(true);
 			expect(skillFiles.some((f) => f.includes(".codex/skills"))).toBe(true);
 			expect(skillFiles.some((f) => f.includes(".opencode/skills"))).toBe(true);
+
+			const subagentFiles = findFilesWithMarker(".", "FIXTURE_MARKER:STANDARD_SUBAGENT");
+			expect(subagentFiles.some((f) => f.includes(".codex/agents"))).toBe(true);
 
 			// Verify rules in cursor
 			const ruleFiles = findFilesWithMarker(".", FIXTURE_MARKERS.standard.rule);

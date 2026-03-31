@@ -7,6 +7,8 @@ sidebar:
 
 This guide walks you through creating a new capability from scratch, including all the files you might need and best practices for structuring your capability.
 
+Subagents are optional. When you add them, prefer `subagents/<name>/agent.toml` plus `subagents/<name>/prompt.md`.
+
 ## Quick start with `capability new`
 
 The fastest way to create a capability is with the CLI:
@@ -112,6 +114,7 @@ export default {
   docs: [/* DocExport */],
   rules: [/* markdown strings */],
   skills: [/* SkillExport */],
+  subagents: [/* SubagentExport */],
   gitignore: ["mycap/"],
   sync: async () => { /* setup */ }
 } satisfies CapabilityExport;

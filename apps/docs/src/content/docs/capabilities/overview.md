@@ -43,7 +43,7 @@ A capability can contribute one or more of the following:
 - **Docs**: long-form guidance merged into instructions
 - **Commands**: reusable prompts defined in `commands/**/COMMAND.md`
 - **CLI commands**: new `omnidev <command>` routes via Stricli
-- **Subagents**: specialized agents defined in `subagents/**/SUBAGENT.md`
+- **Subagents**: specialized agents defined in `subagents/**/agent.toml` + `prompt.md`
 - **MCP servers**: Model Context Protocol endpoints configured in `omni.toml`
 - **Gitignore patterns**: added to `.omni/.gitignore` during sync
 - **Sync hooks**: custom setup steps run during `omnidev sync`
@@ -98,7 +98,7 @@ my-capability/
 ├── docs/                 # Markdown docs
 ├── skills/               # Skill folders with SKILL.md
 ├── commands/             # Slash-style commands (COMMAND.md)
-├── subagents/            # Specialized agents (SUBAGENT.md)
+├── subagents/            # Specialized agents (agent.toml + prompt.md)
 └── hooks/                # Claude Code hooks (hooks.toml + scripts)
 ```
 
@@ -145,6 +145,8 @@ export default {
 ```
 
 Static files under `docs/`, `rules/`, `skills/`, `commands/`, and `subagents/` are discovered automatically and merged with programmatic exports.
+
+Legacy `SUBAGENT.md` / `AGENT.md` subagents are still loaded during migration, but `agent.toml` + `prompt.md` is the canonical format going forward.
 
 ---
 

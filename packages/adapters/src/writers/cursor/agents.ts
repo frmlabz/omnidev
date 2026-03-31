@@ -4,6 +4,13 @@ import type { SyncBundle, Subagent, SubagentModel } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
 
+function getClaudeConfig(agent: Subagent) {
+	return {
+		model: agent.claude?.model ?? agent.model,
+		permissionMode: agent.claude?.permissionMode ?? agent.permissionMode,
+	};
+}
+
 /**
  * Map OmniDev model names to Cursor model values.
  * Cursor supports: "fast", "inherit", or a specific model ID.
@@ -27,18 +34,19 @@ function mapModelToCursor(model: SubagentModel | undefined): string | undefined 
  * Generate YAML frontmatter for a Cursor agent.
  */
 function generateFrontmatter(agent: Subagent): string {
+	const claude = getClaudeConfig(agent);
 	const lines: string[] = ["---"];
 
 	lines.push(`name: ${agent.name}`);
 	lines.push(`description: "${agent.description.replace(/"/g, '\\"')}"`);
 
-	const model = mapModelToCursor(agent.model);
+	const model = mapModelToCursor(claude.model);
 	if (model) {
 		lines.push(`model: ${model}`);
 	}
 
 	// Map plan permission mode to readonly
-	if (agent.permissionMode === "plan") {
+	if (claude.permissionMode === "plan") {
 		lines.push("readonly: true");
 	}
 

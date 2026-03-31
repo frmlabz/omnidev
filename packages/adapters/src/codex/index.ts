@@ -16,7 +16,7 @@ import {
 	type AdapterWriterConfig,
 } from "#writers/generic/index";
 import { createProviderScopedBundle } from "#provider-bundle";
-import { CodexTomlWriter } from "#writers/codex/index";
+import { CodexAgentsWriter, CodexTomlWriter } from "#writers/codex/index";
 
 /**
  * Codex adapter - generates AGENTS.md and skills.
@@ -29,6 +29,7 @@ export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } 
 		{ writer: InstructionsMdWriter, outputPath: "AGENTS.md" },
 		{ writer: SkillsWriter, outputPath: ".codex/skills/" },
 		{ writer: CommandsAsSkillsWriter, outputPath: ".codex/skills/" },
+		{ writer: CodexAgentsWriter, outputPath: ".codex/agents/" },
 		{ writer: CodexTomlWriter, outputPath: ".codex/config.toml" },
 	],
 
