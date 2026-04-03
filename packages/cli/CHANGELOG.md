@@ -1,5 +1,12 @@
 # @omnidev-ai/cli
 
+## 0.19.0
+
+### Minor Changes
+
+- 08a2846: Add Codex hooks support from shared capability `hooks/hooks.toml` files, including provider-specific `[claude]` and `[codex]` hook sections, `.codex/hooks.json` generation, and automatic `codex_hooks` feature enablement. Shared hooks now warn and skip when they are not usable on a provider instead of failing sync, while invalid provider-specific hook overrides are validated during load.
+- e58a7bc: Add Codex subagent generation and move OmniDev subagents to a neutral `agent.toml` plus `prompt.md` format with legacy `SUBAGENT.md` compatibility.
+
 ## 0.18.1
 
 ### Patch Changes
