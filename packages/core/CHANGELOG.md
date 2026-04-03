@@ -1,5 +1,11 @@
 # @omnidev-ai/core
 
+## 0.16.0
+
+### Minor Changes
+
+- e58a7bc: Add Codex subagent generation and move OmniDev subagents to a neutral `agent.toml` plus `prompt.md` format with legacy `SUBAGENT.md` compatibility.
+
 ## 0.15.1
 
 ### Patch Changes

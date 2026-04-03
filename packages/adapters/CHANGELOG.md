@@ -1,5 +1,16 @@
 # @omnidev-ai/adapters
 
+## 0.3.0
+
+### Minor Changes
+
+- e58a7bc: Add Codex subagent generation and move OmniDev subagents to a neutral `agent.toml` plus `prompt.md` format with legacy `SUBAGENT.md` compatibility.
+
+### Patch Changes
+
+- Updated dependencies [e58a7bc]
+  - @omnidev-ai/core@0.16.0
+
 ## 0.2.3
 
 ### Patch Changes
