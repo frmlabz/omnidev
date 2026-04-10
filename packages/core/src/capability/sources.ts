@@ -766,6 +766,22 @@ export async function detectPinVersion(sourceUrl: string, subPath?: string): Pro
 /**
  * Clone a git repository
  */
+/**
+ * Check if a directory is a valid standalone git repository.
+ * An empty or corrupted .git directory will cause git to walk up and find
+ * a parent repo, which can lead to destructive operations on the wrong repo.
+ */
+export async function isValidGitRepo(repoPath: string): Promise<boolean> {
+	if (!existsSync(join(repoPath, ".git"))) {
+		return false;
+	}
+	const result = await spawnCapture("git", ["rev-parse", "--git-dir"], {
+		cwd: repoPath,
+	});
+	// A valid repo-local .git should resolve to ".git", not an absolute parent path
+	return result.exitCode === 0 && result.stdout.trim() === ".git";
+}
+
 async function cloneRepo(gitUrl: string, targetPath: string, ref?: string): Promise<void> {
 	// Ensure parent directory exists
 	await mkdir(join(targetPath, ".."), { recursive: true });
@@ -787,6 +803,15 @@ async function cloneRepo(gitUrl: string, targetPath: string, ref?: string): Prom
  * Uses hard reset to always match remote state, ignoring any local changes.
  */
 async function fetchRepo(repoPath: string, ref?: string): Promise<boolean> {
+	// Safety: verify this is a standalone git repo before running destructive commands.
+	// An empty/corrupted .git dir causes git to walk up and find the parent project repo,
+	// which would shallow its history and reset its worktree.
+	if (!(await isValidGitRepo(repoPath))) {
+		throw new Error(
+			`Not a valid git repository: ${repoPath}. Refusing to run git commands that could affect a parent repo.`,
+		);
+	}
+
 	// Fetch latest - if ref is specified, fetch that specific ref
 	const fetchArgs = ["fetch", "--depth", "1", "origin"];
 	if (ref) {
@@ -1297,11 +1322,14 @@ async function fetchGitCapabilitySource(
 	if (config.path) {
 		const tempPath = join(OMNI_LOCAL, "_temp", `${id}-repo`);
 
-		// Check if already cloned to temp
-		if (existsSync(join(tempPath, ".git"))) {
+		// Check if already cloned to temp (validate it's a real git repo, not a stale/empty .git)
+		if (await isValidGitRepo(tempPath)) {
 			updated = await fetchRepo(tempPath, gitRef);
 			commit = await getRepoCommit(tempPath);
 		} else {
+			if (existsSync(tempPath)) {
+				await rm(tempPath, { recursive: true });
+			}
 			await mkdir(join(tempPath, ".."), { recursive: true });
 			await cloneRepo(gitUrl, tempPath, gitRef);
 			commit = await getRepoCommit(tempPath);
@@ -1336,13 +1364,18 @@ async function fetchGitCapabilitySource(
 		repoPath = targetPath;
 	} else {
 		// Clone directly to target (no subdirectory)
-		if (existsSync(join(targetPath, ".git"))) {
+		// Validate it's a real git repo — an empty/corrupted .git dir would cause
+		// git to walk up and operate on the parent project repo instead.
+		if (await isValidGitRepo(targetPath)) {
 			if (!options?.silent) {
 				console.log(`  Checking ${id}...`);
 			}
 			updated = await fetchRepo(targetPath, gitRef);
 			commit = await getRepoCommit(targetPath);
 		} else {
+			if (existsSync(targetPath)) {
+				await rm(targetPath, { recursive: true });
+			}
 			if (!options?.silent) {
 				console.log(`  Cloning ${id} from ${config.source}...`);
 			}
@@ -1890,8 +1923,8 @@ export async function checkForUpdates(config: OmniConfig): Promise<SourceUpdateI
 		// Handle git sources
 		const gitConfig = sourceConfig as GitCapabilitySourceConfig;
 
-		if (!existsSync(join(targetPath, ".git"))) {
-			// Not yet cloned
+		if (!(await isValidGitRepo(targetPath))) {
+			// Not yet cloned or corrupted
 			updates.push({
 				id,
 				source: gitConfig.source,

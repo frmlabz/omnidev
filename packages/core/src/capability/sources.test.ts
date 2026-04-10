@@ -14,6 +14,7 @@ import {
 	isGitSource,
 	parseFileSourcePath,
 	readCapabilityIdFromPath,
+	isValidGitRepo,
 } from "./sources";
 import type {
 	CapabilitiesLockFile,
@@ -567,6 +568,52 @@ description = "Reviews code"`,
 
 		expect(existsSync(join(agentDir, "agent.toml"))).toBe(true);
 		expect(existsSync(join(agentDir, "prompt.md"))).toBe(true);
+	});
+});
+
+describe("isValidGitRepo", () => {
+	const testDir = setupTestDir("omnidev-git-repo-test-");
+
+	test("returns false when directory does not exist", async () => {
+		const nonExistent = join(testDir.path, "does-not-exist");
+		expect(await isValidGitRepo(nonExistent)).toBe(false);
+	});
+
+	test("returns false when .git directory is empty", async () => {
+		const dir = join(testDir.path, "empty-git");
+		mkdirSync(dir, { recursive: true });
+		mkdirSync(join(dir, ".git"));
+		expect(await isValidGitRepo(dir)).toBe(false);
+	});
+
+	test("returns false when directory has no .git at all", async () => {
+		const dir = join(testDir.path, "no-git");
+		mkdirSync(dir, { recursive: true });
+		expect(await isValidGitRepo(dir)).toBe(false);
+	});
+
+	test("returns true for a real git repository", async () => {
+		const dir = join(testDir.path, "real-repo");
+		mkdirSync(dir, { recursive: true });
+		const { execSync } = await import("node:child_process");
+		execSync("git init", { cwd: dir, stdio: "ignore" });
+		expect(await isValidGitRepo(dir)).toBe(true);
+	});
+
+	test("returns false when .git is empty inside a parent git repo", async () => {
+		// This is the exact bug scenario: a subdirectory with an empty .git
+		// inside a real git repo. Git would walk up and find the parent,
+		// but isValidGitRepo must return false because the .git is not local.
+		const parent = join(testDir.path, "parent-repo");
+		mkdirSync(parent, { recursive: true });
+		const { execSync } = await import("node:child_process");
+		execSync("git init", { cwd: parent, stdio: "ignore" });
+
+		const child = join(parent, "sub", "nested");
+		mkdirSync(child, { recursive: true });
+		mkdirSync(join(child, ".git"));
+
+		expect(await isValidGitRepo(child)).toBe(false);
 	});
 });
 
