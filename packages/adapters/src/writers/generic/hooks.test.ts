@@ -144,6 +144,29 @@ describe("HooksWriter", () => {
 		);
 	});
 
+	test("preserves absolute capability hook commands", async () => {
+		const hooks: HooksConfig = {
+			SessionStart: [
+				{
+					hooks: [
+						{
+							type: "command",
+							command: "/tmp/omnidev-cap/hooks/run.sh",
+						},
+					],
+				},
+			],
+		};
+
+		await HooksWriter.write(createBundle(hooks), {
+			outputPath: ".claude/settings.json",
+			projectRoot: testDir.path,
+		});
+
+		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
+		expect(content.hooks.SessionStart[0].hooks[0].command).toBe("/tmp/omnidev-cap/hooks/run.sh");
+	});
+
 	test("returns empty array when no hooks", async () => {
 		const bundle = createBundle(undefined);
 

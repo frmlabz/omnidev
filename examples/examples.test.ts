@@ -251,6 +251,37 @@ capabilities = ["claude-plugin"]
 	);
 
 	test(
+		"wrapped claude-plugin hooks sync to absolute Claude commands",
+		async () => {
+			const claudePluginFixture = resolve(examplesDir, "fixtures", "claude-plugin");
+			const config = `
+[capabilities.sources]
+claude-plugin = { source = "file://${claudePluginFixture}" }
+
+[profiles.default]
+capabilities = ["claude-plugin"]
+`;
+			await writeFile("omni.toml", config, "utf-8");
+
+			await captureConsole(async () => {
+				await runInit({}, "claude-code");
+			});
+
+			await captureConsole(async () => {
+				await runSync();
+			});
+
+			const settings = JSON.parse(readFileSync(".claude/settings.json", "utf-8"));
+			const command = settings.hooks.SessionStart[0].hooks[0].command as string;
+			const wrappedCapabilityRoot = resolve(".omni/capabilities/claude-plugin");
+
+			expect(command).toContain(`node "${wrappedCapabilityRoot}/hooks/scripts/session-start.js"`);
+			expect(command).not.toContain("CLAUDE_PLUGIN_ROOT");
+		},
+		{ timeout: 30000 },
+	);
+
+	test(
 		"bare-skills fixture is auto-wrapped",
 		async () => {
 			const config = `

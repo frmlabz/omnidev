@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { loadCapabilityHooks } from "#hooks/loader";
 import { parseCapabilityConfig } from "../config/parser";
 import type {
@@ -106,8 +107,7 @@ async function importCapabilityExports(capabilityPath: string): Promise<Record<s
 	}
 
 	try {
-		const absolutePath = join(process.cwd(), indexPath);
-		const module = await import(absolutePath);
+		const module = await import(pathToFileURL(indexPath).href);
 		return module;
 	} catch (error) {
 		// Check if it's a module resolution error
@@ -315,13 +315,18 @@ function mergeByName<T extends { name: string }>(fileBased: T[], programmatic: T
  * @throws Error if loading errors occur
  */
 export async function loadCapability(capabilityPath: string): Promise<LoadedCapability> {
-	const capabilityEnvVariables = await loadCapabilityEnvVariables(capabilityPath);
-	const rawConfig = await loadCapabilityConfig(capabilityPath);
-	const config = await resolveCapabilityMcpEnv(rawConfig, capabilityPath, capabilityEnvVariables);
+	const resolvedCapabilityPath = resolve(capabilityPath);
+	const capabilityEnvVariables = await loadCapabilityEnvVariables(resolvedCapabilityPath);
+	const rawConfig = await loadCapabilityConfig(resolvedCapabilityPath);
+	const config = await resolveCapabilityMcpEnv(
+		rawConfig,
+		resolvedCapabilityPath,
+		capabilityEnvVariables,
+	);
 	const id = config.capability.id;
 
 	// Load content from both programmatic exports and filesystem, then merge
-	const exports = await importCapabilityExports(capabilityPath);
+	const exports = await importCapabilityExports(resolvedCapabilityPath);
 
 	// Check if exports contains programmatic skills/rules/docs
 	// Support both named exports (export const skills = [...]) and default export (export default { skills: [...] })
@@ -345,31 +350,31 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 	const programmaticSkills = Array.isArray(skillsExport)
 		? convertSkillExports(skillsExport, id, capabilityEnvVariables)
 		: [];
-	const fileSkills = await loadSkills(capabilityPath, id, capabilityEnvVariables);
+	const fileSkills = await loadSkills(resolvedCapabilityPath, id, capabilityEnvVariables);
 	const skills = mergeByName(fileSkills, programmaticSkills);
 
 	const rulesExport = getExportValue("rules");
 	const programmaticRules = Array.isArray(rulesExport) ? convertRuleExports(rulesExport, id) : [];
-	const fileRules = await loadRules(capabilityPath, id);
+	const fileRules = await loadRules(resolvedCapabilityPath, id);
 	const rules = mergeByName(fileRules, programmaticRules);
 
 	const docsExport = getExportValue("docs");
 	const programmaticDocs = Array.isArray(docsExport) ? convertDocExports(docsExport, id) : [];
-	const fileDocs = await loadDocs(capabilityPath, id);
+	const fileDocs = await loadDocs(resolvedCapabilityPath, id);
 	const docs = mergeByName(fileDocs, programmaticDocs);
 
 	const subagentsExport = getExportValue("subagents");
 	const programmaticSubagents = Array.isArray(subagentsExport)
 		? convertSubagentExports(subagentsExport, id)
 		: [];
-	const fileSubagents = await loadSubagents(capabilityPath, id);
+	const fileSubagents = await loadSubagents(resolvedCapabilityPath, id);
 	const subagents = mergeByName(fileSubagents, programmaticSubagents);
 
 	const commandsExport = getExportValue("commands");
 	const programmaticCommands = Array.isArray(commandsExport)
 		? convertCommandExports(commandsExport, id)
 		: [];
-	const fileCommands = await loadCommands(capabilityPath, id);
+	const fileCommands = await loadCommands(resolvedCapabilityPath, id);
 	const commands = mergeByName(fileCommands, programmaticCommands);
 
 	const typeDefinitionsExport = getExportValue("typeDefinitions");
@@ -379,7 +384,7 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 	const typeDefinitions =
 		typeDefinitionsFromExports !== undefined
 			? typeDefinitionsFromExports
-			: await loadTypeDefinitions(capabilityPath);
+			: await loadTypeDefinitions(resolvedCapabilityPath);
 
 	// Extract gitignore patterns from exports
 	const gitignoreExport = getExportValue("gitignore");
@@ -387,12 +392,12 @@ export async function loadCapability(capabilityPath: string): Promise<LoadedCapa
 
 	// Load hooks from hooks/hooks.toml or hooks.json if present
 	// Resolve capability root variables to absolute paths during loading
-	const hooks = loadCapabilityHooks(id, capabilityPath, { resolveCapabilityRoot: true });
+	const hooks = loadCapabilityHooks(id, resolvedCapabilityPath, { resolveCapabilityRoot: true });
 
 	// Build result object with explicit handling for optional typeDefinitions
 	const result: LoadedCapability = {
 		id,
-		path: capabilityPath,
+		path: resolvedCapabilityPath,
 		config,
 		skills,
 		rules,

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
 import { discoverCapabilities, loadCapability, loadCapabilityConfig } from "./loader";
 
@@ -265,13 +265,44 @@ description = "A minimal capability"`,
 		const capability = await loadCapability(capPath);
 
 		expect(capability.id).toBe("minimal-cap");
-		expect(capability.path).toBe(capPath);
+		expect(capability.path).toBe(resolve(capPath));
 		expect(capability.config.capability.name).toBe("Minimal Capability");
 		expect(capability.skills).toEqual([]);
 		expect(capability.rules).toEqual([]);
 		expect(capability.docs).toEqual([]);
 		expect(capability.typeDefinitions).toBeUndefined();
 		expect(capability.exports).toEqual({});
+	});
+
+	test("normalizes relative capability paths before resolving hooks", async () => {
+		const capPath = join(".omni", "capabilities", "relative-hooks-cap");
+		mkdirSync(join(capPath, "hooks"), { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "relative-hooks-cap"
+name = "Relative Hooks Capability"
+version = "1.0.0"
+description = "Ensures relative load inputs become absolute hook commands"`,
+		);
+		writeFileSync(
+			join(capPath, "hooks", "hooks.toml"),
+			`[[PreToolUse]]
+matcher = "Bash"
+[[PreToolUse.hooks]]
+type = "command"
+command = "\${OMNIDEV_CAPABILITY_ROOT}/hooks/check.sh"`,
+		);
+
+		const capability = await loadCapability(capPath);
+		const command = capability.hooks?.config.PreToolUse?.[0]?.hooks[0];
+
+		expect(capability.path).toBe(resolve(capPath));
+		expect(command?.type).toBe("command");
+		if (command?.type === "command") {
+			expect(isAbsolute(command.command)).toBe(true);
+			expect(command.command).toBe(`${resolve(capPath)}/hooks/check.sh`);
+		}
 	});
 
 	test("resolves MCP placeholders from capability-local .env", async () => {
@@ -1022,17 +1053,19 @@ command = "\${CLAUDE_PLUGIN_ROOT}/hooks/validate.sh"`,
 		);
 
 		const capability = await loadCapability(capPath);
+		const resolvedCapPath = resolve(capPath);
 
 		// CLAUDE_PLUGIN_ROOT should be resolved to the absolute capability path
 		const command = capability.hooks?.config.PreToolUse?.[0]?.hooks[0];
 		expect(command?.type).toBe("command");
 		if (command?.type === "command") {
 			// Should be resolved to absolute path, not contain any variables
+			expect(isAbsolute(command.command)).toBe(true);
 			expect(command.command).toContain("/hooks/validate.sh");
 			expect(command.command).not.toContain("CLAUDE_PLUGIN_ROOT");
 			expect(command.command).not.toContain("OMNIDEV_CAPABILITY_ROOT");
 			// Should contain the capability path
-			expect(command.command).toContain(capPath);
+			expect(command.command).toContain(resolvedCapPath);
 		}
 	});
 
