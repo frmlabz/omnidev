@@ -1,5 +1,11 @@
 # @omnidev-ai/cli
 
+## 0.19.1
+
+### Patch Changes
+
+- 0d967a9: Accept Claude-native hook events such as `WorktreeCreate` and `WorktreeRemove` in `[claude]` hook sections, and preserve them when syncing `.claude/settings.json`.
+
 ## 0.19.0
 
 ### Minor Changes
