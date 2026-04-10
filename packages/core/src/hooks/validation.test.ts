@@ -170,13 +170,12 @@ describe("hooks validation", () => {
 			expect(result.valid).toBe(true);
 		});
 
-		test("rejects prompt type on PostToolUse", () => {
+		test("accepts prompt type on PostToolUse", () => {
 			const config = {
 				PostToolUse: [{ matcher: "Write", hooks: [{ type: "prompt", prompt: "Check result" }] }],
 			};
 			const result = validateHooksConfig(config);
-			expect(result.valid).toBe(false);
-			expect(result.errors[0]?.code).toBe("HOOKS_PROMPT_NOT_ALLOWED");
+			expect(result.valid).toBe(true);
 		});
 
 		test("rejects prompt type on SessionStart", () => {

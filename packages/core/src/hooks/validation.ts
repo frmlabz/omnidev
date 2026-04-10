@@ -7,15 +7,21 @@
 
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { HOOK_EVENTS, VARIABLE_MAPPINGS } from "./constants";
+import { HOOK_EVENTS, MATCHER_EVENTS, PROMPT_HOOK_EVENTS, VARIABLE_MAPPINGS } from "./constants";
 import type { HooksConfig, HookValidationResult, HookValidationIssue, HookEvent } from "./types";
-import { isHookEvent, isHookType, isPromptHookEvent, isMatcherEvent } from "./types";
+import { isHookType } from "./types";
 
 interface ValidationOptions {
 	/** Base path for resolving script files */
 	basePath?: string;
 	/** Check if script files exist and are executable */
 	checkScripts?: boolean;
+	/** Allowed hook events for this validation pass */
+	allowedEvents?: readonly HookEvent[];
+	/** Events that support matcher patterns */
+	matcherEvents?: readonly HookEvent[];
+	/** Events that support prompt hooks */
+	promptHookEvents?: readonly HookEvent[];
 }
 
 /**
@@ -28,6 +34,9 @@ export function validateHooksConfig(
 	const errors: HookValidationIssue[] = [];
 	const warnings: HookValidationIssue[] = [];
 	const opts: ValidationOptions = { checkScripts: false, ...options };
+	const allowedEvents = opts.allowedEvents ?? HOOK_EVENTS;
+	const matcherEvents = opts.matcherEvents ?? MATCHER_EVENTS;
+	const promptHookEvents = opts.promptHookEvents ?? PROMPT_HOOK_EVENTS;
 
 	// Must be an object
 	if (typeof config !== "object" || config === null || Array.isArray(config)) {
@@ -49,12 +58,12 @@ export function validateHooksConfig(
 		}
 
 		// Check if it's a valid event name
-		if (!isHookEvent(key)) {
+		if (!allowedEvents.includes(key as HookEvent)) {
 			errors.push({
 				severity: "error",
 				code: "HOOKS_UNKNOWN_EVENT",
 				message: `Unknown hook event: "${key}"`,
-				suggestion: `Valid events are: ${HOOK_EVENTS.join(", ")}`,
+				suggestion: `Valid events are: ${allowedEvents.join(", ")}`,
 			});
 			continue;
 		}
@@ -75,7 +84,10 @@ export function validateHooksConfig(
 
 		// Validate each matcher
 		matchers.forEach((matcher, matcherIndex) => {
-			const matcherIssues = validateMatcher(matcher, event, matcherIndex, opts);
+			const matcherIssues = validateMatcher(matcher, event, matcherIndex, opts, {
+				matcherEvents,
+				promptHookEvents,
+			});
 			for (const issue of matcherIssues) {
 				if (issue.severity === "error") {
 					errors.push(issue);
@@ -101,6 +113,10 @@ function validateMatcher(
 	event: HookEvent,
 	matcherIndex: number,
 	options: ValidationOptions,
+	supported: {
+		matcherEvents: readonly HookEvent[];
+		promptHookEvents: readonly HookEvent[];
+	},
 ): HookValidationIssue[] {
 	const issues: HookValidationIssue[] = [];
 
@@ -130,7 +146,11 @@ function validateMatcher(
 			});
 		} else {
 			// Warn if matcher is set on non-matcher event (it will be ignored)
-			if (!isMatcherEvent(event) && matcherPattern !== "" && matcherPattern !== "*") {
+			if (
+				!supported.matcherEvents.includes(event) &&
+				matcherPattern !== "" &&
+				matcherPattern !== "*"
+			) {
 				issues.push({
 					severity: "warning",
 					code: "HOOKS_INVALID_MATCHER",
@@ -184,7 +204,9 @@ function validateMatcher(
 
 	// Validate each hook
 	hooksArray.forEach((hook, hookIndex) => {
-		const hookIssues = validateHook(hook, event, { matcherIndex, hookIndex }, options);
+		const hookIssues = validateHook(hook, event, { matcherIndex, hookIndex }, options, {
+			promptHookEvents: supported.promptHookEvents,
+		});
 		issues.push(...hookIssues);
 	});
 
@@ -199,6 +221,7 @@ export function validateHook(
 	event: HookEvent,
 	context: { matcherIndex: number; hookIndex: number },
 	options?: ValidationOptions,
+	supported?: { promptHookEvents?: readonly HookEvent[] },
 ): HookValidationIssue[] {
 	const issues: HookValidationIssue[] = [];
 	const { matcherIndex, hookIndex } = context;
@@ -244,7 +267,9 @@ export function validateHook(
 	}
 
 	// Check if prompt type is allowed for this event
-	if (hookType === "prompt" && !isPromptHookEvent(event)) {
+	const promptHookEvents =
+		supported?.promptHookEvents ?? options?.promptHookEvents ?? PROMPT_HOOK_EVENTS;
+	if (hookType === "prompt" && !promptHookEvents.includes(event)) {
 		issues.push({
 			severity: "error",
 			code: "HOOKS_PROMPT_NOT_ALLOWED",

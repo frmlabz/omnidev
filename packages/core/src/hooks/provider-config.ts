@@ -1,20 +1,15 @@
 import type { CanonicalProviderId } from "#providers";
-import { HOOK_EVENTS } from "./constants";
+import { CODEX_HOOK_EVENTS, HOOK_EVENTS } from "./constants";
 import type {
 	CapabilityHooks,
 	HooksConfig,
+	HookEvent,
 	HookMatcher,
 	HookProviderSection,
 	ProviderHooksConfig,
 } from "./types";
 
-const CODEX_SUPPORTED_EVENTS = new Set([
-	"SessionStart",
-	"PreToolUse",
-	"PostToolUse",
-	"UserPromptSubmit",
-	"Stop",
-]);
+const CODEX_SUPPORTED_EVENTS = new Set<HookEvent>(CODEX_HOOK_EVENTS);
 
 const PROVIDER_SECTION_BY_ID = {
 	"claude-code": "claude",

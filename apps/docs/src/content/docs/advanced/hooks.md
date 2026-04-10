@@ -125,6 +125,8 @@ command = "${OMNIDEV_CAPABILITY_ROOT}/hooks/pre-tool.sh"
 statusMessage = "Checking Bash command"
 ```
 
+The `[claude]` section accepts Claude-native events in addition to the shared top-level subset. This is where provider-specific events such as `WorktreeCreate`, `WorktreeRemove`, `PermissionDenied`, `PostToolUseFailure`, `PostCompact`, `FileChanged`, `ConfigChange`, and related Claude lifecycle hooks belong.
+
 ## Hook Events
 
 OmniDev's shared top-level format still supports the existing OmniDev hook events, but providers use only what they can materialize. Claude gets the full shared set plus `[claude]` overrides. Codex uses its current documented subset and warns when shared hooks cannot be used there.
@@ -134,7 +136,7 @@ OmniDev's shared top-level format still supports the existing OmniDev hook event
 | Event | When it runs | Supports Matcher | Supports Prompt |
 |-------|--------------|------------------|-----------------|
 | `PreToolUse` | Before a tool executes | Yes | Yes |
-| `PostToolUse` | After a tool completes | Yes | No |
+| `PostToolUse` | After a tool completes | Yes | Yes |
 | `PermissionRequest` | Before permission prompt shown | Yes | Yes |
 
 ### Workflow Events
@@ -143,7 +145,7 @@ OmniDev's shared top-level format still supports the existing OmniDev hook event
 |-------|--------------|------------------|-----------------|
 | `UserPromptSubmit` | Before user prompt processed | No | Yes |
 | `Stop` | When main agent finishes | No | Yes |
-| `SubagentStop` | When subagent finishes | No | Yes |
+| `SubagentStop` | When subagent finishes | Yes | Yes |
 | `Notification` | When notifications sent | Yes | No |
 
 ### Session Events
@@ -151,8 +153,29 @@ OmniDev's shared top-level format still supports the existing OmniDev hook event
 | Event | When it runs | Supports Matcher | Supports Prompt |
 |-------|--------------|------------------|-----------------|
 | `SessionStart` | When session starts/resumes | Yes | No |
-| `SessionEnd` | When session ends | No | No |
+| `SessionEnd` | When session ends | Yes | No |
 | `PreCompact` | Before context compaction | Yes | No |
+
+### Claude-only events in `[claude]`
+
+Use the `[claude]` section for Claude lifecycle hooks that are not part of the shared top-level subset:
+
+- `PermissionDenied`
+- `PostToolUseFailure`
+- `SubagentStart`
+- `TaskCreated`
+- `TaskCompleted`
+- `StopFailure`
+- `TeammateIdle`
+- `InstructionsLoaded`
+- `ConfigChange`
+- `CwdChanged`
+- `FileChanged`
+- `WorktreeCreate`
+- `WorktreeRemove`
+- `PostCompact`
+- `Elicitation`
+- `ElicitationResult`
 
 ## Matchers
 
@@ -212,7 +235,7 @@ command = "./init-session.sh"
 
 ### Events Without Matchers
 
-For `UserPromptSubmit`, `Stop`, `SubagentStop`, and `SessionEnd`, the matcher field is ignored:
+For shared top-level hooks, `UserPromptSubmit`, `Stop`, and `SubagentStop` ignore `matcher`. Several Claude-only events in `[claude]` also ignore matchers, including `TaskCreated`, `TaskCompleted`, `TeammateIdle`, `CwdChanged`, `WorktreeCreate`, and `WorktreeRemove`.
 
 ```toml
 [[Stop]]
@@ -236,7 +259,7 @@ timeout = 60  # Default: 60 seconds
 
 ### Prompt Hooks
 
-Use LLM evaluation. Only available for: `PreToolUse`, `PermissionRequest`, `UserPromptSubmit`, `Stop`, `SubagentStop`.
+Use LLM evaluation. Supported for the shared Claude-compatible subset: `PreToolUse`, `PostToolUse`, `PermissionRequest`, `UserPromptSubmit`, `Stop`, and `SubagentStop`. Some Claude-only events in `[claude]` also support prompts, such as `PostToolUseFailure`, `TaskCreated`, and `TaskCompleted`.
 
 ```toml
 [[PermissionRequest.hooks]]

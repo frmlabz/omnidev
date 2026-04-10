@@ -9,6 +9,8 @@ import type { CanonicalProviderId, ProviderApplicability } from "#providers";
 export type {
 	HooksConfig,
 	HookEvent,
+	SharedHookEvent,
+	CodexHookEvent,
 	HookType,
 	HookProviderSection,
 	HookMatcher,

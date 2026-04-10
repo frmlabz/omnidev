@@ -5,8 +5,8 @@
  * TypeScript literal type inference.
  */
 
-/** All supported hook events */
-export const HOOK_EVENTS = [
+/** Shared top-level hook events supported directly in hooks.toml */
+export const SHARED_HOOK_EVENTS = [
 	"PreToolUse",
 	"PostToolUse",
 	"PermissionRequest",
@@ -19,24 +19,95 @@ export const HOOK_EVENTS = [
 	"PreCompact",
 ] as const;
 
-/** Events that support matchers (regex patterns to filter tool names) */
-export const MATCHER_EVENTS = [
+/** Claude hook events supported in [claude] provider sections and hooks.json */
+export const CLAUDE_HOOK_EVENTS = [
+	...SHARED_HOOK_EVENTS,
+	"PermissionDenied",
+	"PostToolUseFailure",
+	"SubagentStart",
+	"TaskCreated",
+	"TaskCompleted",
+	"StopFailure",
+	"TeammateIdle",
+	"InstructionsLoaded",
+	"ConfigChange",
+	"CwdChanged",
+	"FileChanged",
+	"WorktreeCreate",
+	"WorktreeRemove",
+	"PostCompact",
+	"Elicitation",
+	"ElicitationResult",
+] as const;
+
+/** All known hook events */
+export const HOOK_EVENTS = CLAUDE_HOOK_EVENTS;
+
+/** Codex hook events supported in [codex] provider sections */
+export const CODEX_HOOK_EVENTS = [
+	"SessionStart",
+	"PreToolUse",
+	"PostToolUse",
+	"UserPromptSubmit",
+	"Stop",
+] as const;
+
+/** Codex events that currently support matchers */
+export const CODEX_MATCHER_EVENTS = ["PreToolUse", "PostToolUse", "SessionStart"] as const;
+
+/** Shared top-level events that support matchers */
+export const SHARED_MATCHER_EVENTS = [
 	"PreToolUse",
 	"PostToolUse",
 	"PermissionRequest",
 	"Notification",
+	"SubagentStop",
 	"SessionStart",
+	"SessionEnd",
 	"PreCompact",
 ] as const;
 
-/** Events that support prompt-type hooks (LLM evaluation) */
-export const PROMPT_HOOK_EVENTS = [
+/** Claude events that support matchers */
+export const CLAUDE_MATCHER_EVENTS = [
+	...SHARED_MATCHER_EVENTS,
+	"PermissionDenied",
+	"PostToolUseFailure",
+	"SubagentStart",
+	"PostCompact",
+	"ConfigChange",
+	"FileChanged",
+	"StopFailure",
+	"InstructionsLoaded",
+	"Elicitation",
+	"ElicitationResult",
+] as const;
+
+/** Events that support matchers (Claude/global view) */
+export const MATCHER_EVENTS = CLAUDE_MATCHER_EVENTS;
+
+/** Shared top-level events that support prompt-type hooks */
+export const SHARED_PROMPT_HOOK_EVENTS = [
 	"Stop",
 	"SubagentStop",
 	"UserPromptSubmit",
 	"PreToolUse",
+	"PostToolUse",
 	"PermissionRequest",
 ] as const;
+
+/** Claude events that support prompt-type hooks */
+export const CLAUDE_PROMPT_HOOK_EVENTS = [
+	...SHARED_PROMPT_HOOK_EVENTS,
+	"PostToolUseFailure",
+	"TaskCreated",
+	"TaskCompleted",
+] as const;
+
+/** Events that support prompt-type hooks (Claude/global view) */
+export const PROMPT_HOOK_EVENTS = CLAUDE_PROMPT_HOOK_EVENTS;
+
+/** Codex does not support prompt hooks today */
+export const CODEX_PROMPT_HOOK_EVENTS = [] as const;
 
 /** Hook execution types */
 export const HOOK_TYPES = ["command", "prompt"] as const;

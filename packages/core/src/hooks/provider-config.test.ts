@@ -51,6 +51,44 @@ describe("composeHooksForProvider", () => {
 		]);
 	});
 
+	test("includes Claude-native provider events in the composed Claude output", () => {
+		const capabilityHooks = [
+			createCapabilityHooks(
+				"test-cap",
+				{
+					PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo shared" }] }],
+				},
+				{
+					claude: {
+						WorktreeCreate: [
+							{
+								hooks: [{ type: "command", command: "echo create-worktree" }],
+							},
+						],
+						WorktreeRemove: [
+							{
+								hooks: [{ type: "command", command: "echo remove-worktree" }],
+							},
+						],
+					},
+				},
+			),
+		];
+
+		const result = composeHooksForProvider(capabilityHooks, "claude-code");
+		expect(result.warnings).toEqual([]);
+		expect(result.config.WorktreeCreate).toEqual([
+			{
+				hooks: [{ type: "command", command: "echo create-worktree" }],
+			},
+		]);
+		expect(result.config.WorktreeRemove).toEqual([
+			{
+				hooks: [{ type: "command", command: "echo remove-worktree" }],
+			},
+		]);
+	});
+
 	test("filters incompatible shared hooks for Codex and warns instead of failing", () => {
 		const capabilityHooks = [
 			createCapabilityHooks("test-cap", {

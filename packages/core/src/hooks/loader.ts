@@ -15,7 +15,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
-import { HOOKS_DIRECTORY, HOOKS_CONFIG_FILENAME, CLAUDE_HOOKS_CONFIG_FILENAME } from "./constants";
+import {
+	HOOKS_DIRECTORY,
+	HOOKS_CONFIG_FILENAME,
+	CLAUDE_HOOKS_CONFIG_FILENAME,
+	CODEX_HOOK_EVENTS,
+	CODEX_MATCHER_EVENTS,
+	CODEX_PROMPT_HOOK_EVENTS,
+	CLAUDE_HOOK_EVENTS,
+	SHARED_HOOK_EVENTS,
+	SHARED_MATCHER_EVENTS,
+	SHARED_PROMPT_HOOK_EVENTS,
+} from "./constants";
 import type {
 	HooksConfig,
 	HookValidationResult,
@@ -135,7 +146,7 @@ function splitHooksTomlConfig(parsed: unknown): {
 	const providerConfigs: ProviderHooksConfig = {};
 
 	for (const [key, value] of Object.entries(parsedObj)) {
-		if (key === "description" || (HOOK_EVENTS as readonly string[]).includes(key)) {
+		if (key === "description" || (SHARED_HOOK_EVENTS as readonly string[]).includes(key)) {
 			sharedConfig[key] = value;
 			continue;
 		}
@@ -157,7 +168,7 @@ function splitHooksTomlConfig(parsed: unknown): {
 			severity: "error",
 			code: "HOOKS_UNKNOWN_EVENT",
 			message: `Unknown hook event: "${key}"`,
-			suggestion: `Valid events are: ${HOOK_EVENTS.join(", ")}, plus [claude] and [codex] sections`,
+			suggestion: `Valid shared events are: ${SHARED_HOOK_EVENTS.join(", ")}, plus [claude] and [codex] sections`,
 		});
 	}
 
@@ -256,16 +267,28 @@ function loadTomlHooks(
 		const sharedValidation = validateHooksConfig(sharedConfig, {
 			basePath: hooksDir,
 			checkScripts: opts.checkScripts ?? false,
+			allowedEvents: SHARED_HOOK_EVENTS,
+			matcherEvents: SHARED_MATCHER_EVENTS,
+			promptHookEvents: SHARED_PROMPT_HOOK_EVENTS,
 		});
 
 		const providerErrors: HookValidationResult["errors"] = [];
 		const providerWarnings: HookValidationResult["warnings"] = [];
 
 		for (const [provider, providerConfig] of Object.entries(rawProviderConfigs ?? {})) {
-			const providerValidation = validateHooksConfig(providerConfig, {
+			const providerEvents = provider === "claude" ? CLAUDE_HOOK_EVENTS : CODEX_HOOK_EVENTS;
+			const providerValidationOptions = {
 				basePath: hooksDir,
 				checkScripts: opts.checkScripts ?? false,
-			});
+				allowedEvents: providerEvents,
+				...(provider === "codex"
+					? {
+							matcherEvents: CODEX_MATCHER_EVENTS,
+							promptHookEvents: CODEX_PROMPT_HOOK_EVENTS,
+						}
+					: {}),
+			};
+			const providerValidation = validateHooksConfig(providerConfig, providerValidationOptions);
 			providerErrors.push(...prefixValidationIssues(providerValidation.errors, provider));
 			providerWarnings.push(...prefixValidationIssues(providerValidation.warnings, provider));
 		}

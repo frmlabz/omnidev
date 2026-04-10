@@ -10,6 +10,8 @@ import {
 	HOOK_TYPES,
 	MATCHER_EVENTS,
 	PROMPT_HOOK_EVENTS,
+	type SHARED_HOOK_EVENTS,
+	type CODEX_HOOK_EVENTS,
 	type NOTIFICATION_MATCHERS,
 	type SESSION_START_MATCHERS,
 	type PRE_COMPACT_MATCHERS,
@@ -20,6 +22,12 @@ import {
 
 /** All supported hook event names */
 export type HookEvent = (typeof HOOK_EVENTS)[number];
+
+/** Shared top-level hook events in hooks.toml */
+export type SharedHookEvent = (typeof SHARED_HOOK_EVENTS)[number];
+
+/** Codex-native hook events in [codex] sections */
+export type CodexHookEvent = (typeof CODEX_HOOK_EVENTS)[number];
 
 /** Hook execution types: command or prompt */
 export type HookType = (typeof HOOK_TYPES)[number];
@@ -84,19 +92,35 @@ export interface HooksConfig {
 	/** Optional description of the hooks */
 	description?: string;
 
-	// Events with matchers
+	// Shared and Claude events with matchers
 	PreToolUse?: HookMatcher[];
 	PostToolUse?: HookMatcher[];
+	PostToolUseFailure?: HookMatcher[];
 	PermissionRequest?: HookMatcher[];
+	PermissionDenied?: HookMatcher[];
 	Notification?: HookMatcher[];
 	SessionStart?: HookMatcher[];
+	SessionEnd?: HookMatcher[];
+	SubagentStart?: HookMatcher[];
+	ConfigChange?: HookMatcher[];
+	FileChanged?: HookMatcher[];
 	PreCompact?: HookMatcher[];
+	PostCompact?: HookMatcher[];
+	StopFailure?: HookMatcher[];
+	InstructionsLoaded?: HookMatcher[];
+	Elicitation?: HookMatcher[];
+	ElicitationResult?: HookMatcher[];
 
 	// Events without matchers (matcher field ignored if present)
 	UserPromptSubmit?: HookMatcher[];
 	Stop?: HookMatcher[];
 	SubagentStop?: HookMatcher[];
-	SessionEnd?: HookMatcher[];
+	TaskCreated?: HookMatcher[];
+	TaskCompleted?: HookMatcher[];
+	TeammateIdle?: HookMatcher[];
+	CwdChanged?: HookMatcher[];
+	WorktreeCreate?: HookMatcher[];
+	WorktreeRemove?: HookMatcher[];
 }
 
 /** Provider-scoped raw hook config parsed from hooks.toml provider sections */

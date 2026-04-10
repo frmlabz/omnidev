@@ -8,7 +8,7 @@
  * When importing external capabilities, CLAUDE_ variables are transformed to OMNIDEV_.
  */
 
-import { VARIABLE_MAPPINGS } from "./constants";
+import { HOOK_EVENTS, VARIABLE_MAPPINGS } from "./constants";
 import type { HooksConfig, Hook, HookMatcher } from "./types";
 
 // Build reverse mapping (Claude -> OmniDev)
@@ -103,20 +103,7 @@ export function transformHooksConfig(
 	}
 
 	// Transform each event's matchers
-	const events = [
-		"PreToolUse",
-		"PostToolUse",
-		"PermissionRequest",
-		"UserPromptSubmit",
-		"Stop",
-		"SubagentStop",
-		"Notification",
-		"SessionStart",
-		"SessionEnd",
-		"PreCompact",
-	] as const;
-
-	for (const event of events) {
+	for (const event of HOOK_EVENTS) {
 		const matchers = config[event];
 		if (matchers) {
 			result[event] = matchers.map((m) => transformMatcher(m, direction));

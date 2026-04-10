@@ -119,6 +119,31 @@ describe("HooksWriter", () => {
 		);
 	});
 
+	test("writes Claude-native provider events such as WorktreeRemove", async () => {
+		const hooks = {
+			WorktreeRemove: [
+				{
+					hooks: [
+						{
+							type: "command",
+							command: String.raw`\${OMNIDEV_CAPABILITY_ROOT}/hooks/remove.sh`,
+						},
+					],
+				},
+			],
+		} as HooksConfig;
+
+		await HooksWriter.write(createBundle(hooks), {
+			outputPath: ".claude/settings.json",
+			projectRoot: testDir.path,
+		});
+
+		const content = JSON.parse(readFileSync(`${testDir.path}/.claude/settings.json`, "utf-8"));
+		expect(content.hooks.WorktreeRemove[0].hooks[0].command).toBe(
+			String.raw`\${CLAUDE_PLUGIN_ROOT}/hooks/remove.sh`,
+		);
+	});
+
 	test("returns empty array when no hooks", async () => {
 		const bundle = createBundle(undefined);
 

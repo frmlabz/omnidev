@@ -69,8 +69,16 @@ describe("hook type guards", () => {
 			expect(isMatcherEvent("Notification")).toBe(true);
 		});
 
+		test("returns true for FileChanged", () => {
+			expect(isMatcherEvent("FileChanged")).toBe(true);
+		});
+
 		test("returns true for SessionStart", () => {
 			expect(isMatcherEvent("SessionStart")).toBe(true);
+		});
+
+		test("returns true for SubagentStop", () => {
+			expect(isMatcherEvent("SubagentStop")).toBe(true);
 		});
 
 		test("returns true for PreCompact", () => {
@@ -81,16 +89,16 @@ describe("hook type guards", () => {
 			expect(isMatcherEvent("Stop")).toBe(false);
 		});
 
-		test("returns false for SubagentStop", () => {
-			expect(isMatcherEvent("SubagentStop")).toBe(false);
+		test("returns true for SessionEnd", () => {
+			expect(isMatcherEvent("SessionEnd")).toBe(true);
 		});
 
 		test("returns false for UserPromptSubmit", () => {
 			expect(isMatcherEvent("UserPromptSubmit")).toBe(false);
 		});
 
-		test("returns false for SessionEnd", () => {
-			expect(isMatcherEvent("SessionEnd")).toBe(false);
+		test("returns false for WorktreeRemove", () => {
+			expect(isMatcherEvent("WorktreeRemove")).toBe(false);
 		});
 
 		test("returns false for unknown events", () => {
@@ -119,8 +127,8 @@ describe("hook type guards", () => {
 			expect(isPromptHookEvent("PermissionRequest")).toBe(true);
 		});
 
-		test("returns false for PostToolUse", () => {
-			expect(isPromptHookEvent("PostToolUse")).toBe(false);
+		test("returns true for PostToolUse", () => {
+			expect(isPromptHookEvent("PostToolUse")).toBe(true);
 		});
 
 		test("returns false for Notification", () => {
@@ -129,6 +137,10 @@ describe("hook type guards", () => {
 
 		test("returns false for SessionStart", () => {
 			expect(isPromptHookEvent("SessionStart")).toBe(false);
+		});
+
+		test("returns false for WorktreeCreate", () => {
+			expect(isPromptHookEvent("WorktreeCreate")).toBe(false);
 		});
 
 		test("returns false for SessionEnd", () => {
@@ -156,6 +168,11 @@ describe("hook type guards", () => {
 			expect(isHookEvent("SessionStart")).toBe(true);
 			expect(isHookEvent("SessionEnd")).toBe(true);
 			expect(isHookEvent("PreCompact")).toBe(true);
+			expect(isHookEvent("WorktreeCreate")).toBe(true);
+			expect(isHookEvent("WorktreeRemove")).toBe(true);
+			expect(isHookEvent("PermissionDenied")).toBe(true);
+			expect(isHookEvent("PostToolUseFailure")).toBe(true);
+			expect(isHookEvent("PostCompact")).toBe(true);
 		});
 
 		test("returns false for invalid events", () => {

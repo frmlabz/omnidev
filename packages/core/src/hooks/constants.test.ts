@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
+	SHARED_HOOK_EVENTS,
+	CLAUDE_HOOK_EVENTS,
+	CODEX_HOOK_EVENTS,
 	HOOK_EVENTS,
+	SHARED_MATCHER_EVENTS,
+	CLAUDE_MATCHER_EVENTS,
+	CODEX_MATCHER_EVENTS,
 	MATCHER_EVENTS,
+	SHARED_PROMPT_HOOK_EVENTS,
+	CLAUDE_PROMPT_HOOK_EVENTS,
+	CODEX_PROMPT_HOOK_EVENTS,
 	PROMPT_HOOK_EVENTS,
 	HOOK_TYPES,
 	COMMON_TOOL_MATCHERS,
@@ -16,50 +25,73 @@ import {
 } from "./constants";
 
 describe("hook constants", () => {
-	test("HOOK_EVENTS contains all 10 events", () => {
-		expect(HOOK_EVENTS).toHaveLength(10);
-		expect(HOOK_EVENTS).toContain("PreToolUse");
-		expect(HOOK_EVENTS).toContain("PostToolUse");
-		expect(HOOK_EVENTS).toContain("PermissionRequest");
-		expect(HOOK_EVENTS).toContain("UserPromptSubmit");
-		expect(HOOK_EVENTS).toContain("Stop");
-		expect(HOOK_EVENTS).toContain("SubagentStop");
-		expect(HOOK_EVENTS).toContain("Notification");
-		expect(HOOK_EVENTS).toContain("SessionStart");
-		expect(HOOK_EVENTS).toContain("SessionEnd");
-		expect(HOOK_EVENTS).toContain("PreCompact");
+	test("shared hook events contain the portable top-level subset", () => {
+		expect(SHARED_HOOK_EVENTS).toHaveLength(10);
+		expect(SHARED_HOOK_EVENTS).toContain("PreToolUse");
+		expect(SHARED_HOOK_EVENTS).toContain("PostToolUse");
+		expect(SHARED_HOOK_EVENTS).toContain("PermissionRequest");
+		expect(SHARED_HOOK_EVENTS).toContain("UserPromptSubmit");
+		expect(SHARED_HOOK_EVENTS).toContain("Stop");
+		expect(SHARED_HOOK_EVENTS).toContain("SubagentStop");
+		expect(SHARED_HOOK_EVENTS).toContain("Notification");
+		expect(SHARED_HOOK_EVENTS).toContain("SessionStart");
+		expect(SHARED_HOOK_EVENTS).toContain("SessionEnd");
+		expect(SHARED_HOOK_EVENTS).toContain("PreCompact");
 	});
 
-	test("MATCHER_EVENTS is subset of HOOK_EVENTS", () => {
-		for (const event of MATCHER_EVENTS) {
-			expect(HOOK_EVENTS).toContain(event);
+	test("HOOK_EVENTS contains the full Claude event surface", () => {
+		expect(HOOK_EVENTS).toEqual(CLAUDE_HOOK_EVENTS);
+		expect(HOOK_EVENTS).toContain("WorktreeCreate");
+		expect(HOOK_EVENTS).toContain("WorktreeRemove");
+		expect(HOOK_EVENTS).toContain("PermissionDenied");
+		expect(HOOK_EVENTS).toContain("PostToolUseFailure");
+		expect(HOOK_EVENTS).toContain("PostCompact");
+	});
+
+	test("codex hook events contain the supported subset", () => {
+		expect(CODEX_HOOK_EVENTS).toEqual([
+			"SessionStart",
+			"PreToolUse",
+			"PostToolUse",
+			"UserPromptSubmit",
+			"Stop",
+		]);
+	});
+
+	test("matcher event groups are subsets of their parent event groups", () => {
+		for (const event of SHARED_MATCHER_EVENTS) {
+			expect(SHARED_HOOK_EVENTS).toContain(event);
+		}
+		for (const event of CLAUDE_MATCHER_EVENTS) {
+			expect(CLAUDE_HOOK_EVENTS).toContain(event);
+		}
+		for (const event of CODEX_MATCHER_EVENTS) {
+			expect(CODEX_HOOK_EVENTS).toContain(event);
 		}
 	});
 
-	test("MATCHER_EVENTS contains correct events", () => {
-		expect(MATCHER_EVENTS).toContain("PreToolUse");
-		expect(MATCHER_EVENTS).toContain("PostToolUse");
-		expect(MATCHER_EVENTS).toContain("PermissionRequest");
-		expect(MATCHER_EVENTS).toContain("Notification");
-		expect(MATCHER_EVENTS).toContain("SessionStart");
-		expect(MATCHER_EVENTS).toContain("PreCompact");
-		// Should NOT contain these
-		expect(MATCHER_EVENTS).not.toContain("Stop");
-		expect(MATCHER_EVENTS).not.toContain("UserPromptSubmit");
+	test("MATCHER_EVENTS contains Claude matcher-capable events", () => {
+		expect(MATCHER_EVENTS).toEqual(CLAUDE_MATCHER_EVENTS);
+		expect(MATCHER_EVENTS).toContain("FileChanged");
+		expect(MATCHER_EVENTS).toContain("InstructionsLoaded");
+		expect(MATCHER_EVENTS).not.toContain("WorktreeRemove");
 	});
 
-	test("PROMPT_HOOK_EVENTS is subset of HOOK_EVENTS", () => {
-		for (const event of PROMPT_HOOK_EVENTS) {
-			expect(HOOK_EVENTS).toContain(event);
+	test("prompt event groups are subsets of their parent event groups", () => {
+		for (const event of SHARED_PROMPT_HOOK_EVENTS) {
+			expect(SHARED_HOOK_EVENTS).toContain(event);
 		}
+		for (const event of CLAUDE_PROMPT_HOOK_EVENTS) {
+			expect(CLAUDE_HOOK_EVENTS).toContain(event);
+		}
+		expect(CODEX_PROMPT_HOOK_EVENTS).toEqual([]);
 	});
 
-	test("PROMPT_HOOK_EVENTS contains correct events", () => {
-		expect(PROMPT_HOOK_EVENTS).toContain("Stop");
-		expect(PROMPT_HOOK_EVENTS).toContain("SubagentStop");
-		expect(PROMPT_HOOK_EVENTS).toContain("UserPromptSubmit");
-		expect(PROMPT_HOOK_EVENTS).toContain("PreToolUse");
-		expect(PROMPT_HOOK_EVENTS).toContain("PermissionRequest");
+	test("PROMPT_HOOK_EVENTS contains Claude prompt-capable events", () => {
+		expect(PROMPT_HOOK_EVENTS).toEqual(CLAUDE_PROMPT_HOOK_EVENTS);
+		expect(PROMPT_HOOK_EVENTS).toContain("PostToolUse");
+		expect(PROMPT_HOOK_EVENTS).toContain("TaskCreated");
+		expect(PROMPT_HOOK_EVENTS).not.toContain("WorktreeCreate");
 	});
 
 	test("HOOK_TYPES contains command and prompt", () => {
@@ -119,8 +151,11 @@ describe("hook constants", () => {
 		// These should be readonly tuples, not mutable arrays
 		// TypeScript prevents mutation at compile time, but we can verify they're arrays
 		expect(Array.isArray(HOOK_EVENTS)).toBe(true);
+		expect(Array.isArray(SHARED_HOOK_EVENTS)).toBe(true);
 		expect(Array.isArray(MATCHER_EVENTS)).toBe(true);
+		expect(Array.isArray(SHARED_MATCHER_EVENTS)).toBe(true);
 		expect(Array.isArray(PROMPT_HOOK_EVENTS)).toBe(true);
+		expect(Array.isArray(SHARED_PROMPT_HOOK_EVENTS)).toBe(true);
 		expect(Array.isArray(HOOK_TYPES)).toBe(true);
 	});
 });

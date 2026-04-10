@@ -137,6 +137,30 @@ prompt = "Approve?"
 			expect(result.config.PermissionRequest).toBeUndefined();
 		});
 
+		test("accepts Claude-native provider events such as WorktreeCreate and WorktreeRemove", () => {
+			createHooksConfig(`
+[[claude.WorktreeCreate]]
+[[claude.WorktreeCreate.hooks]]
+type = "command"
+command = "echo create"
+
+[[claude.WorktreeRemove]]
+[[claude.WorktreeRemove.hooks]]
+type = "command"
+command = "echo remove"
+`);
+
+			const result = loadHooksFromCapability(testDir);
+			expect(result.validation.valid).toBe(true);
+			const claudeConfig = result.providerConfigs?.claude;
+			expect((claudeConfig?.WorktreeCreate as Array<Record<string, unknown>>)?.[0]?.hooks).toEqual([
+				{ type: "command", command: "echo create" },
+			]);
+			expect((claudeConfig?.WorktreeRemove as Array<Record<string, unknown>>)?.[0]?.hooks).toEqual([
+				{ type: "command", command: "echo remove" },
+			]);
+		});
+
 		test("marks invalid provider override sections as invalid", () => {
 			createHooksConfig(`
 [[PreToolUse]]
