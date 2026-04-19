@@ -16,12 +16,12 @@
         "@types/bun": "^1.1.17",
         "bunup": "^0.16.20",
         "lefthook": "^2.0.13",
-        "typescript": "^5.7.2",
+        "typescript": "^6.0.0",
       },
     },
     "apps/docs": {
       "name": "@omnidev-ai/docs",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@astrojs/starlight": "^0.37.3",
         "astro": "^5.6.1",
@@ -33,7 +33,7 @@
     },
     "packages/adapters": {
       "name": "@omnidev-ai/adapters",
-      "version": "0.1.2",
+      "version": "0.3.0",
       "dependencies": {
         "@omnidev-ai/core": "workspace:*",
         "smol-toml": "^1.6.0",
@@ -44,7 +44,7 @@
     },
     "packages/capability": {
       "name": "@omnidev-ai/capability",
-      "version": "0.13.4",
+      "version": "0.19.0",
       "bin": {
         "capability": "./dist/cli/index.js",
       },
@@ -57,7 +57,7 @@
     },
     "packages/cli": {
       "name": "@omnidev-ai/cli",
-      "version": "0.13.4",
+      "version": "0.19.0",
       "bin": {
         "omnidev": "./dist/index.js",
       },
@@ -74,7 +74,7 @@
     },
     "packages/core": {
       "name": "@omnidev-ai/core",
-      "version": "0.12.0",
+      "version": "0.16.0",
       "dependencies": {
         "smol-toml": "^1.6.0",
       },
@@ -1469,7 +1469,7 @@
 
     "type-fest": ["type-fest@4.41.0", "", {}, "sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA=="],
 
-    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
     "ufo": ["ufo@1.6.3", "", {}, "sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q=="],
 
