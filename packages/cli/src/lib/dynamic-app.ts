@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import type { CapabilityExport } from "@omnidev-ai/core";
 import { buildApplication, buildRouteMap } from "@stricli/core";
 import { addRoutes } from "../commands/add";
@@ -16,6 +17,10 @@ import { debug } from "@omnidev-ai/core";
 import { transformCapabilityCommands } from "./command-transformer";
 
 const require = createRequire(import.meta.url);
+
+export function resolveCapabilityPath(capabilityPath: string, cwd = process.cwd()): string {
+	return resolve(cwd, capabilityPath);
+}
 
 export function readCliVersion(): string {
 	try {
@@ -168,7 +173,7 @@ async function loadCapabilityExport(capability: {
 	id: string;
 	path: string;
 }): Promise<CapabilityExport | null> {
-	const capabilityPath = join(process.cwd(), capability.path);
+	const capabilityPath = resolveCapabilityPath(capability.path);
 
 	// Check for entry points in order of preference:
 	// 1. Built output (dist/index.js) - compiled TypeScript
@@ -205,7 +210,7 @@ async function loadCapabilityExport(capability: {
 
 	debug(`Using entry point for '${capability.id}'`, { indexPath });
 
-	const module = await import(indexPath);
+	const module = await import(pathToFileURL(indexPath).href);
 
 	debug(`Module loaded for '${capability.id}'`, {
 		hasDefault: !!module.default,
