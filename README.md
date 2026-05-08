@@ -47,7 +47,7 @@ This creates an `omni.toml` configuration file and `.omni/` directory with your 
 
 - **Claude Code & Codex Commands**: Merged into skills (these providers don't have native commands concept)
 - **Subagents**: Author them once with `subagents/<name>/agent.toml` + `prompt.md`. OmniDev currently still reads legacy `SUBAGENT.md` / `AGENT.md` during migration.
-- **Codex Hooks**: Experimental. OmniDev writes `.codex/hooks.json` and enables `features.codex_hooks` in `.codex/config.toml`
+- **Codex Hooks**: Stable. OmniDev writes `.codex/hooks.json` and enables `features.hooks` in `.codex/config.toml`
 - **Codex MCP**: Supports `stdio` and `http` transports only (SSE skipped with warning)
 - **Deprecations**: See [DEPRECATIONS.md](DEPRECATIONS.md) for formats and features scheduled for removal
 

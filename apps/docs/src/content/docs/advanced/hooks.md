@@ -100,7 +100,7 @@ Provider composition rules:
 | Provider | Output files | Notes |
 |----------|--------------|-------|
 | Claude Code | `.claude/settings.json` | Shared hooks plus `[claude]` overrides |
-| Codex | `.codex/hooks.json`, `.codex/config.toml` | Shared hooks plus `[codex]` overrides; `features.codex_hooks = true` is written automatically |
+| Codex | `.codex/hooks.json`, `.codex/config.toml` | Shared hooks plus `[codex]` overrides; `features.hooks = true` is written automatically |
 
 ### Shared hooks
 
@@ -385,7 +385,7 @@ When you run [`omnidev sync`](/commands/core/#omnidev-sync):
 4. Builds a provider-specific view of the hooks
 5. Warns about hooks that are not usable in the active provider
 6. Writes `.claude/settings.json` and/or `.codex/hooks.json`
-7. Enables `features.codex_hooks` in `.codex/config.toml` when Codex hooks are present
+7. Enables `features.hooks` in `.codex/config.toml` when Codex hooks are present
 
 ### Merged Output
 

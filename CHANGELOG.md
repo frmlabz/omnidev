@@ -4,7 +4,7 @@
 
 **Packages:** `@omnidev-ai/cli`, `@omnidev-ai/core`, `@omnidev-ai/adapters`
 
-Hooks defined in `hooks/hooks.toml` now target both Claude Code and Codex from a single source file. OmniDev writes `.codex/hooks.json` and automatically enables `features.codex_hooks` in `.codex/config.toml`.
+Hooks defined in `hooks/hooks.toml` now target both Claude Code and Codex from a single source file. OmniDev writes `.codex/hooks.json` and automatically enables `features.hooks` in `.codex/config.toml`.
 
 ### What changed
 

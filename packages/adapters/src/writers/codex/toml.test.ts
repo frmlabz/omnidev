@@ -241,11 +241,11 @@ describe("CodexTomlWriter", () => {
 		expect(result.filesWritten).toEqual([".codex/config.toml"]);
 
 		const parsed = parse(readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8")) as {
-			features?: { codex_hooks?: boolean };
+			features?: { hooks?: boolean };
 			mcp_servers?: Record<string, Record<string, unknown>>;
 		};
 
-		expect(parsed.features?.codex_hooks).toBe(true);
+		expect(parsed.features?.hooks).toBe(true);
 		expect(parsed.mcp_servers).toBeUndefined();
 	});
 
@@ -268,11 +268,11 @@ describe("CodexTomlWriter", () => {
 		});
 
 		const parsed = parse(readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8")) as {
-			features?: { codex_hooks?: boolean };
+			features?: { hooks?: boolean };
 			mcp_servers?: Record<string, Record<string, unknown>>;
 		};
 
-		expect(parsed.features?.codex_hooks).toBe(true);
+		expect(parsed.features?.hooks).toBe(true);
 		expect(parsed.mcp_servers?.context7).toBeDefined();
 	});
 

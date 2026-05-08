@@ -582,7 +582,8 @@ capabilities = ["shared-hooks"]
 			]);
 
 			const codexConfig = readFileSync(".codex/config.toml", "utf-8");
-			expect(codexConfig).toContain("codex_hooks = true");
+			expect(codexConfig).toContain("[features]\nhooks = true");
+			expect(codexConfig).not.toContain("codex_hooks");
 			expect(stderr).toContain(
 				'[hooks] Warning: Capability "shared-hooks" defines [claude] hooks; they are not used by Codex.',
 			);

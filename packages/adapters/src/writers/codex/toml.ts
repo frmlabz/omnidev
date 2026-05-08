@@ -28,7 +28,7 @@ interface CodexMcpServerConfig {
  */
 interface CodexConfig {
 	features?: {
-		codex_hooks?: boolean;
+		hooks?: boolean;
 	};
 	mcp_servers?: Record<string, CodexMcpServerConfig>;
 }
@@ -142,7 +142,7 @@ export const CodexTomlWriter: FileWriter = {
 
 		const codexConfig: CodexConfig = {};
 		if (hasHooks) {
-			codexConfig.features = { codex_hooks: true };
+			codexConfig.features = { hooks: true };
 		}
 		if (Object.keys(mcpServers).length > 0) {
 			codexConfig.mcp_servers = mcpServers;
