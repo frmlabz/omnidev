@@ -19,7 +19,7 @@
 		"deploy:staging": "wrangler versions upload --preview-alias staging"
 	},
 	"dependencies": {
-		"@astrojs/starlight": "^0.37.3",
+		"@astrojs/starlight": "^0.39.0",
 		"astro": "^5.6.1",
 		"sharp": "^0.34.2"
 	},
