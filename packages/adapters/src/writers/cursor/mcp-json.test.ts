@@ -7,7 +7,11 @@ import { buildCursorMcpConfig, CursorMcpJsonWriter } from "./mcp-json";
 describe("CursorMcpJsonWriter", () => {
 	const testDir = setupTestDir("cursor-mcp-json-writer-", { chdir: true });
 
-	function createCapability(id: string, mcp?: McpConfig): LoadedCapability {
+	function createCapability(
+		id: string,
+		mcp?: McpConfig,
+		mcps?: Record<string, McpConfig>,
+	): LoadedCapability {
 		const config: LoadedCapability["config"] = {
 			capability: {
 				id,
@@ -18,6 +22,9 @@ describe("CursorMcpJsonWriter", () => {
 		};
 		if (mcp) {
 			config.mcp = mcp;
+		}
+		if (mcps) {
+			config.mcps = mcps;
 		}
 		return {
 			id,
@@ -77,6 +84,35 @@ describe("CursorMcpJsonWriter", () => {
 		expect(parsed.mcpServers["context7"]).toBeDefined();
 		expect(parsed.mcpServers["context7"]["command"]).toBe("npx");
 		expect(parsed.mcpServers["context7"]["args"]).toEqual(["-y", "@upstash/context7-mcp"]);
+	});
+
+	test("writes capability-local named MCPs with bare names", async () => {
+		const bundle = createBundle([
+			createCapability("research", undefined, {
+				tavily: {
+					transport: "http",
+					url: "https://mcp.tavily.com/mcp/",
+				},
+				context7: {
+					command: "npx",
+					args: ["-y", "@upstash/context7-mcp"],
+				},
+			}),
+		]);
+
+		await CursorMcpJsonWriter.write(bundle, {
+			outputPath: ".cursor/mcp.json",
+			projectRoot: testDir.path,
+		});
+
+		const content = readFileSync(`${testDir.path}/.cursor/mcp.json`, "utf-8");
+		const parsed = JSON.parse(content) as {
+			mcpServers: Record<string, Record<string, unknown>>;
+		};
+
+		expect(parsed.mcpServers.research).toBeUndefined();
+		expect(parsed.mcpServers.tavily?.url).toBe("https://mcp.tavily.com/mcp/");
+		expect(parsed.mcpServers.context7?.command).toBe("npx");
 	});
 
 	test("writes MCPs with env", async () => {

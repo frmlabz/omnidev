@@ -1,6 +1,8 @@
 export { loadCommands } from "./commands";
 export { loadDocs } from "./docs";
 export { discoverCapabilities, loadCapability, loadCapabilityConfig } from "./loader";
+export { collectCapabilityMcps, getCapabilityMcpEntries } from "./mcps";
+export type { CapabilityMcpEntry } from "./mcps";
 export type { CapabilityRegistry } from "./registry";
 export { buildCapabilityRegistry } from "./registry";
 export { loadRules } from "./rules";

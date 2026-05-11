@@ -59,57 +59,89 @@ export async function resolveCapabilityMcpEnv(
 	capabilityPath: string,
 	variables?: Record<string, string>,
 ): Promise<CapabilityConfig> {
-	if (!config.mcp || !mcpHasPlaceholders(config.mcp)) {
+	const mcpNeedsResolution = config.mcp ? mcpHasPlaceholders(config.mcp) : false;
+	const namedMcpsNeedingResolution = Object.entries(config.mcps ?? {}).filter(([, mcp]) =>
+		mcpHasPlaceholders(mcp),
+	);
+
+	if (!mcpNeedsResolution && namedMcpsNeedingResolution.length === 0) {
 		return config;
 	}
 
 	const resolvedVariables = variables ?? (await loadCapabilityEnvVariables(capabilityPath));
-	const resolvedMcp: McpConfig = { ...config.mcp };
 	const capabilityId = config.capability.id;
 
-	if (resolvedMcp.command) {
-		resolvedMcp.command = resolveString(
-			resolvedMcp.command,
-			resolvedVariables,
-			capabilityId,
-			"mcp.command",
-		);
-	}
+	const resolveMcp = (mcp: McpConfig, fieldPrefix: string): McpConfig => {
+		const resolvedMcp: McpConfig = { ...mcp };
 
-	if (resolvedMcp.cwd) {
-		resolvedMcp.cwd = resolveString(resolvedMcp.cwd, resolvedVariables, capabilityId, "mcp.cwd");
-	}
+		if (resolvedMcp.command) {
+			resolvedMcp.command = resolveString(
+				resolvedMcp.command,
+				resolvedVariables,
+				capabilityId,
+				`${fieldPrefix}.command`,
+			);
+		}
 
-	if (resolvedMcp.url) {
-		resolvedMcp.url = resolveString(resolvedMcp.url, resolvedVariables, capabilityId, "mcp.url");
-	}
+		if (resolvedMcp.cwd) {
+			resolvedMcp.cwd = resolveString(
+				resolvedMcp.cwd,
+				resolvedVariables,
+				capabilityId,
+				`${fieldPrefix}.cwd`,
+			);
+		}
 
-	if (resolvedMcp.args) {
-		resolvedMcp.args = resolvedMcp.args.map((arg, index) =>
-			resolveString(arg, resolvedVariables, capabilityId, `mcp.args[${index}]`),
-		);
-	}
+		if (resolvedMcp.url) {
+			resolvedMcp.url = resolveString(
+				resolvedMcp.url,
+				resolvedVariables,
+				capabilityId,
+				`${fieldPrefix}.url`,
+			);
+		}
 
-	if (resolvedMcp.env) {
-		resolvedMcp.env = Object.fromEntries(
-			Object.entries(resolvedMcp.env).map(([key, value]) => [
-				key,
-				resolveString(value, resolvedVariables, capabilityId, `mcp.env.${key}`),
-			]),
-		);
-	}
+		if (resolvedMcp.args) {
+			resolvedMcp.args = resolvedMcp.args.map((arg, index) =>
+				resolveString(arg, resolvedVariables, capabilityId, `${fieldPrefix}.args[${index}]`),
+			);
+		}
 
-	if (resolvedMcp.headers) {
-		resolvedMcp.headers = Object.fromEntries(
-			Object.entries(resolvedMcp.headers).map(([key, value]) => [
-				key,
-				resolveString(value, resolvedVariables, capabilityId, `mcp.headers.${key}`),
-			]),
-		);
-	}
+		if (resolvedMcp.env) {
+			resolvedMcp.env = Object.fromEntries(
+				Object.entries(resolvedMcp.env).map(([key, value]) => [
+					key,
+					resolveString(value, resolvedVariables, capabilityId, `${fieldPrefix}.env.${key}`),
+				]),
+			);
+		}
 
-	return {
-		...config,
-		mcp: resolvedMcp,
+		if (resolvedMcp.headers) {
+			resolvedMcp.headers = Object.fromEntries(
+				Object.entries(resolvedMcp.headers).map(([key, value]) => [
+					key,
+					resolveString(value, resolvedVariables, capabilityId, `${fieldPrefix}.headers.${key}`),
+				]),
+			);
+		}
+
+		return resolvedMcp;
 	};
+
+	const resolvedMcps = config.mcps ? { ...config.mcps } : undefined;
+	for (const [name, mcp] of namedMcpsNeedingResolution) {
+		if (resolvedMcps) {
+			resolvedMcps[name] = resolveMcp(mcp, `mcps.${name}`);
+		}
+	}
+
+	const resolvedConfig: CapabilityConfig = { ...config };
+	if (config.mcp && mcpNeedsResolution) {
+		resolvedConfig.mcp = resolveMcp(config.mcp, "mcp");
+	}
+	if (resolvedMcps) {
+		resolvedConfig.mcps = resolvedMcps;
+	}
+
+	return resolvedConfig;
 }

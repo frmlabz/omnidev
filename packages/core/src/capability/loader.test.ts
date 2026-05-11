@@ -355,6 +355,42 @@ HEADER_TOKEN=header-secret
 		});
 	});
 
+	test("resolves named MCP placeholders from capability-local .env", async () => {
+		const capPath = join(".omni", "capabilities", "multi-mcp-env");
+		mkdirSync(capPath, { recursive: true });
+		writeFileSync(
+			join(capPath, "capability.toml"),
+			`[capability]
+id = "multi-mcp-env"
+name = "Multi MCP Env"
+version = "1.0.0"
+description = "Uses named MCP env interpolation"
+
+[mcps.tavily]
+transport = "http"
+url = "https://mcp.tavily.com/mcp/?tavilyApiKey=\${TAVILY_API_KEY}"
+
+[mcps.context7]
+command = "npx"
+args = ["-y", "\${CONTEXT7_PACKAGE}"]`,
+		);
+		writeFileSync(
+			join(capPath, ".env"),
+			`TAVILY_API_KEY=tavily-secret
+CONTEXT7_PACKAGE=@upstash/context7-mcp
+`,
+		);
+
+		const capability = await loadCapability(capPath);
+
+		expect(capability.config.mcps?.tavily?.transport).toBe("http");
+		expect(capability.config.mcps?.tavily?.url).toBe(
+			"https://mcp.tavily.com/mcp/?tavilyApiKey=tavily-secret",
+		);
+		expect(capability.config.mcps?.context7?.command).toBe("npx");
+		expect(capability.config.mcps?.context7?.args).toEqual(["-y", "@upstash/context7-mcp"]);
+	});
+
 	test("prefers shell environment over capability-local .env", async () => {
 		const capPath = join(".omni", "capabilities", "shell-wins");
 		mkdirSync(capPath, { recursive: true });

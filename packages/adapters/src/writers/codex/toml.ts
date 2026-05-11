@@ -1,6 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { hasHooksInConfig, type McpConfig, type SyncBundle } from "@omnidev-ai/core";
+import {
+	collectCapabilityMcps,
+	hasHooksInConfig,
+	type McpConfig,
+	type SyncBundle,
+} from "@omnidev-ai/core";
 import { stringify } from "smol-toml";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
@@ -84,22 +89,6 @@ export function buildCodexMcpConfig(id: string, mcp: McpConfig): CodexMcpServerC
 }
 
 /**
- * Collect all MCPs from the sync bundle's capabilities.
- */
-function collectMcps(bundle: SyncBundle): Map<string, McpConfig> {
-	const mcps = new Map<string, McpConfig>();
-
-	for (const capability of bundle.capabilities) {
-		if (capability.config.mcp) {
-			// Use capability ID as the MCP server ID
-			mcps.set(capability.id, capability.config.mcp);
-		}
-	}
-
-	return mcps;
-}
-
-/**
  * Writer for Codex config.toml file.
  *
  * Writes MCP server configurations from the sync bundle to `.codex/config.toml`.
@@ -111,7 +100,7 @@ export const CodexTomlWriter: FileWriter = {
 	id: "codex-toml",
 
 	async write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult> {
-		const mcps = collectMcps(bundle);
+		const mcps = collectCapabilityMcps(bundle.capabilities);
 		const hasHooks = hasHooksInConfig(bundle.hooks as Record<string, unknown> | undefined);
 
 		// If no MCPs or hooks, don't write the file

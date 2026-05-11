@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import type { LoadedCapability, ManagedOutput } from "../types";
+import { getCapabilityMcpEntries } from "../capability/mcps";
 
 /**
  * Resources provided by a single capability
@@ -203,7 +204,7 @@ export function buildManifestFromCapabilities(
 			rules: cap.rules.map((r) => r.name),
 			commands: cap.commands.map((c) => c.name),
 			subagents: cap.subagents.map((s) => s.name),
-			mcps: cap.config.mcp ? [cap.id] : [],
+			mcps: getCapabilityMcpEntries(cap.id, cap.config).map((mcp) => mcp.name),
 		};
 
 		manifest.capabilities[cap.id] = resources;

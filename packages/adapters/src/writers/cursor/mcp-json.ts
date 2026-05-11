@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { McpConfig, SyncBundle } from "@omnidev-ai/core";
+import { collectCapabilityMcps, type McpConfig, type SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
 
@@ -80,22 +80,6 @@ export function buildCursorMcpConfig(mcp: McpConfig): CursorMcpServerConfig | nu
 }
 
 /**
- * Collect all MCPs from the sync bundle's capabilities.
- */
-function collectMcps(bundle: SyncBundle): Map<string, McpConfig> {
-	const mcps = new Map<string, McpConfig>();
-
-	for (const capability of bundle.capabilities) {
-		if (capability.config.mcp) {
-			// Use capability ID as the MCP server ID
-			mcps.set(capability.id, capability.config.mcp);
-		}
-	}
-
-	return mcps;
-}
-
-/**
  * Writer for Cursor mcp.json file.
  *
  * Writes MCP server configurations from the sync bundle to `.cursor/mcp.json`.
@@ -109,7 +93,7 @@ export const CursorMcpJsonWriter: FileWriter = {
 	id: "cursor-mcp-json",
 
 	async write(bundle: SyncBundle, ctx: WriterContext): Promise<WriterResult> {
-		const mcps = collectMcps(bundle);
+		const mcps = collectCapabilityMcps(bundle.capabilities);
 
 		// If no MCPs, don't write the file
 		if (mcps.size === 0) {

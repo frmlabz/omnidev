@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import type { LoadedCapability, McpConfig } from "../types";
 import type { ResourceManifest } from "../state/manifest";
+import { collectCapabilityMcps } from "../capability/mcps";
 
 /**
  * MCP server configuration in .mcp.json for stdio transport
@@ -149,10 +150,8 @@ export async function syncMcpJson(
 	}
 
 	// Add MCPs from all enabled capabilities
-	for (const cap of capabilities) {
-		if (cap.config.mcp) {
-			mcpJson.mcpServers[cap.id] = buildMcpServerConfig(cap.config.mcp);
-		}
+	for (const [name, mcp] of collectCapabilityMcps(capabilities)) {
+		mcpJson.mcpServers[name] = buildMcpServerConfig(mcp);
 	}
 
 	await writeMcpJson(mcpJson);

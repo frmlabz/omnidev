@@ -66,7 +66,10 @@ export interface CliConfig {
 export interface CapabilityConfig {
 	capability: CapabilityMetadata;
 	exports?: CapabilityExports;
+	/** Single MCP server for backward compatibility. Registered using the capability ID. */
 	mcp?: McpConfig;
+	/** Named MCP servers provided by this capability. Registered using each MCP name. */
+	mcps?: Record<string, McpConfig>;
 	sync?: SyncConfig;
 	cli?: CliConfig;
 }

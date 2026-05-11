@@ -8,7 +8,11 @@ import { buildCodexMcpConfig, CodexTomlWriter } from "./toml";
 describe("CodexTomlWriter", () => {
 	const testDir = setupTestDir("codex-toml-writer-", { chdir: true });
 
-	function createCapability(id: string, mcp?: McpConfig): LoadedCapability {
+	function createCapability(
+		id: string,
+		mcp?: McpConfig,
+		mcps?: Record<string, McpConfig>,
+	): LoadedCapability {
 		const config: LoadedCapability["config"] = {
 			capability: {
 				id,
@@ -19,6 +23,9 @@ describe("CodexTomlWriter", () => {
 		};
 		if (mcp) {
 			config.mcp = mcp;
+		}
+		if (mcps) {
+			config.mcps = mcps;
 		}
 		return {
 			id,
@@ -84,6 +91,35 @@ describe("CodexTomlWriter", () => {
 		expect(parsed.mcp_servers["context7"]).toBeDefined();
 		expect(parsed.mcp_servers["context7"]["command"]).toBe("npx");
 		expect(parsed.mcp_servers["context7"]["args"]).toEqual(["-y", "@upstash/context7-mcp"]);
+	});
+
+	test("writes capability-local named MCPs with bare names", async () => {
+		const bundle = createBundle([
+			createCapability("research", undefined, {
+				tavily: {
+					transport: "http",
+					url: "https://mcp.tavily.com/mcp/",
+				},
+				context7: {
+					command: "npx",
+					args: ["-y", "@upstash/context7-mcp"],
+				},
+			}),
+		]);
+
+		await CodexTomlWriter.write(bundle, {
+			outputPath: ".codex/config.toml",
+			projectRoot: testDir.path,
+		});
+
+		const content = readFileSync(`${testDir.path}/.codex/config.toml`, "utf-8");
+		const parsed = parse(content) as {
+			mcp_servers: Record<string, Record<string, unknown>>;
+		};
+
+		expect(parsed.mcp_servers.research).toBeUndefined();
+		expect(parsed.mcp_servers.tavily?.url).toBe("https://mcp.tavily.com/mcp/");
+		expect(parsed.mcp_servers.context7?.command).toBe("npx");
 	});
 
 	test("writes MCPs with env and cwd", async () => {

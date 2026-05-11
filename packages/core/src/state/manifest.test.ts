@@ -193,6 +193,38 @@ describe("manifest", () => {
 				providerOutputs.get("claude-code")?.[0],
 			);
 		});
+
+		test("tracks singular and named MCP resources", () => {
+			const capabilities: LoadedCapability[] = [
+				{
+					id: "research",
+					path: "/fake/research",
+					config: {
+						capability: {
+							id: "research",
+							name: "Research",
+							version: "1.0.0",
+							description: "",
+						},
+						mcp: { command: "legacy-research" },
+						mcps: {
+							tavily: { transport: "http", url: "https://mcp.tavily.com/mcp/" },
+							context7: { command: "npx", args: ["-y", "@upstash/context7-mcp"] },
+						},
+					},
+					skills: [],
+					rules: [],
+					docs: [],
+					subagents: [],
+					commands: [],
+					exports: {},
+				},
+			];
+
+			const manifest = buildManifestFromCapabilities(capabilities);
+
+			expect(manifest.capabilities.research?.mcps).toEqual(["research", "tavily", "context7"]);
+		});
 	});
 
 	describe("saveManifest and loadManifest round-trip", () => {

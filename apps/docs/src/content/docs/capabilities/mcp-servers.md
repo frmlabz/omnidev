@@ -5,7 +5,14 @@ sidebar:
   order: 10
 ---
 
-OmniDev treats MCP servers as capabilities. Define them in `omni.toml`, then enable them in profiles like any other capability.
+OmniDev treats MCP servers as capabilities. Define shared servers in `omni.toml`, then enable them in profiles like any other capability.
+
+There are two MCP table shapes:
+
+- In `omni.toml`, use `[mcps.<name>]` for named MCP servers.
+- In a capability's `capability.toml`, use `[mcps.<name>]` for named MCP servers, or the legacy singular `[mcp]` table for one server named after the capability id.
+
+Do not use `[mcp.<name>]` in `capability.toml`. TOML parses that as a nested table under `mcp`, so OmniDev will not see `mcp.transport` or `mcp.url` and will fall back to the default `stdio` transport.
 
 ## Transport types
 
@@ -65,6 +72,28 @@ transport = "sse"
 url = "https://example.com/sse"
 ```
 
+## Capability-local MCP example
+
+Use this shape when MCP servers are part of a capability directory's `capability.toml`:
+
+```toml
+[capability]
+id = "research"
+name = "Research"
+version = "0.1.0"
+description = "Research tooling"
+
+[mcps.tavily]
+transport = "http"
+url = "https://mcp.tavily.com/mcp/?tavilyApiKey=${OMNIDEV_TAVILY_API_KEY}"
+
+[mcps.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+```
+
+These are written with bare server names, such as `tavily` and `context7`. If two enabled capabilities define the same MCP server name, sync fails instead of overwriting one server with another.
+
 ## Enable in a profile
 
 ```toml
@@ -86,7 +115,7 @@ omnidev sync
 
 ## How it works
 
-When you define `[mcps.name]`, OmniDev:
+When you define `[mcps.name]` in `omni.toml`, OmniDev:
 
 1. Generates a synthetic capability under `.omni/capabilities/name/`
 2. Writes a `capability.toml` with metadata
@@ -94,7 +123,7 @@ When you define `[mcps.name]`, OmniDev:
 
 ## Environment variables
 
-`omni.toml` MCP values are written literally. If you need secret interpolation, define the MCP inside a capability's `capability.toml` and add a gitignored `.env` file next to it. OmniDev resolves `${VAR}` in MCP fields only, with shell environment variables taking precedence over the capability-local `.env`.
+`omni.toml` MCP values are written literally. If you need secret interpolation, define the MCP inside a capability's `capability.toml` using `[mcps.<name>]` or `[mcp]` and add a gitignored `.env` file next to it. OmniDev resolves `${VAR}` in MCP fields only, with shell environment variables taking precedence over the capability-local `.env`.
 
 This is separate from skill interpolation:
 

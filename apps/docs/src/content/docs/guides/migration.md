@@ -149,7 +149,7 @@ If you have `.mcp.json` or MCP configurations in provider directories, move them
 **After** (`omni.toml`):
 
 ```toml
-[mcp.filesystem]
+[mcps.filesystem]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/files"]
 ```

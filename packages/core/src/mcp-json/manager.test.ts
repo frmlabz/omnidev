@@ -113,12 +113,17 @@ describe("mcp-json manager", () => {
 	});
 
 	describe("syncMcpJson", () => {
-		const createMockCapability = (id: string, mcp?: McpConfig): LoadedCapability => ({
+		const createMockCapability = (
+			id: string,
+			mcp?: McpConfig,
+			mcps?: Record<string, McpConfig>,
+		): LoadedCapability => ({
 			id,
 			path: `/path/to/${id}`,
 			config: {
 				capability: { id, name: id, version: "1.0.0", description: "" },
 				mcp,
+				mcps,
 			},
 			skills: [],
 			rules: [],
@@ -145,6 +150,49 @@ describe("mcp-json manager", () => {
 					command: "npx",
 					args: ["-y", "@upstash/context7-mcp"],
 				});
+			});
+
+			test("adds named MCP servers using bare MCP names", async () => {
+				const capabilities = [
+					createMockCapability("research", undefined, {
+						tavily: {
+							transport: "http",
+							url: "https://mcp.tavily.com/mcp/",
+						},
+						context7: {
+							command: "npx",
+							args: ["-y", "@upstash/context7-mcp"],
+						},
+					}),
+				];
+
+				await syncMcpJson(capabilities, createEmptyManifest());
+
+				const config = await readMcpJson();
+				expect(config.mcpServers).not.toHaveProperty("research");
+				expect(config.mcpServers["tavily"]).toEqual({
+					type: "http",
+					url: "https://mcp.tavily.com/mcp/",
+				});
+				expect(config.mcpServers["context7"]).toEqual({
+					command: "npx",
+					args: ["-y", "@upstash/context7-mcp"],
+				});
+			});
+
+			test("throws for duplicate named MCP servers", async () => {
+				const capabilities = [
+					createMockCapability("research", undefined, {
+						context7: { command: "npx", args: ["context7"] },
+					}),
+					createMockCapability("docs", undefined, {
+						context7: { command: "node", args: ["other-context7.js"] },
+					}),
+				];
+
+				await expect(syncMcpJson(capabilities, createEmptyManifest())).rejects.toThrow(
+					'Duplicate MCP server name "context7"',
+				);
 			});
 
 			test("does not add entries for capabilities without MCP", async () => {
