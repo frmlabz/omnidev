@@ -99,12 +99,13 @@ describe("provider commands", () => {
 			const output = stdout.join("\n");
 			expect(output).toContain("Also update your .gitignore");
 			expect(output).toContain(".cursor/");
+			expect(output).toContain("CLAUDE.md");
 		});
 
 		test("does not ask to update .gitignore when provider entries are already ignored", async () => {
 			const { writeEnabledProviders } = await getProviderFunctions();
 			await writeEnabledProviders(["claude-code"]);
-			await writeFile(".gitignore", ".cursor/\n", "utf-8");
+			await writeFile(".gitignore", ".cursor/\nCLAUDE.md\n", "utf-8");
 
 			const { stdout } = await captureConsole(async () => {
 				await runProviderEnable({}, "cursor");

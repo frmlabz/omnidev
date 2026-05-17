@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import type { SyncBundle } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "./types";
 import { createManagedOutput } from "./managed-outputs";
+import { yamlString } from "./yaml-frontmatter";
 
 /**
  * Writer for skills directories.
@@ -34,7 +35,7 @@ export const SkillsWriter: FileWriter = {
 			const skillPath = join(skillDir, "SKILL.md");
 			const content = `---
 name: ${skill.name}
-description: "${skill.description}"
+description: ${yamlString(skill.description)}
 ---
 
 ${skill.instructions}`;

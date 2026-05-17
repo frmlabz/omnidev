@@ -2,7 +2,6 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
 	CanonicalProviderId,
-	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
 	ProviderSyncResult,
@@ -13,15 +12,15 @@ import {
 	InstructionsMdWriter,
 	SkillsWriter,
 	CommandsAsSkillsWriter,
-	type AdapterWriterConfig,
 } from "#writers/generic/index";
 import { createProviderScopedBundle } from "#provider-bundle";
+import type { WriterBackedProviderAdapter } from "#types";
 import { CodexAgentsWriter, CodexHooksWriter, CodexTomlWriter } from "#writers/codex/index";
 
 /**
  * Codex adapter - generates AGENTS.md and skills.
  */
-export const codexAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
+export const codexAdapter: WriterBackedProviderAdapter = {
 	id: "codex",
 	displayName: "Codex",
 

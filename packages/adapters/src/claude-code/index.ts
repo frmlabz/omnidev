@@ -1,6 +1,5 @@
 import type {
 	CanonicalProviderId,
-	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
 	ProviderSyncResult,
@@ -12,17 +11,18 @@ import {
 	InstructionsMdWriter,
 	SkillsWriter,
 	CommandsAsSkillsWriter,
-	type AdapterWriterConfig,
 } from "#writers/generic/index";
 import { createProviderScopedBundle } from "#provider-bundle";
+import type { WriterBackedProviderAdapter } from "#types";
 import { ClaudeAgentsWriter } from "#writers/claude/index";
 
 /**
  * Claude Code adapter - writes CLAUDE.md, skills, and hooks.
  */
-export const claudeCodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
+export const claudeCodeAdapter: WriterBackedProviderAdapter = {
 	id: "claude-code",
 	displayName: "Claude Code",
+	additionalOutputPaths: [".mcp.json"],
 
 	writers: [
 		{ writer: InstructionsMdWriter, outputPath: "CLAUDE.md" },

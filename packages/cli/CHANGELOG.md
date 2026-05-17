@@ -1,5 +1,19 @@
 # @omnidev-ai/cli
 
+## 0.20.0
+
+### Minor Changes
+
+- 4bd01d5: Fix dynamic CLI capability loading for absolute capability paths
+
+### Patch Changes
+
+- 37b211f: Write the current Codex `features.hooks` flag instead of deprecated `features.codex_hooks` when enabling generated Codex hooks.
+- 0d967a9: Accept Claude-native hook events such as `WorktreeCreate` and `WorktreeRemove` in `[claude]` hook sections, and preserve them when syncing `.claude/settings.json`.
+- 2bf413d: Support multiple named MCP servers in a capability via `[mcps.<name>]`.
+- Only generate root `.mcp.json` for Claude Code syncs, and derive provider `.gitignore` suggestions from adapter output metadata so generated provider files and ignore entries stay aligned.
+- Escape generated skill frontmatter string values so descriptions with quotes remain valid YAML.
+
 ## 0.19.0
 
 ### Minor Changes

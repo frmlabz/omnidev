@@ -94,6 +94,27 @@ Original instructions`,
 		);
 	});
 
+	test("escapes quotes in generated frontmatter descriptions", async () => {
+		const description = `When the user mentions "A/B test," "split test," or 'AI SEO'.`;
+		const bundle = createBundle([
+			{
+				name: "ab-testing",
+				description,
+				instructions: "# A/B Test Setup",
+				capabilityId: "growth",
+			},
+		]);
+
+		await SkillsWriter.write(bundle, {
+			outputPath: ".codex/skills/",
+			projectRoot: testDir.path,
+		});
+
+		const content = readFileSync(`${testDir.path}/.codex/skills/ab-testing/SKILL.md`, "utf-8");
+		expect(content).toContain(`description: ${JSON.stringify(description)}`);
+		expect(content).not.toContain('description: "When the user mentions "A/B test,"');
+	});
+
 	test("writes multiple skills", async () => {
 		const skills: Skill[] = [
 			{

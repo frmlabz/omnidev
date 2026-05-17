@@ -16,8 +16,10 @@ export {
 	getAdapter,
 	getAllAdapters,
 	getEnabledAdapters,
+	getProviderGitignoreEntries,
 	type AdapterRegistry,
 } from "./registry";
+export type { WriterBackedProviderAdapter } from "./types";
 
 // Export sync with writers
 export {

@@ -8,6 +8,31 @@ describe("init command", () => {
 	setupTestDir("init-test-", { chdir: true });
 	const generatedCopyNotice = "Edit `OMNI.md` instead.";
 
+	async function createEnabledMcpCapability(): Promise<void> {
+		mkdirSync(".omni/capabilities/context7", { recursive: true });
+		await writeFile(
+			".omni/capabilities/context7/capability.toml",
+			`[capability]
+id = "context7"
+name = "Context7"
+version = "1.0.0"
+description = "Test MCP capability"
+
+[mcp]
+command = "npx"
+args = ["context7-mcp"]
+`,
+			"utf-8",
+		);
+		await writeFile(
+			"omni.toml",
+			`[profiles.default]
+capabilities = ["context7"]
+`,
+			"utf-8",
+		);
+	}
+
 	test("creates .omni/ directory", async () => {
 		await runInit({}, "claude-code");
 
@@ -140,6 +165,27 @@ describe("init command", () => {
 		await runInit({}, "codex");
 
 		expect(existsSync("CLAUDE.md")).toBe(false);
+	});
+
+	test("does not create root .mcp.json for Codex-only MCP capabilities", async () => {
+		await createEnabledMcpCapability();
+
+		await runInit({}, "codex");
+
+		expect(existsSync(".mcp.json")).toBe(false);
+		expect(existsSync(".codex/config.toml")).toBe(true);
+	});
+
+	test("creates root .mcp.json for Claude Code MCP capabilities", async () => {
+		await createEnabledMcpCapability();
+
+		await runInit({}, "claude-code");
+
+		expect(existsSync(".mcp.json")).toBe(true);
+		const content = JSON.parse(readFileSync(".mcp.json", "utf-8")) as {
+			mcpServers: Record<string, unknown>;
+		};
+		expect(content.mcpServers).toHaveProperty("context7");
 	});
 
 	test("creates both CLAUDE.md and .cursor/rules/ for 'both' providers", async () => {

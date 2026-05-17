@@ -134,6 +134,11 @@ export async function syncMcpJson(
 	capabilities: LoadedCapability[],
 	previousManifest: ResourceManifest,
 ): Promise<void> {
+	const currentMcps = collectCapabilityMcps(capabilities);
+	if (!existsSync(MCP_JSON_PATH) && currentMcps.size === 0) {
+		return;
+	}
+
 	const mcpJson = await readMcpJson();
 
 	// Collect all MCP server names from previous manifest
@@ -150,7 +155,7 @@ export async function syncMcpJson(
 	}
 
 	// Add MCPs from all enabled capabilities
-	for (const [name, mcp] of collectCapabilityMcps(capabilities)) {
+	for (const [name, mcp] of currentMcps) {
 		mcpJson.mcpServers[name] = buildMcpServerConfig(mcp);
 	}
 

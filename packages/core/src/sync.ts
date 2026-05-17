@@ -13,6 +13,7 @@ import {
 	getProviderManagedOutputs,
 	loadManifest,
 	saveManifest,
+	type ResourceManifest,
 } from "./state/manifest";
 import type { ManagedOutput, ProviderAdapter, ProviderContext, SyncBundle } from "./types";
 
@@ -34,6 +35,10 @@ export interface SyncOptions {
 interface InstallCommand {
 	cmd: "npm";
 	args: string[];
+}
+
+function hasManagedMcps(manifest: ResourceManifest): boolean {
+	return Object.values(manifest.capabilities).some((resources) => resources.mcps.length > 0);
 }
 
 function getDeclaredPackageManager(packageManager: unknown): string | undefined {
@@ -282,7 +287,9 @@ export async function buildSyncBundle(options?: {
  */
 export async function syncAgentConfiguration(options?: SyncOptions): Promise<SyncResult> {
 	const silent = options?.silent ?? false;
+	const adaptersProvided = options?.adapters !== undefined;
 	const adapters = options?.adapters ?? [];
+	const enabledProviderIds = new Set(adapters.map((adapter) => String(adapter.id)));
 
 	const { bundle, warnings } = await buildSyncBundle({ silent });
 	const capabilities = bundle.capabilities;
@@ -323,11 +330,17 @@ export async function syncAgentConfiguration(options?: SyncOptions): Promise<Syn
 	// Ensure core directories exist
 	mkdirSync(".omni", { recursive: true });
 
-	// Sync .mcp.json with capability MCP servers (before saving manifest)
-	await syncMcpJson(capabilities, previousManifest);
+	// Root .mcp.json is a Claude Code provider file. Keep stale managed entries clean
+	// when Claude is not selected, but do not create the file for other providers.
+	if (adaptersProvided) {
+		if (enabledProviderIds.has("claude-code")) {
+			await syncMcpJson(capabilities, previousManifest);
+		} else if (hasManagedMcps(previousManifest)) {
+			await syncMcpJson([], previousManifest);
+		}
+	}
 
 	// Run enabled adapters to write provider-specific files
-	const enabledProviderIds = new Set(adapters.map((adapter) => String(adapter.id)));
 	const successfulProviderOutputs = new Map<string, ManagedOutput[]>();
 
 	if (adapters.length > 0) {

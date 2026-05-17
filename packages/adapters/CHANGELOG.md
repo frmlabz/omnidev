@@ -1,5 +1,14 @@
 # @omnidev-ai/adapters
 
+## 0.3.1
+
+### Patch Changes
+
+- Escape generated skill frontmatter string values so descriptions with quotes remain valid YAML.
+- Updated dependencies [2058014]
+- Updated dependencies [af76845]
+  - @omnidev-ai/core@0.16.1
+
 ## 0.3.0
 
 ### Minor Changes

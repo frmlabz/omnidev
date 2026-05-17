@@ -2,18 +2,12 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
 	CanonicalProviderId,
-	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
 	ProviderSyncResult,
 	SyncBundle,
 } from "@omnidev-ai/core";
-import {
-	executeWriters,
-	InstructionsMdWriter,
-	SkillsWriter,
-	type AdapterWriterConfig,
-} from "#writers/generic/index";
+import { executeWriters, InstructionsMdWriter, SkillsWriter } from "#writers/generic/index";
 import {
 	CursorAgentsWriter,
 	CursorCommandsWriter,
@@ -21,11 +15,12 @@ import {
 	CursorRulesWriter,
 } from "#writers/cursor/index";
 import { createProviderScopedBundle } from "#provider-bundle";
+import type { WriterBackedProviderAdapter } from "#types";
 
 /**
  * Cursor adapter - writes CLAUDE.md, skills, rules, agents, and commands.
  */
-export const cursorAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
+export const cursorAdapter: WriterBackedProviderAdapter = {
 	id: "cursor",
 	displayName: "Cursor",
 

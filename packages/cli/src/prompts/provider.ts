@@ -1,15 +1,9 @@
 import { checkbox, confirm } from "@inquirer/prompts";
+import { getProviderGitignoreEntries } from "@omnidev-ai/adapters";
 import type { ProviderId } from "@omnidev-ai/core";
 
-const PROVIDER_GITIGNORE_FILES: Record<string, string[]> = {
-	"claude-code": ["CLAUDE.md", ".claude/", ".mcp.json"],
-	cursor: [".cursor/"],
-	codex: ["AGENTS.md", ".codex/"],
-	opencode: [".opencode/"],
-};
-
 export function getProviderGitignoreFiles(providers: ProviderId[]): string[] {
-	return providers.flatMap((p) => PROVIDER_GITIGNORE_FILES[p] ?? []);
+	return getProviderGitignoreEntries(providers);
 }
 
 export async function promptForProviders(): Promise<ProviderId[]> {

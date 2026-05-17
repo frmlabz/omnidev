@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { SyncBundle, Command } from "@omnidev-ai/core";
 import type { FileWriter, WriterContext, WriterResult } from "#writers/generic/types";
 import { createManagedOutput } from "#writers/generic/managed-outputs";
+import { yamlString } from "#writers/generic/yaml-frontmatter";
 
 /**
  * Generate YAML frontmatter for a skill derived from a command.
@@ -11,10 +12,10 @@ function generateSkillFrontmatter(command: Command): string {
 	const lines: string[] = ["---"];
 
 	lines.push(`name: ${command.name}`);
-	lines.push(`description: "${command.description.replace(/"/g, '\\"')}"`);
+	lines.push(`description: ${yamlString(command.description)}`);
 
 	if (command.allowedTools) {
-		lines.push(`allowed_tools: "${command.allowedTools}"`);
+		lines.push(`allowed_tools: ${yamlString(command.allowedTools)}`);
 	}
 
 	lines.push("---");

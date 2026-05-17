@@ -1,5 +1,12 @@
 # @omnidev-ai/core
 
+## 0.16.1
+
+### Patch Changes
+
+- 2058014: Fix hook capability-root expansion to use absolute paths when loading capabilities. This prevents Claude hook commands in `.claude/settings.json` from resolving relative to an unexpected working directory and failing to start.
+- af76845: Fix sync corrupting parent git repository when a capability's `.git` directory is empty or invalid. Previously, an empty `.git` directory passed the existence check, causing `git fetch --depth 1` and `git reset --hard` to walk up and operate on the user's project repo instead. Now validates that `.git` is a real standalone repository before running any git commands, and re-clones when the repo is corrupted.
+
 ## 0.16.0
 
 ### Minor Changes

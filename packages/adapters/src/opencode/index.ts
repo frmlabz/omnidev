@@ -2,25 +2,20 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type {
 	CanonicalProviderId,
-	ProviderAdapter,
 	ProviderContext,
 	ProviderInitResult,
 	ProviderSyncResult,
 	SyncBundle,
 } from "@omnidev-ai/core";
-import {
-	executeWriters,
-	InstructionsMdWriter,
-	SkillsWriter,
-	type AdapterWriterConfig,
-} from "#writers/generic/index";
+import { executeWriters, InstructionsMdWriter, SkillsWriter } from "#writers/generic/index";
 import { createProviderScopedBundle } from "#provider-bundle";
+import type { WriterBackedProviderAdapter } from "#types";
 import { OpenCodeAgentsWriter, OpenCodeCommandsWriter } from "#writers/opencode/index";
 
 /**
  * OpenCode adapter - generates .opencode/instructions.md and skills from OMNI.md.
  */
-export const opencodeAdapter: ProviderAdapter & { writers: AdapterWriterConfig[] } = {
+export const opencodeAdapter: WriterBackedProviderAdapter = {
 	id: "opencode",
 	displayName: "OpenCode",
 
