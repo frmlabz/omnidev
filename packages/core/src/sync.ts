@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { buildCapabilityRegistry } from "./capability/registry";
 import { fetchAllCapabilitySources, type SyncWarning } from "./capability/sources";
 import { loadConfig } from "./config/config";
@@ -36,6 +36,14 @@ interface InstallCommand {
 	cmd: "npm";
 	args: string[];
 }
+
+interface CapabilityInstallLockOptions {
+	retryMs?: number;
+	staleMs?: number;
+}
+
+const DEFAULT_LOCK_RETRY_MS = 100;
+const DEFAULT_LOCK_STALE_MS = 30 * 60 * 1000;
 
 function hasManagedMcps(manifest: ResourceManifest): boolean {
 	return Object.values(manifest.capabilities).some((resources) => resources.mcps.length > 0);
@@ -81,6 +89,144 @@ export function resolveCapabilityInstallCommand(
 		cmd: "npm",
 		args: [existsSync(packageLockPath) ? "ci" : "install"],
 	};
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getCapabilityInstallLockPath(capabilityPath: string): string {
+	const locksDir = join(dirname(dirname(capabilityPath)), ".locks");
+	return join(locksDir, `${basename(capabilityPath)}.install.lock`);
+}
+
+function isProcessRunning(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (error) {
+		if (typeof error === "object" && error !== null && "code" in error) {
+			return error.code !== "ESRCH";
+		}
+		return false;
+	}
+}
+
+function isLockStale(lockPath: string, staleMs: number): boolean {
+	try {
+		const ownerPath = join(lockPath, "owner.json");
+		if (existsSync(ownerPath)) {
+			const owner = JSON.parse(readFileSync(ownerPath, "utf-8")) as { pid?: unknown };
+			if (typeof owner.pid === "number") {
+				return !isProcessRunning(owner.pid);
+			}
+		}
+
+		const stats = statSync(lockPath);
+		return Date.now() - stats.mtimeMs > staleMs;
+	} catch {
+		return true;
+	}
+}
+
+function writeLockOwner(lockPath: string): void {
+	writeFileSync(
+		join(lockPath, "owner.json"),
+		JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() }),
+	);
+}
+
+function releaseLock(lockPath: string): void {
+	rmSync(lockPath, { recursive: true, force: true });
+}
+
+function tryAcquireCleanupLock(lockPath: string, staleMs: number): (() => void) | null {
+	const cleanupLockPath = `${lockPath}.cleanup`;
+
+	for (;;) {
+		try {
+			mkdirSync(cleanupLockPath);
+			writeLockOwner(cleanupLockPath);
+			return () => releaseLock(cleanupLockPath);
+		} catch (error) {
+			if (typeof error !== "object" || error === null || !("code" in error)) {
+				throw error;
+			}
+
+			if (error.code !== "EEXIST") {
+				throw error;
+			}
+
+			if (!isLockStale(cleanupLockPath, staleMs)) {
+				return null;
+			}
+
+			releaseLock(cleanupLockPath);
+		}
+	}
+}
+
+async function acquireCapabilityInstallLock(
+	capabilityPath: string,
+	options: CapabilityInstallLockOptions = {},
+): Promise<() => void> {
+	const retryMs = options.retryMs ?? DEFAULT_LOCK_RETRY_MS;
+	const staleMs = options.staleMs ?? DEFAULT_LOCK_STALE_MS;
+	const lockPath = getCapabilityInstallLockPath(capabilityPath);
+
+	mkdirSync(dirname(lockPath), { recursive: true });
+
+	for (;;) {
+		try {
+			mkdirSync(lockPath);
+			try {
+				writeLockOwner(lockPath);
+			} catch (error) {
+				releaseLock(lockPath);
+				throw error;
+			}
+			return () => {
+				releaseLock(lockPath);
+			};
+		} catch (error) {
+			if (typeof error !== "object" || error === null || !("code" in error)) {
+				throw error;
+			}
+
+			if (error.code !== "EEXIST") {
+				throw error;
+			}
+
+			if (isLockStale(lockPath, staleMs)) {
+				const releaseCleanupLock = tryAcquireCleanupLock(lockPath, staleMs);
+				if (releaseCleanupLock) {
+					try {
+						if (isLockStale(lockPath, staleMs)) {
+							releaseLock(lockPath);
+						}
+					} finally {
+						releaseCleanupLock();
+					}
+				}
+				continue;
+			}
+
+			await sleep(retryMs);
+		}
+	}
+}
+
+export async function withCapabilityInstallLock<T>(
+	capabilityPath: string,
+	action: () => Promise<T>,
+	options?: CapabilityInstallLockOptions,
+): Promise<T> {
+	const release = await acquireCapabilityInstallLock(capabilityPath, options);
+	try {
+		return await action();
+	} finally {
+		release();
+	}
 }
 
 /**
@@ -147,49 +293,14 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 		}
 
 		try {
-			// Install dependencies silently (only show errors)
-			await new Promise<void>((resolve, reject) => {
-				const { cmd, args } = resolveCapabilityInstallCommand(capabilityPath, {
-					hasNpm,
-				});
-
-				const proc = spawn(cmd, args, {
-					cwd: capabilityPath,
-					stdio: "pipe",
-				});
-
-				let stderr = "";
-				proc.stderr?.on("data", (data) => {
-					stderr += data.toString();
-				});
-
-				proc.on("close", (code) => {
-					if (code === 0) {
-						resolve();
-					} else {
-						reject(new Error(`Failed to install dependencies for ${capabilityPath}:\n${stderr}`));
-					}
-				});
-
-				proc.on("error", (error) => {
-					reject(error);
-				});
-			});
-
-			// Check if capability has a build script - always rebuild to ensure latest changes
-			const hasIndexTs = existsSync(join(capabilityPath, "index.ts"));
-			let hasBuildScript = false;
-			try {
-				const pkgJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-				hasBuildScript = Boolean(pkgJson.scripts?.build);
-			} catch {
-				// Ignore parse errors
-			}
-
-			if (hasBuildScript) {
-				// Always rebuild capabilities with build scripts to ensure latest changes
+			await withCapabilityInstallLock(capabilityPath, async () => {
+				// Install dependencies silently (only show errors)
 				await new Promise<void>((resolve, reject) => {
-					const proc = spawn("npm", ["run", "build"], {
+					const { cmd, args } = resolveCapabilityInstallCommand(capabilityPath, {
+						hasNpm,
+					});
+
+					const proc = spawn(cmd, args, {
 						cwd: capabilityPath,
 						stdio: "pipe",
 					});
@@ -203,7 +314,7 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 						if (code === 0) {
 							resolve();
 						} else {
-							reject(new Error(`Failed to build capability ${capabilityPath}:\n${stderr}`));
+							reject(new Error(`Failed to install dependencies for ${capabilityPath}:\n${stderr}`));
 						}
 					});
 
@@ -211,16 +322,53 @@ export async function installCapabilityDependencies(silent: boolean): Promise<vo
 						reject(error);
 					});
 				});
-			} else if (hasIndexTs && !silent) {
-				// Warn user that capability has TypeScript but no build setup
-				const hasBuiltIndex = existsSync(join(capabilityPath, "dist", "index.js"));
-				if (!hasBuiltIndex) {
-					console.warn(
-						`Warning: Capability at ${capabilityPath} has index.ts but no build script.\n` +
-							`  Add a "build" script to package.json (e.g., "build": "tsc") to compile TypeScript.`,
-					);
+
+				// Check if capability has a build script - always rebuild to ensure latest changes
+				const hasIndexTs = existsSync(join(capabilityPath, "index.ts"));
+				let hasBuildScript = false;
+				try {
+					const pkgJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+					hasBuildScript = Boolean(pkgJson.scripts?.build);
+				} catch {
+					// Ignore parse errors
 				}
-			}
+
+				if (hasBuildScript) {
+					// Always rebuild capabilities with build scripts to ensure latest changes
+					await new Promise<void>((resolve, reject) => {
+						const proc = spawn("npm", ["run", "build"], {
+							cwd: capabilityPath,
+							stdio: "pipe",
+						});
+
+						let stderr = "";
+						proc.stderr?.on("data", (data) => {
+							stderr += data.toString();
+						});
+
+						proc.on("close", (code) => {
+							if (code === 0) {
+								resolve();
+							} else {
+								reject(new Error(`Failed to build capability ${capabilityPath}:\n${stderr}`));
+							}
+						});
+
+						proc.on("error", (error) => {
+							reject(error);
+						});
+					});
+				} else if (hasIndexTs && !silent) {
+					// Warn user that capability has TypeScript but no build setup
+					const hasBuiltIndex = existsSync(join(capabilityPath, "dist", "index.js"));
+					if (!hasBuiltIndex) {
+						console.warn(
+							`Warning: Capability at ${capabilityPath} has index.ts but no build script.\n` +
+								`  Add a "build" script to package.json (e.g., "build": "tsc") to compile TypeScript.`,
+						);
+					}
+				}
+			});
 		} catch (error) {
 			// Log warning but continue with other capabilities
 			const errorMessage = error instanceof Error ? error.message : String(error);

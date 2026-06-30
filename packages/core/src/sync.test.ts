@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveCapabilityInstallCommand } from "./sync";
+import { resolveCapabilityInstallCommand, withCapabilityInstallLock } from "./sync";
 import { setupTestDir } from "./test-utils/helpers";
 
 const testDir = setupTestDir("sync-test-");
+
+function wait(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 describe("resolveCapabilityInstallCommand", () => {
 	test("prefers npm ci when a package-lock.json is present", () => {
@@ -63,5 +67,55 @@ describe("resolveCapabilityInstallCommand", () => {
 		expect(() => resolveCapabilityInstallCommand(capabilityPath, { hasNpm: false })).toThrow(
 			"npm is not installed",
 		);
+	});
+});
+
+describe("withCapabilityInstallLock", () => {
+	test("serializes concurrent work for the same capability", async () => {
+		const capabilityPath = join(testDir.path, "locks", "capability");
+		mkdirSync(capabilityPath, { recursive: true });
+
+		const events: string[] = [];
+
+		const first = withCapabilityInstallLock(
+			capabilityPath,
+			async () => {
+				events.push("first:start");
+				await wait(30);
+				events.push("first:end");
+			},
+			{ retryMs: 1 },
+		);
+
+		await wait(5);
+
+		const second = withCapabilityInstallLock(
+			capabilityPath,
+			async () => {
+				events.push("second");
+			},
+			{ retryMs: 1 },
+		);
+
+		await Promise.all([first, second]);
+
+		expect(events).toEqual(["first:start", "first:end", "second"]);
+	});
+
+	test("removes stale locks whose owner process has exited", async () => {
+		const capabilityPath = join(testDir.path, "stale-locks", ".omni", "capabilities", "capability");
+		const lockPath = join(
+			testDir.path,
+			"stale-locks",
+			".omni",
+			".locks",
+			"capability.install.lock",
+		);
+		mkdirSync(lockPath, { recursive: true });
+		writeFileSync(join(lockPath, "owner.json"), JSON.stringify({ pid: 999_999_999 }));
+
+		await withCapabilityInstallLock(capabilityPath, async () => undefined, { retryMs: 1 });
+
+		expect(existsSync(lockPath)).toBe(false);
 	});
 });
