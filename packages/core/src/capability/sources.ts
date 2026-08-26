@@ -8,10 +8,11 @@
  * - Version tracking and update detection
  */
 
-import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import type {
 	CapabilitiesLockFile,
@@ -23,7 +24,6 @@ import type {
 	VersionSource,
 } from "#types/index";
 import { isFileSourceConfig } from "#types/index";
-import { createHash } from "node:crypto";
 
 // Local path for .omni directory
 const OMNI_LOCAL = ".omni";
@@ -884,12 +884,16 @@ function hasCapabilityToml(dirPath: string): boolean {
 /**
  * Check if a directory should be wrapped (has plugin.json or appropriate structure)
  * Returns true if:
- * 1. .claude-plugin/plugin.json exists, OR
+ * 1. .claude-plugin/plugin.json or .claude-plugin/marketplace.json exists, OR
  * 2. Any of the expected content directories exist (skills, agents, commands, rules, docs)
  */
 async function shouldWrapDirectory(dirPath: string): Promise<boolean> {
-	// Check for plugin.json
-	if (existsSync(join(dirPath, ".claude-plugin", "plugin.json"))) {
+	// Check for plugin.json or marketplace.json. A marketplace-only repo still
+	// declares skills, via plugins[].skills[].path.
+	if (
+		existsSync(join(dirPath, ".claude-plugin", "plugin.json")) ||
+		existsSync(join(dirPath, ".claude-plugin", "marketplace.json"))
+	) {
 		return true;
 	}
 
@@ -948,6 +952,111 @@ async function copyWrappedContentOnly(sourcePath: string, targetPath: string): P
 			await cp(sourceEntryPath, targetEntryPath);
 		}
 	}
+}
+
+/**
+ * A skill entry from .claude-plugin/marketplace.json.
+ */
+interface MarketplaceSkillEntry {
+	name?: string;
+	path?: string;
+}
+
+interface MarketplacePluginEntry {
+	source?: string;
+	skills?: MarketplaceSkillEntry[];
+}
+
+/**
+ * Parse .claude-plugin/marketplace.json if it exists.
+ */
+async function parseMarketplaceJson(dirPath: string): Promise<MarketplacePluginEntry[]> {
+	const marketplacePath = join(dirPath, ".claude-plugin", "marketplace.json");
+	if (!existsSync(marketplacePath)) {
+		return [];
+	}
+
+	try {
+		const raw = await readFile(marketplacePath, "utf-8");
+		const parsed = JSON.parse(raw) as { plugins?: MarketplacePluginEntry[] };
+		return Array.isArray(parsed.plugins) ? parsed.plugins : [];
+	} catch (error) {
+		console.warn(`Failed to parse marketplace.json in ${dirPath}:`, error);
+		return [];
+	}
+}
+
+/**
+ * Resolve repo-relative segments, refusing anything that escapes the repo root.
+ * These paths come from a remote marketplace.json, so "../.." must never resolve
+ * outside the clone.
+ */
+function resolveInsideRepo(repoPath: string, ...segments: string[]): string | null {
+	const repoRoot = resolve(repoPath);
+	const candidate = resolve(repoRoot, ...segments);
+	if (candidate !== repoRoot && !candidate.startsWith(`${repoRoot}${sep}`)) {
+		return null;
+	}
+	return candidate;
+}
+
+/**
+ * Claude plugin repos may keep skills outside a top-level `skills/` directory,
+ * declaring them in .claude-plugin/marketplace.json as `plugins[].skills[].path`.
+ * Wrapping only recognizes `skills/<name>/SKILL.md`, so copy each declared skill
+ * into that layout before pruning discards its original directory.
+ *
+ * Copies rather than moves: re-syncing hard-resets the clone, which restores the
+ * originals, so copying keeps this idempotent across syncs.
+ *
+ * Returns the number of skills materialized.
+ */
+export async function materializeMarketplaceSkills(repoPath: string): Promise<number> {
+	const plugins = await parseMarketplaceJson(repoPath);
+	if (plugins.length === 0) {
+		return 0;
+	}
+
+	let materialized = 0;
+
+	for (const plugin of plugins) {
+		if (!Array.isArray(plugin.skills)) {
+			continue;
+		}
+
+		for (const skill of plugin.skills) {
+			if (!skill.path) {
+				continue;
+			}
+
+			const sourceDir = resolveInsideRepo(repoPath, plugin.source ?? ".", skill.path);
+			if (!sourceDir) {
+				console.warn(`Skipping marketplace skill outside repository: ${skill.path}`);
+				continue;
+			}
+			if (!existsSync(sourceDir)) {
+				continue;
+			}
+			if (!SKILL_FILES.some((file) => existsSync(join(sourceDir, file)))) {
+				continue;
+			}
+
+			// Name by directory, not the marketplace `name`: discovery keys skills off
+			// the directory name and it has to keep matching the SKILL.md frontmatter.
+			const targetDir = join(repoPath, "skills", basename(sourceDir));
+			if (resolve(targetDir) === sourceDir) {
+				materialized++;
+				continue;
+			}
+
+			await mkdir(join(repoPath, "skills"), { recursive: true });
+			await rm(targetDir, { recursive: true, force: true });
+			await cp(sourceDir, targetDir, { recursive: true });
+			materialized++;
+		}
+	}
+
+	return materialized;
 }
 
 /**
@@ -1353,6 +1462,8 @@ async function fetchGitCapabilitySource(
 		}
 		await mkdir(join(targetPath, ".."), { recursive: true });
 		if (needsWrap) {
+			// Pull marketplace-declared skills into skills/ before the copy filters them out.
+			await materializeMarketplaceSkills(sourcePath);
 			await copyWrappedContentOnly(sourcePath, targetPath);
 		} else {
 			await cp(sourcePath, targetPath, { recursive: true });
@@ -1393,6 +1504,9 @@ async function fetchGitCapabilitySource(
 	}
 
 	if (needsWrap) {
+		// Pull marketplace-declared skills into skills/ before pruning removes their dirs.
+		await materializeMarketplaceSkills(repoPath);
+
 		// Keep only recognized top-level capability directories.
 		// Preserve .git for direct-cloned repos so future syncs can fetch updates.
 		await pruneUnknownWrappedEntries(repoPath, true);

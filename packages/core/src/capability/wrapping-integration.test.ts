@@ -2,10 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { parse as parseToml } from "smol-toml";
 import { setupTestDir } from "@omnidev-ai/core/test-utils";
+import { parse as parseToml } from "smol-toml";
 import type { CapabilityConfig, OmniConfig } from "#types/index";
-import { generateMcpCapabilities, normalizeFolderNames } from "./sources";
+import {
+	generateMcpCapabilities,
+	materializeMarketplaceSkills,
+	normalizeFolderNames,
+} from "./sources";
 
 describe("wrapping integration - expo-like structure", () => {
 	const testDir = setupTestDir("test-expo-", { chdir: true });
@@ -761,5 +765,133 @@ describe("MCP capability generation", () => {
 		expect(sseParsed.mcp?.transport).toBe("sse");
 		expect(sseParsed.mcp?.url).toBe("https://mcp.asana.com/sse");
 		expect(sseParsed.mcp?.headers?.["X-API-Key"]).toBe("key");
+	});
+});
+
+describe("wrapping marketplace.json skills", () => {
+	const testDir = setupTestDir("test-marketplace-", { chdir: true });
+
+	/** Build a repo whose skills live in top-level dirs, declared via marketplace.json. */
+	function writeMarketplaceRepo(
+		repoDir: string,
+		skills: Array<{ name: string; path: string }>,
+		options: { createDirs?: boolean } = {},
+	) {
+		mkdirSync(join(repoDir, ".claude-plugin"), { recursive: true });
+		writeFileSync(
+			join(repoDir, ".claude-plugin", "marketplace.json"),
+			JSON.stringify({
+				name: "demo",
+				plugins: [{ name: "demo", source: "./", skills }],
+			}),
+		);
+
+		if (options.createDirs === false) {
+			return;
+		}
+
+		for (const skill of skills) {
+			const skillDir = join(repoDir, skill.path);
+			mkdirSync(skillDir, { recursive: true });
+			writeFileSync(
+				join(skillDir, "SKILL.md"),
+				`---
+name: ${skill.path}
+description: Skill ${skill.name}
+---
+
+# ${skill.name}`,
+			);
+		}
+	}
+
+	test("copies marketplace-declared skills into skills/", async () => {
+		const repoDir = join(testDir.path, "repo-basic");
+		writeMarketplaceRepo(repoDir, [
+			{ name: "generate", path: "demo-generate" },
+			{ name: "brandkit", path: "demo-brandkit" },
+		]);
+
+		const count = await materializeMarketplaceSkills(repoDir);
+
+		expect(count).toBe(2);
+		// Named by directory, not the marketplace `name`, so it matches the frontmatter.
+		expect(existsSync(join(repoDir, "skills", "demo-generate", "SKILL.md"))).toBe(true);
+		expect(existsSync(join(repoDir, "skills", "demo-brandkit", "SKILL.md"))).toBe(true);
+		expect(existsSync(join(repoDir, "skills", "generate"))).toBe(false);
+	});
+
+	test("preserves nested skill assets", async () => {
+		const repoDir = join(testDir.path, "repo-nested");
+		writeMarketplaceRepo(repoDir, [{ name: "generate", path: "demo-generate" }]);
+		mkdirSync(join(repoDir, "demo-generate", "references"), { recursive: true });
+		writeFileSync(join(repoDir, "demo-generate", "references", "api.md"), "# API");
+
+		await materializeMarketplaceSkills(repoDir);
+
+		expect(existsSync(join(repoDir, "skills", "demo-generate", "references", "api.md"))).toBe(true);
+	});
+
+	test("is idempotent across repeated runs", async () => {
+		const repoDir = join(testDir.path, "repo-idempotent");
+		writeMarketplaceRepo(repoDir, [{ name: "generate", path: "demo-generate" }]);
+
+		expect(await materializeMarketplaceSkills(repoDir)).toBe(1);
+		expect(await materializeMarketplaceSkills(repoDir)).toBe(1);
+		expect(existsSync(join(repoDir, "skills", "demo-generate", "SKILL.md"))).toBe(true);
+	});
+
+	test("refuses paths that escape the repository", async () => {
+		const repoDir = join(testDir.path, "repo-traversal");
+		const outsideDir = join(testDir.path, "outside-skill");
+		mkdirSync(outsideDir, { recursive: true });
+		writeFileSync(join(outsideDir, "SKILL.md"), "---\nname: outside\n---\n");
+
+		writeMarketplaceRepo(repoDir, [{ name: "outside", path: "../outside-skill" }], {
+			createDirs: false,
+		});
+
+		expect(await materializeMarketplaceSkills(repoDir)).toBe(0);
+		expect(existsSync(join(repoDir, "skills"))).toBe(false);
+	});
+
+	test("skips declared paths that are missing or lack a SKILL.md", async () => {
+		const repoDir = join(testDir.path, "repo-partial");
+		writeMarketplaceRepo(repoDir, [{ name: "real", path: "demo-real" }]);
+		// Declared but absent, plus a directory with no SKILL.md.
+		writeFileSync(
+			join(repoDir, ".claude-plugin", "marketplace.json"),
+			JSON.stringify({
+				name: "demo",
+				plugins: [
+					{
+						name: "demo",
+						source: "./",
+						skills: [
+							{ name: "real", path: "demo-real" },
+							{ name: "ghost", path: "demo-ghost" },
+							{ name: "empty", path: "demo-empty" },
+						],
+					},
+				],
+			}),
+		);
+		mkdirSync(join(repoDir, "demo-empty"), { recursive: true });
+
+		expect(await materializeMarketplaceSkills(repoDir)).toBe(1);
+		expect(existsSync(join(repoDir, "skills", "demo-real"))).toBe(true);
+		expect(existsSync(join(repoDir, "skills", "demo-empty"))).toBe(false);
+	});
+
+	test("no-ops for repos without marketplace.json", async () => {
+		const repoDir = join(testDir.path, "repo-none");
+		mkdirSync(join(repoDir, ".claude-plugin"), { recursive: true });
+		writeFileSync(
+			join(repoDir, ".claude-plugin", "plugin.json"),
+			JSON.stringify({ name: "demo", version: "1.0.0" }),
+		);
+
+		expect(await materializeMarketplaceSkills(repoDir)).toBe(0);
+		expect(existsSync(join(repoDir, "skills"))).toBe(false);
 	});
 });
